@@ -1,0 +1,10 @@
+# ninja log v6
+5	575	7797474309170399	CMakeFiles/PROJECT_NAME.dir/scripts/main.cpp.obj	a12437cf036e99a6
+10	359	7797494278392189	PROJECT_NAME.exe	eb1d24cf8a1dcbdf
+1	471	7797503709645697	build.ninja	668b292447efab28
+18	493	7797447189361230	CMakeFiles/PROJECT_NAME.dir/scripts/item.cpp.obj	b50ef32664ffb174
+10	817	7797448031740036	CMakeFiles/PROJECT_NAME.dir/scripts/game.cpp.obj	4464c02ee2c17c4f
+11	887	7797449054981284	CMakeFiles/PROJECT_NAME.dir/scripts/player.cpp.obj	4e3754fbbef9a563
+27	742	7797447189451522	CMakeFiles/PROJECT_NAME.dir/scripts/quest.cpp.obj	37386eec237b8f96
+8	544	7797474309210394	CMakeFiles/PROJECT_NAME.dir/scripts/gamePerson.cpp.obj	b595ca7b85e22a0e
+1	471	7797503709615734	C:/Users/User/CLionProjects/RPG/cmake-build-debug/cmake_install.cmake	668b292447efab28
