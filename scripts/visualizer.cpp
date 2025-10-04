@@ -1,7 +1,7 @@
 #include "visualizer.h"
 
 
-static void Visualizer::playSound(int &chanel, Mix_Chunk *sound) const
+void Visualizer::playSound(int &chanel, Mix_Chunk *sound) const
 {
     chanel = Mix_PlayChannel(-1, sound, 0);
 }
