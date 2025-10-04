@@ -32,11 +32,11 @@ std::vector<int> Player::getAvailableItems() const
 
 Location Player::getPlayerPlace(const Game& game) const
 {
-    for (const auto& loc : game.locations)
+   /* for (const auto& loc : game.locations)
         if (coords.x > loc.coord.x && coords.x < loc.coord.x + loc.w &&
             coords.y > loc.coord.y && coords.y < loc.coord.y + loc.h)
             return loc;
-    return {};
+    return {};*/
 }
 
 void Player::addDiscoveredEnemy(EnemiesNames enemy) { discoveredEnemies.push_back(enemy); }

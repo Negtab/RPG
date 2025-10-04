@@ -1,0 +1,12 @@
+//
+// Created by User on 02.10.2025.
+//
+
+#ifndef PROJECT_NAME_ERRORS_H
+#define PROJECT_NAME_ERRORS_H
+
+
+enum class errors { ERROR_FILE_NOT_FOUND, ERROR_FILE_READ, ERROR_FILE_WRITE };
+
+
+#endif //PROJECT_NAME_ERRORS_H

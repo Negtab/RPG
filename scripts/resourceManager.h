@@ -3,21 +3,39 @@
 
 #include <string>
 #include <map>
-#include <memory>
 #include <SDL.h>
+#include <SDL_mixer.h>
 
-class resourceManager
+
+class ResourceManager
 {
 public:
-    resourceManager() = default;
-    ~resourceManager() = default;
+    ResourceManager() = default;
+    ~ResourceManager() = default;
+    
+    [[nodiscard]] SDL_Texture& getTexture(const std::string& path) const;
+    [[nodiscard]] SDL_Surface& getImage(const std::string& path) const;
+    [[nodiscard]] Mix_Music& getMusic(const std::string& path) const;
+    [[nodiscard]] Mix_Chunk& getSound(const std::string& path) const;
 
-    SDL_Texture::Texture& getTexture(const std::string& path);
-    Mix_Music::Music& getMusic(const std::string& path);
+    void initialize();
+
+    bool addTexture(const std::string& path);
+    bool addImage(const std::string& path);
+    bool addSound(const std::string& path);
+    bool addMusic(const std::string& path);
 
 private:
-    std::map<std::string, std::unique_ptr<SDL>> textures;
-    std::map<std::string, std::unique_ptr<sf::Music>> musics;
+    std::map<std::string, SDL_Texture*> textures;
+    std::map<std::string, Mix_Music*> music;
+    std::map<std::string, Mix_Chunk*> sounds;
+    std::map<std::string, SDL_Surface*> images;
+
+    bool isFilePNG(const std::string& path);
+    bool isFileJPG(const std::string& path);
+    bool isFileMP3(const std::string& path);
+    bool isFileWAV(const std::string& path);
+    std::string getName(const std::string& path);
 };
 
 

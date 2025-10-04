@@ -9,12 +9,19 @@
 class Game
 {
 public:
-    Game() = default;
+    explicit Game();
     ~Game() = default;
 
     void addPlayer(const Player& player);
+    void addQuest(const Quest& quest);
+    void addItem(const Item& item);
 
-    GameState state{GameState::CreatePlayer};
+    void setGameState(const GameState &state);
+    void setPreviousGameState(const GameState &state);
+    [[nodiscard]] GameState getGameState() const;
+    [[nodiscard]] GameState getPrevGameState() const;
+private:
+    GameState state, prevState{GameState::CreatePlayer};
     std::map<int, Item> items;
     std::map<int, Skill> skills;
     std::vector<Location> locations;
@@ -23,6 +30,5 @@ public:
     std::vector<Quest> quests;
     std::string pathToSave;
 };
-
 
 #endif //PROJECT_NAME_GAME_H

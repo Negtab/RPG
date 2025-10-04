@@ -1,4 +1,5 @@
-"E:\CLion 2025.2.1\bin\cmake\win\x64\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_MAKE_PROGRAM=E:/CLion 2025.2.1/bin/ninja/win/x64/ninja.exe" -G Ninja -S C:\Users\User\CLionProjects\RPG -B C:\Users\User\CLionProjects\RPG\cmake-build-debug
--- Configuring done (0.3s)
+"E:\CLion 2025.2.1\bin\cmake\win\x64\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_MAKE_PROGRAM=E:/CLion 2025.2.1/bin/ninja/win/x64/ninja.exe" -G Ninja -S E:\CLionProjects\RPG -B E:\CLionProjects\RPG\cmake-build-debug
+-- Found SDL2_ttf: E:/CLionProjects/RPG/SDL2_ttf/x86_64-w64-mingw32/lib/libSDL2_ttf.dll.a (found version "2.20.1")
+-- Configuring done (0.9s)
 -- Generating done (0.1s)
--- Build files have been written to: C:/Users/User/CLionProjects/RPG/cmake-build-debug
+-- Build files have been written to: E:/CLionProjects/RPG/cmake-build-debug

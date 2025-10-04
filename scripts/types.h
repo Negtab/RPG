@@ -17,4 +17,4 @@ struct Location { Point coord{}; std::string name; int32_t h{0}, w{0}; bool isSa
 struct Skill { int id{0}; std::string name; uint32_t damage{0}, manaCost{0}; uint8_t cooldown{0}, aimCount{0}; bool isDamaging{true}; Elemental damageType{Elemental::None}; };
 struct Specialization { SpecializationNames name{SpecializationNames::None}; uint32_t buffXp{0}, buffCurrentMp{0}; };
 
-#endif //PROJECT_NAME_TYPES_H
+#endif
