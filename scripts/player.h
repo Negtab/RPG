@@ -19,9 +19,15 @@ public:
     [[nodiscard]] int32_t getPlayerSpeed() const noexcept;
     void setPlayerSpeed(int32_t newSpeed) noexcept;
 
+    [[nodiscard]] std::string getPlayerName() const noexcept;
+    void setPlayerName(std::string newName) noexcept;
+
+    [[nodiscard]] Point getPlayerCoords() const noexcept;
+    void setPlayerCoords(Point newCoords) noexcept;
+
     [[nodiscard]] std::vector<EnemiesNames> getDiscoveredEnemies() const;
     [[nodiscard]] std::vector<int> getAvailableItems() const;
-    [[nodiscard]] Location getPlayerPlace(const Game& game) const;
+    [[nodiscard]] Location getPlayerLocation(const Game& game) const;
 
     void addDiscoveredEnemy(EnemiesNames enemy);
     void addItem(int itemId, uint8_t count);

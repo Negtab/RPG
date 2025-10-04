@@ -6,6 +6,7 @@
 #include <SDL.h>
 #include <SDL_mixer.h>
 
+#include "player.h"
 
 class ResourceManager
 {
@@ -19,6 +20,9 @@ public:
     [[nodiscard]] Mix_Chunk& getSound(const std::string& path) const;
 
     void initialize();
+
+    void loadPLayer(const std::string& path, Player &player);
+    void savePLayer(const std::string& path, Player &player);
 
     bool addTexture(const std::string& path);
     bool addImage(const std::string& path);

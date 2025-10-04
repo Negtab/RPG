@@ -18,6 +18,9 @@ void Player::setPlayerGold(uint32_t g) noexcept { gold = g; }
 int32_t Player::getPlayerSpeed() const noexcept { return speed; }
 void Player::setPlayerSpeed(int32_t newSpeed) noexcept { speed = newSpeed; }
 
+std::string Player::getPlayerName() const noexcept { return name; }
+void Player::setPlayerName(std::string newName) noexcept { name = std::move(newName); }
+
 std::vector<EnemiesNames> Player::getDiscoveredEnemies() const { return discoveredEnemies; }
 
 std::vector<int> Player::getAvailableItems() const
@@ -30,11 +33,12 @@ std::vector<int> Player::getAvailableItems() const
     return available;
 }
 
-Location Player::getPlayerPlace(const Game& game) const
+Location Player::getPlayerLocation(const Game& game) const
 {
+    Point playerCoords = getPlayerCoords();
    /* for (const auto& loc : game.locations)
-        if (coords.x > loc.coord.x && coords.x < loc.coord.x + loc.w &&
-            coords.y > loc.coord.y && coords.y < loc.coord.y + loc.h)
+        if (playerCoords.x > loc.coord.x && playerCoords.x < loc.coord.x + loc.w &&
+            playerCoords.y > loc.coord.y && playerCoords.y < loc.coord.y + loc.h)
             return loc;
     return {};*/
 }

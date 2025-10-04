@@ -29,6 +29,7 @@ public:
     void setCurrentMp(uint32_t mp) noexcept { currentMp = (mp < maxMp) ? mp : maxMp; }
 
 protected:
+    std::string name;
     uint32_t attack{0}, defence{0}, agility{0};
     bool isAlive{false};
     uint32_t currentHp{0}, maxHp{0};
