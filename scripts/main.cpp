@@ -63,12 +63,12 @@ int main(int argc, char* args [])
     {
         while (SDL_PollEvent(&event))
         {
-
             if (event.type == SDL_QUIT)
             {
                 running = false;
                 break;
             }
+
         }
         SDL_RenderClear(renderer);
         SDL_RenderPresent(renderer);
