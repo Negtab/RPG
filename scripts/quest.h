@@ -1,8 +1,9 @@
 #ifndef PROJECT_NAME_QUEST_H
 #define PROJECT_NAME_QUEST_H
 
-#include "types.h"
 #include <map>
+
+#include "types.h"
 
 class Quest
 {

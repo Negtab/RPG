@@ -1,6 +1,7 @@
 #include "visualizer.h"
 
-void Visualizer::drawTexture(SDL_Renderer *renderer, SDL_Texture *texture, int x, int y, int w, int h) const {
+void Visualizer::drawTexture(SDL_Texture *texture, int x, int y, int w, int h) const
+{
     SDL_Rect dst = { x, y, w, h };
     SDL_RenderCopy(renderer, texture, nullptr, &dst);
 }

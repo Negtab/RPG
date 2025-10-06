@@ -1,12 +1,28 @@
-#include "resourceManager.h"
 #include <filesystem>
 #include <fstream>
 #include <SDL_image.h>
+
+#include "resourceManager.h"
 
 SDL_Texture *ResourceManager::getTextureFromImage(SDL_Renderer *renderer, SDL_Surface *surface) const { return SDL_CreateTextureFromSurface(renderer, surface); }
 SDL_Surface *ResourceManager::getImage(const std::string &name) { return images[name]; }
 Mix_Chunk *ResourceManager::getSound(const std::string &name) { return sounds[name]; }
 Mix_Music *ResourceManager::getMusic(const std::string &name) { return music[name]; }
+SDL_Texture *ResourceManager::getTexture(const std::string &name) { return textures[name]; }
+
+bool ResourceManager::addTexture(const std::string& path, SDL_Renderer* renderer)
+{
+    if (textures.contains(path))
+        return textures[path];
+
+    SDL_Surface* surface = IMG_Load(path.c_str());
+    if (!surface) throw std::runtime_error("Failed to load image: " + path);
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+    textures[path] = texture;
+    return texture;
+}
+
 
 bool ResourceManager::addImage(const std::string &path)
 {

@@ -31,7 +31,7 @@ public:
 
     void addDiscoveredEnemy(EnemiesNames enemy);
     void addItem(int itemId, uint8_t count);
-
+    void removeItem(int itemId);
 private:
     std::string name;
     uint32_t gold{0};

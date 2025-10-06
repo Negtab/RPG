@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <string>
 
-enum class GameState { CreatePlayer, Menu, Battle, Inventory, Instruction };
+enum class GameState { CreatePlayer, Menu, Battle, Inventory, Instruction, Map };
 enum class BattleAction { Attack, Magic, Item, Run };
 enum class BattleState { SelectAction, SelectTarget, SelectSkill, SelectItem, Animation, Result };
 enum class BattlePhase { PlayerTurn, EnemyTurn, EndBattle };

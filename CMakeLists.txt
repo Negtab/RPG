@@ -23,6 +23,11 @@ add_executable(${PROJECT_NAME} scripts/main.cpp
         scripts/visualizer.cpp
         scripts/inputManager.h
         scripts/inputManager.cpp
+        scripts/inputController.h
+        scripts/inputController.cpp
+        scripts/utils.h
+        scripts/uiManager.cpp
+        scripts/uiManager.h
 )
 
 # --- SDL2 SETUP ---

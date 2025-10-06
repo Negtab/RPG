@@ -4,18 +4,18 @@
 #include "SDL_render.h"
 #include "SDL_mixer.h"
 
-class Visualizer
-{
+class Visualizer {
 public:
-    Visualizer() = default;
-    ~Visualizer() = default;
+    explicit Visualizer(SDL_Renderer* renderer) : renderer(renderer) {}
 
-    void drawTexture(SDL_Renderer *renderer, SDL_Texture *texture, int x, int y, int w, int h) const;
-    void playMusic(Mix_Music * music) const;
+    void drawTexture(SDL_Texture* texture, int x, int y, int w, int h) const;
+    void playMusic(Mix_Music* music) const;
     void stopMusic() const;
+    void playSound(int& channel, Mix_Chunk* sound) const;
+    void stopSound(int& channel) const;
 
-    void playSound(int &chanel, Mix_Chunk *sound) const;
-    void stopSound(int &chanel) const;
+private:
+    SDL_Renderer* renderer;
 };
 
 #endif

@@ -58,9 +58,9 @@ public:
     ~ShopPerson() override = default;
 
     uint32_t getAttackPower(const Skill*) const override { return 0; }
-    uint32_t getDefense() const override { return 0; }
-    uint32_t getSpeed() const override { return 0; }
-    std::vector<int> getAvailableSkills() const override { return {}; }
+    [[nodiscard]] uint32_t getDefense() const override { return 0; }
+    [[nodiscard]] uint32_t getSpeed() const override { return 0; }
+    [[nodiscard]] std::vector<int> getAvailableSkills() const override { return {}; }
 
 private:
     std::map<int, int> itemKeys;

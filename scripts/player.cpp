@@ -21,6 +21,9 @@ void Player::setPlayerSpeed(int32_t newSpeed) noexcept { speed = newSpeed; }
 std::string Player::getPlayerName() const noexcept { return name; }
 void Player::setPlayerName(std::string newName) noexcept { name = std::move(newName); }
 
+Point Player::getPlayerCoords() const noexcept { return coords; }
+void Player::setPlayerCoords(Point newCoords) noexcept { coords = std::move(newCoords); }
+
 std::vector<EnemiesNames> Player::getDiscoveredEnemies() const { return discoveredEnemies; }
 
 std::vector<int> Player::getAvailableItems() const
