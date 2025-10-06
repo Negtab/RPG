@@ -14,17 +14,17 @@ public:
     ResourceManager() = default;
     ~ResourceManager() = default;
     
-    [[nodiscard]] SDL_Texture& getTexture(const std::string& path) const;
-    [[nodiscard]] SDL_Surface& getImage(const std::string& path) const;
-    [[nodiscard]] Mix_Music& getMusic(const std::string& path) const;
-    [[nodiscard]] Mix_Chunk& getSound(const std::string& path) const;
+    [[nodiscard]] SDL_Texture *getTextureFromImage(SDL_Renderer *renderer, SDL_Surface *surface) const;
+    [[nodiscard]] SDL_Surface *getImage(const std::string& name);
+    [[nodiscard]] Mix_Music *getMusic(const std::string& name);
+    [[nodiscard]] Mix_Chunk *getSound(const std::string& name);
 
     void initialize();
 
     void loadPLayer(const std::string& path, Player &player);
     void savePLayer(const std::string& path, Player &player);
 
-    bool addTexture(const std::string& path);
+    //bool addTexture(const std::string& path);
     bool addImage(const std::string& path);
     bool addSound(const std::string& path);
     bool addMusic(const std::string& path);

@@ -3,6 +3,11 @@
 #include <fstream>
 #include <SDL_image.h>
 
+SDL_Texture *ResourceManager::getTextureFromImage(SDL_Renderer *renderer, SDL_Surface *surface) const { return SDL_CreateTextureFromSurface(renderer, surface); }
+SDL_Surface *ResourceManager::getImage(const std::string &name) { return images[name]; }
+Mix_Chunk *ResourceManager::getSound(const std::string &name) { return sounds[name]; }
+Mix_Music *ResourceManager::getMusic(const std::string &name) { return music[name]; }
+
 bool ResourceManager::addImage(const std::string &path)
 {
     if (!std::filesystem::exists(path) && (!isFilePNG(path) || !isFileJPG(path)))
