@@ -25,9 +25,13 @@ public:
     [[nodiscard]] Point getPlayerCoords() const noexcept;
     void setPlayerCoords(Point newCoords) noexcept;
 
+    [[nodiscard]] GameState getLastGameState() const noexcept;
+    void setLastGameState(GameState newGameState);
+
     [[nodiscard]] std::vector<EnemiesNames> getDiscoveredEnemies() const;
     [[nodiscard]] std::vector<int> getAvailableItems() const;
     [[nodiscard]] Location getPlayerLocation(const Game& game) const;
+
 
     void addDiscoveredEnemy(EnemiesNames enemy);
     void addItem(int itemId, uint8_t count);
@@ -35,8 +39,9 @@ public:
 private:
     std::string name;
     uint32_t gold{0};
-    Point coords{};
-    int32_t speed{0};
+    Point coords{0, 0};
+    int32_t speed{3};
+    GameState lastState{GameState::Map};
     std::vector<Hero> heroes;
     std::vector<EnemiesNames> discoveredEnemies;
     std::map<int, uint8_t> itemIds;

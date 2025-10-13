@@ -10,6 +10,10 @@ void Visualizer::playSound(int &chanel, Mix_Chunk *sound) const { chanel = Mix_P
 
 void Visualizer::stopSound(int &chanel) const { Mix_Pause(chanel); }
 
-void Visualizer::playMusic(Mix_Music* music) const { Mix_PlayMusic(music, -1); }
+void Visualizer::playMusic(Mix_Music* music) const
+{
+    if (!music) return;
+    Mix_PlayMusic(music, -1);
+}
 
 void Visualizer::stopMusic() const { Mix_HaltMusic(); }

@@ -5,31 +5,37 @@
 
 Game::Game(SDL_Renderer* renderer) : renderer(renderer)
 {
-    resourceManager = std::make_unique<ResourceManager>();
+    players.push_back(Player("Test"));
+    resourceManager = std::make_unique<ResourceManager>(*renderer);
     visualizer = std::make_unique<Visualizer>(renderer);
-    uiManager = std::make_unique<UIManager>(*visualizer);
+    uiManager = std::make_unique<UIManager>(*visualizer, *resourceManager, *this, players.at(0));
 
     inputManager = std::make_unique<InputManager>();
     inputController = std::make_unique<InputController>(*inputManager);
+
 }
 
 void Game::run()
 {
-    bool running = true;
+    this->isRunning = true;
     SDL_Event event;
+    this->setGameState(GameState::Menu);
+    resourceManager->initialize();
+    uiManager->initialize();
 
     players.emplace_back("Artem");
-    while (running)
+    while (this->isRunning)
     {
+        inputManager->update();
         while (SDL_PollEvent(&event))
         {
             if (event.type == SDL_QUIT)
             {
-                running = false;
+                this->isRunning = false;
                 break;
             }
-            else
-                handleInput(event); // обработка клавиш и кликов
+            inputManager->processEvent(event);
+            handleInput(event); // обработка клавиш и кликов
         }
 
         update();   // логика
@@ -39,9 +45,21 @@ void Game::run()
     }
 }
 
+void Game::startGame()
+{
+    this->setPreviousGameState(GameState::Menu);
+    this->setGameState(players.at(players.size() - 1).getLastGameState());
+}
+
+void Game::endGame()
+{
+    this->isRunning = false;
+}
+
+
 void Game::handleInput(const SDL_Event &event)
 {
-    inputController->chooseInput(event, *this, players.at(0));
+    inputController->chooseInput(event, *this, players.at(0), *this->uiManager);
 }
 
 void Game::update()
@@ -51,7 +69,9 @@ void Game::update()
 
 void Game::render()
 {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
+    uiManager->drawScene(gameStateToString(this->getGameState()));
     SDL_RenderPresent(renderer);
 }
 
@@ -63,3 +83,5 @@ void Game::setGameState(GameState s) { state = s; }
 void Game::setPreviousGameState(GameState s) { prevState = s; }
 GameState Game::getGameState() const { return state; }
 GameState Game::getPrevGameState() const { return prevState; }
+
+std::vector<Location> Game::getLocations() const { return locations; }

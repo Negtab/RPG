@@ -17,8 +17,7 @@
 #include "types.h"
 #include "uiManager.h"
 
-class Game
-{
+class Game {
 public:
     explicit Game(SDL_Renderer* renderer);
     ~Game() = default;
@@ -33,11 +32,18 @@ public:
     void setPreviousGameState(GameState state);
     [[nodiscard]] GameState getGameState() const;
     [[nodiscard]] GameState getPrevGameState() const;
+
+    void setLocation(Location location);
+    [[nodiscard]] std::vector<Location> getLocations() const;
+
+    void startGame();
+    void endGame();
 private:
     void handleInput(const SDL_Event &event);
     void update();
     void render();
 
+    bool isRunning = false;
     GameState state{GameState::CreatePlayer};
     GameState prevState{GameState::CreatePlayer};
 

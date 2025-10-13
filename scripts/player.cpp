@@ -24,6 +24,9 @@ void Player::setPlayerName(std::string newName) noexcept { name = std::move(newN
 Point Player::getPlayerCoords() const noexcept { return coords; }
 void Player::setPlayerCoords(Point newCoords) noexcept { coords = std::move(newCoords); }
 
+GameState Player::getLastGameState() const noexcept { return lastState; }
+
+
 std::vector<EnemiesNames> Player::getDiscoveredEnemies() const { return discoveredEnemies; }
 
 std::vector<int> Player::getAvailableItems() const
@@ -39,11 +42,11 @@ std::vector<int> Player::getAvailableItems() const
 Location Player::getPlayerLocation(const Game& game) const
 {
     Point playerCoords = getPlayerCoords();
-   /* for (const auto& loc : game.locations)
+   for (const auto& loc : game.getLocations())
         if (playerCoords.x > loc.coord.x && playerCoords.x < loc.coord.x + loc.w &&
             playerCoords.y > loc.coord.y && playerCoords.y < loc.coord.y + loc.h)
             return loc;
-    return {};*/
+    return {};
 }
 
 void Player::addDiscoveredEnemy(EnemiesNames enemy) { discoveredEnemies.push_back(enemy); }

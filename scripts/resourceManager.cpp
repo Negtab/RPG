@@ -9,18 +9,48 @@ SDL_Surface *ResourceManager::getImage(const std::string &name) { return images[
 Mix_Chunk *ResourceManager::getSound(const std::string &name) { return sounds[name]; }
 Mix_Music *ResourceManager::getMusic(const std::string &name) { return music[name]; }
 SDL_Texture *ResourceManager::getTexture(const std::string &name) { return textures[name]; }
+TTF_Font *ResourceManager::getFont(const std::string &name) { return fonts[name]; }
+
+
+bool ResourceManager::addFont(const std::string &path)
+{
+    if (fonts.contains(getName(path)))
+        return fonts[getName(path)];
+
+    TTF_Font* font = TTF_OpenFont(path.c_str(), 24);
+    if (!font)
+    {
+        SDL_Log("Ошибка загрузки шрифта: %s", TTF_GetError());
+        return 1;
+    }
+    fonts[getName(path)] = font;
+    return 0;
+}
 
 bool ResourceManager::addTexture(const std::string& path, SDL_Renderer* renderer)
 {
-    if (textures.contains(path))
-        return textures[path];
+    if (textures.contains(getName(path)))
+        return textures[getName(path)];
 
     SDL_Surface* surface = IMG_Load(path.c_str());
     if (!surface) throw std::runtime_error("Failed to load image: " + path);
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
-    textures[path] = texture;
+    textures[getName(path)] = texture;
     return texture;
+}
+
+bool ResourceManager::addTexture(const std::string& name, const std::string& text, TTF_Font* font, SDL_Color color, SDL_Renderer* renderer)
+{
+    if (textures.contains(name))
+        return textures[name];
+    SDL_Surface* textSurface = TTF_RenderText_Solid( font, text.c_str(), color );
+    if (!textSurface)
+        SDL_Log("Failed to render text: ", TTF_GetError());
+    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+    SDL_FreeSurface(textSurface);
+    textures[name] = textTexture;
+    return textTexture;
 }
 
 
@@ -48,6 +78,14 @@ bool ResourceManager::addSound(const std::string &path)
     sounds[getName(path)] = Mix_LoadWAV(path.c_str());
     return sounds[getName(path)] != nullptr;
 }
+
+bool ResourceManager::isFileTTF(const std::string &path)
+{
+    if (path.size() < 5 || path.substr(path.size() - 4) != ".ttf")
+        return false;
+    return true;
+}
+
 
 bool ResourceManager::isFileJPG(const std::string &path)
 {
@@ -79,13 +117,21 @@ bool ResourceManager::isFileWAV(const std::string &path)
 
 std::string ResourceManager::getName(const std::string &path)
 {
-    return std::filesystem::path(path).filename().string();
+    return std::filesystem::path(path).stem().string();
 }
 
 void ResourceManager::initialize()
 {
     std::filesystem::path mainPath {std::filesystem::current_path().remove_filename()};
-    //addImage(mainPath.string() + "/resources/Images/Characters/");
+    std::filesystem::path pathToImages {mainPath.string() + "resources\\Images\\"};
+    std::filesystem::path pathToMusic {mainPath.string() + "resources\\Music\\"};
+    addFont(mainPath.string() + "resources\\Fonts\\RetroByte.ttf");
+    addMusic(pathToMusic.string() + "MenuTheme.mp3");
+    addMusic(pathToMusic.string() + "MapTheme.mp3");
+    addTexture(pathToImages.string() + "Backgrounds\\MapBackground.png", &this->renderer);
+    addTexture(pathToImages.string() + "Backgrounds\\MenuBackground.png", &this->renderer);
+    addTexture("ContinueButton", "Continue", this->getFont("RetroByte"),  {0, 0, 0, 255}, &this->renderer );
+    addTexture("QuitButton", "Quit", this->getFont("RetroByte"),  {0, 0, 0, 255}, &this->renderer );
 }
 
 void ResourceManager::savePLayer(const std::string& path, Player& player)
