@@ -6,14 +6,15 @@
 #include <string>
 #include <memory>
 
-#include "item.h"
-#include "quest.h"
-#include "gamePerson.h"
+#include "gameLogic/battle.h"
+#include "gameLogic/item.h"
+#include "gameLogic/quest.h"
 #include "player.h"
-#include "resourceManager.h"
-#include "visualizer.h"
+#include "controllers/resourceManager.h"
+#include "controllers/visualizer.h"
 #include "inputController.h"
-#include "inputManager.h"
+#include "controllers/inputManager.h"
+#include "gameLogic/notGamePerson.h"
 #include "types.h"
 #include "uiManager.h"
 
@@ -33,7 +34,7 @@ public:
     [[nodiscard]] GameState getGameState() const;
     [[nodiscard]] GameState getPrevGameState() const;
 
-    void setLocation(Location location);
+    void addLocation(Location location);
     [[nodiscard]] std::vector<Location> getLocations() const;
 
     void startGame();
@@ -42,6 +43,8 @@ private:
     void handleInput(const SDL_Event &event);
     void update();
     void render();
+
+    void startRandomBattle();
 
     bool isRunning = false;
     GameState state{GameState::CreatePlayer};
@@ -54,7 +57,7 @@ private:
     std::vector<NotGamePerson> npss;
     std::vector<Quest> quests;
     std::string pathToSave;
-
+    Battle battle;
     // Менеджеры
     std::unique_ptr<ResourceManager> resourceManager;
 

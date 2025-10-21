@@ -20,10 +20,10 @@ void InputController::mapInput(Player& player)
     Point point = player.getPlayerCoords();
     const int speed = player.getPlayerSpeed();
 
-    if (input.isKeyHeld(SDL_SCANCODE_W) || input.isKeyHeld(SDL_SCANCODE_UP)) point.y -= speed;
-    if (input.isKeyHeld(SDL_SCANCODE_S) || input.isKeyHeld(SDL_SCANCODE_DOWN)) point.y += speed;
-    if (input.isKeyHeld(SDL_SCANCODE_A) || input.isKeyHeld(SDL_SCANCODE_LEFT)) point.x -= speed;
-    if (input.isKeyHeld(SDL_SCANCODE_D) || input.isKeyHeld(SDL_SCANCODE_RIGHT)) point.x += speed;
+    if (input.isKeyHeld(SDL_SCANCODE_W) || input.isKeyHeld(SDL_SCANCODE_UP)) point.y += speed;
+    if (input.isKeyHeld(SDL_SCANCODE_S) || input.isKeyHeld(SDL_SCANCODE_DOWN)) point.y -= speed;
+    if (input.isKeyHeld(SDL_SCANCODE_A) || input.isKeyHeld(SDL_SCANCODE_LEFT)) point.x += speed;
+    if (input.isKeyHeld(SDL_SCANCODE_D) || input.isKeyHeld(SDL_SCANCODE_RIGHT)) point.x -= speed;
 
     if (input.isKeyPressed(SDL_SCANCODE_M))
     {
@@ -36,7 +36,8 @@ void InputController::mapInput(Player& player)
 void InputController::menuInput(SDL_Event event, Game& game, UIManager& manager)
 {
     if (input.isMousePressed(SDL_BUTTON_LEFT))
-        manager.handleEvent(event,gameStateToString(game.getGameState()));
+        manager.handleClickEvent(event,gameStateToString(game.getGameState()));
+    manager.handleHoverEvent(event, gameStateToString(game.getGameState()));
 
 }
 

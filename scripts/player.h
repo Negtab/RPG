@@ -2,7 +2,8 @@
 #define PROJECT_NAME_PLAYER_H
 
 #include "types.h"
-#include "gamePerson.h"
+#include "gameLogic/gamePerson.h"
+#include "gameLogic/hero.h"
 
 class Game;
 
@@ -40,7 +41,7 @@ private:
     std::string name;
     uint32_t gold{0};
     Point coords{0, 0};
-    int32_t speed{3};
+    int32_t speed{1};
     GameState lastState{GameState::Map};
     std::vector<Hero> heroes;
     std::vector<EnemiesNames> discoveredEnemies;

@@ -2,7 +2,7 @@
 #define PROJECT_NAME_INPUTCONTROLLER_H
 
 #include "uiManager.h"
-#include "inputManager.h"
+#include "controllers/inputManager.h"
 #include "player.h"
 
 class InputController
@@ -12,7 +12,6 @@ public:
 
     void chooseInput(SDL_Event even, Game& game, Player& player,  UIManager& uiManager);
 
-private:
     InputManager& input;
 
     void mapInput(Player& player);

@@ -4,7 +4,7 @@
 
 #include "resourceManager.h"
 
-SDL_Texture *ResourceManager::getTextureFromImage(SDL_Renderer *renderer, SDL_Surface *surface) const { return SDL_CreateTextureFromSurface(renderer, surface); }
+SDL_Texture *ResourceManager::getTextureFromImage(SDL_Surface *surface) const { return SDL_CreateTextureFromSurface(&this->renderer, surface); }
 SDL_Surface *ResourceManager::getImage(const std::string &name) { return images[name]; }
 Mix_Chunk *ResourceManager::getSound(const std::string &name) { return sounds[name]; }
 Mix_Music *ResourceManager::getMusic(const std::string &name) { return music[name]; }
@@ -21,35 +21,45 @@ bool ResourceManager::addFont(const std::string &path)
     if (!font)
     {
         SDL_Log("Ошибка загрузки шрифта: %s", TTF_GetError());
-        return 1;
+        return false;
     }
     fonts[getName(path)] = font;
-    return 0;
+    return true;
 }
 
-bool ResourceManager::addTexture(const std::string& path, SDL_Renderer* renderer)
+bool ResourceManager::addTexture(const std::string& path)
 {
     if (textures.contains(getName(path)))
         return textures[getName(path)];
 
     SDL_Surface* surface = IMG_Load(path.c_str());
     if (!surface) throw std::runtime_error("Failed to load image: " + path);
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(&this->renderer, surface);
     SDL_FreeSurface(surface);
     textures[getName(path)] = texture;
     return texture;
 }
 
-bool ResourceManager::addTexture(const std::string& name, const std::string& text, TTF_Font* font, SDL_Color color, SDL_Renderer* renderer)
+bool ResourceManager::addTextTexture(const std::string& name, const std::string& text, TTF_Font* font, SDL_Color color)
 {
     if (textures.contains(name))
         return textures[name];
     SDL_Surface* textSurface = TTF_RenderText_Solid( font, text.c_str(), color );
     if (!textSurface)
         SDL_Log("Failed to render text: ", TTF_GetError());
-    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(&this->renderer, textSurface);
     SDL_FreeSurface(textSurface);
     textures[name] = textTexture;
+    return textTexture;
+}
+
+SDL_Texture* ResourceManager::getTextTexture(const std::string& text, TTF_Font* font, SDL_Color color)
+{
+    SDL_Surface* textSurface = TTF_RenderText_Solid( font, text.c_str(), color );
+    if (!textSurface)
+        SDL_Log("Failed to render text: ", TTF_GetError());
+    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(&this->renderer, textSurface);
+    SDL_FreeSurface(textSurface);
     return textTexture;
 }
 
@@ -125,13 +135,19 @@ void ResourceManager::initialize()
     std::filesystem::path mainPath {std::filesystem::current_path().remove_filename()};
     std::filesystem::path pathToImages {mainPath.string() + "resources\\Images\\"};
     std::filesystem::path pathToMusic {mainPath.string() + "resources\\Music\\"};
+    std::filesystem::path pathToSounds {mainPath.string() + "resources\\Sounds\\"};
     addFont(mainPath.string() + "resources\\Fonts\\RetroByte.ttf");
     addMusic(pathToMusic.string() + "MenuTheme.mp3");
     addMusic(pathToMusic.string() + "MapTheme.mp3");
-    addTexture(pathToImages.string() + "Backgrounds\\MapBackground.png", &this->renderer);
-    addTexture(pathToImages.string() + "Backgrounds\\MenuBackground.png", &this->renderer);
-    addTexture("ContinueButton", "Continue", this->getFont("RetroByte"),  {0, 0, 0, 255}, &this->renderer );
-    addTexture("QuitButton", "Quit", this->getFont("RetroByte"),  {0, 0, 0, 255}, &this->renderer );
+    addMusic(pathToMusic.string() + "BattleTheme.mp3");
+    addSound(pathToSounds.string() + "Menu\\ButtonHover.wav");
+    addTexture(pathToImages.string() + "Characters\\MovingCharacter.png");
+    addTexture(pathToImages.string() + "Backgrounds\\MapBackground.png");
+    addTexture(pathToImages.string() + "Backgrounds\\MenuBackground.png");
+    addTexture(pathToImages.string() + "Backgrounds\\BattleImage0.png");
+    addTexture(pathToImages.string() + "Backgrounds\\BattleImage1.png");
+    addTexture(pathToImages.string() + "Backgrounds\\BattleImage2.png");
+    addTexture(pathToImages.string() + "Backgrounds\\BattleTile.png");
 }
 
 void ResourceManager::savePLayer(const std::string& path, Player& player)

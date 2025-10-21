@@ -22,7 +22,7 @@ std::string Player::getPlayerName() const noexcept { return name; }
 void Player::setPlayerName(std::string newName) noexcept { name = std::move(newName); }
 
 Point Player::getPlayerCoords() const noexcept { return coords; }
-void Player::setPlayerCoords(Point newCoords) noexcept { coords = std::move(newCoords); }
+void Player::setPlayerCoords(Point newCoords) noexcept { coords = newCoords; }
 
 GameState Player::getLastGameState() const noexcept { return lastState; }
 
@@ -33,8 +33,7 @@ std::vector<int> Player::getAvailableItems() const
 {
     std::vector<int> available;
     available.reserve(itemIds.size());
-    for (const auto&
-    [id, _] : itemIds)
+    for (const auto& [id, _] : itemIds)
         available.push_back(id);
     return available;
 }

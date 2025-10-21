@@ -6,28 +6,38 @@ set(CMAKE_CXX_STANDARD 20)
 # Must set the path to the main.cpp, for example: scripts/main.cpp if it is inside a folder
 add_executable(${PROJECT_NAME} scripts/main.cpp
         scripts/Types.h
-        scripts/item.h
-        scripts/item.cpp
-        scripts/quest.h
-        scripts/quest.cpp
-        scripts/gamePerson.h
-        scripts/gamePerson.cpp
+        scripts/gameLogic/item.h
+        scripts/gameLogic/item.cpp
+        scripts/gameLogic/quest.h
+        scripts/gameLogic/quest.cpp
+        scripts/gameLogic/gamePerson.h
+        scripts/gameLogic/gamePerson.cpp
         scripts/player.h
         scripts/player.cpp
         scripts/game.h
         scripts/game.cpp
-        scripts/ResourceManager.h
+        scripts/controllers/resourceManager.h
         scripts/errors.h
-        scripts/resourceManager.cpp
-        scripts/visualizer.h
-        scripts/visualizer.cpp
-        scripts/inputManager.h
-        scripts/inputManager.cpp
+        scripts/controllers/resourceManager.cpp
+        scripts/controllers/visualizer.h
+        scripts/controllers/visualizer.cpp
+        scripts/controllers/inputManager.h
+        scripts/controllers/inputManager.cpp
         scripts/inputController.h
         scripts/inputController.cpp
         scripts/utils.h
         scripts/uiManager.cpp
         scripts/uiManager.h
+        scripts/gameLogic/battle.cpp
+        scripts/gameLogic/battle.h
+        scripts/gameLogic/hero.h
+        scripts/gameLogic/enemy.h
+        scripts/gameLogic/hero.cpp
+        scripts/gameLogic/enemy.cpp
+        scripts/gameLogic/notGamePerson.cpp
+        scripts/gameLogic/notGamePerson.h
+        scripts/gameLogic/shopPerson.h
+        scripts/gameLogic/shopPerson.cpp
 )
 
 # --- SDL2 SETUP ---

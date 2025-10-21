@@ -1,7 +1,7 @@
 #ifndef PROJECT_NAME_ITEM_H
 #define PROJECT_NAME_ITEM_H
 
-#include "types.h"
+#include "../types.h"
 
 class Item
 {

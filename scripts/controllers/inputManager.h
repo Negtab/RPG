@@ -14,9 +14,9 @@ public:
     void update(); // вызывать в начале каждого кадра
 
     // --- Клавиатура ---
-    bool isKeyPressed(SDL_Scancode key) const;   // нажата в этом кадре
-    bool isKeyHeld(SDL_Scancode key) const;      // удерживается
-    bool isKeyReleased(SDL_Scancode key) const;  // отпущена
+    bool isKeyPressed(SDL_Scancode key) const;
+    bool isKeyHeld(SDL_Scancode key) const;
+    bool isKeyReleased(SDL_Scancode key) const;
 
     // --- Мышь ---
     bool isMousePressed(Uint8 button) const;
