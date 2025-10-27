@@ -20,8 +20,10 @@ struct Specialization { SpecializationNames name{SpecializationNames::None}; uin
 
 inline std::vector<std::string> gameStateString {"CreatePlayer", "Menu", "Battle", "Inventory", "Map", "Instruction", "None"};
 
-inline const std::string& gameStateToString(const GameState state) {
-    switch (state) {
+inline const std::string& gameStateToString(const GameState state)
+{
+    switch (state)
+    {
         case GameState::CreatePlayer: return gameStateString.at(0);
         case GameState::Menu: return gameStateString.at(1);
         case GameState::Battle: return gameStateString.at(2);
@@ -31,5 +33,4 @@ inline const std::string& gameStateToString(const GameState state) {
         default: return gameStateString.at(6);
     }
 }
-
 #endif

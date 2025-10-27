@@ -82,7 +82,10 @@ void Game::startRandomBattle()
 {
     int randomNumber = rand()/100;
     if (randomNumber == 1)
+    {
+        this->setPreviousGameState(this->getGameState());
         this->setGameState(GameState::Battle);
+    }
 }
 
 void Game::addPlayer(const Player& player) { players.push_back(player); }

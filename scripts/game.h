@@ -39,12 +39,11 @@ public:
 
     void startGame();
     void endGame();
+    void startRandomBattle();
 private:
     void handleInput(const SDL_Event &event);
     void update();
     void render();
-
-    void startRandomBattle();
 
     bool isRunning = false;
     GameState state{GameState::CreatePlayer};
