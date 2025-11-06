@@ -6,9 +6,19 @@
 
 class Battle
 {
+public:
+    explicit Battle(Player &player) : player(player){}
+    ~Battle() = default;
+    [[nodiscard]] std::vector<Enemy> getEnemies() const;
+    void getResult() const;
+
+    void setOrder();
+    void processAttack();
+private:
+    bool isWin {false};
+    Player &player;
     std::vector<Enemy> enemies;
     std::vector<int> order;
-    bool isWin;
     std::vector<Item> rewards;
 };
 

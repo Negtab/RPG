@@ -9,7 +9,7 @@
 class Enemy : public GamePerson
 {
 public:
-    explicit Enemy(EnemiesNames enemy, const class Player& player);
+    explicit Enemy(std::string  name, const class Player& player);
     ~Enemy() override = default;
 
     uint32_t getAttackPower(const Skill* skill) const override;
@@ -18,7 +18,7 @@ public:
     std::vector<int> getAvailableSkills() const override { return skills; }
 
 private:
-    EnemiesNames name{};
+    std::string name{};
     uint32_t experience{0}, gold{0};
     std::vector<uint8_t> items;
 };

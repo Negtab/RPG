@@ -29,12 +29,12 @@ public:
     [[nodiscard]] GameState getLastGameState() const noexcept;
     void setLastGameState(GameState newGameState);
 
-    [[nodiscard]] std::vector<EnemiesNames> getDiscoveredEnemies() const;
+    [[nodiscard]] std::vector<std::string> getDiscoveredEnemies() const;
     [[nodiscard]] std::vector<int> getAvailableItems() const;
     [[nodiscard]] Location getPlayerLocation(const Game& game) const;
 
 
-    void addDiscoveredEnemy(EnemiesNames enemy);
+    void addDiscoveredEnemy(const std::string& enemy);
     void addItem(int itemId, uint8_t count);
     void removeItem(int itemId);
 private:
@@ -44,7 +44,7 @@ private:
     int32_t speed{1};
     GameState lastState{GameState::Map};
     std::vector<Hero> heroes;
-    std::vector<EnemiesNames> discoveredEnemies;
+    std::vector<std::string> discoveredEnemies;
     std::map<int, uint8_t> itemIds;
 };
 

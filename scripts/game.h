@@ -23,7 +23,7 @@ public:
     explicit Game(SDL_Renderer* renderer);
     ~Game() = default;
 
-    void run(); // главный игровой цикл
+    void run();
 
     void addPlayer(const Player& player);
     void addQuest(const Quest& quest);
@@ -37,15 +37,24 @@ public:
     void addLocation(Location location);
     [[nodiscard]] std::vector<Location> getLocations() const;
 
+    [[nodiscard]] Battle* getBattle() const;
+
+    void setScreenRect(const SDL_Rect *rect);
+    [[nodiscard]] SDL_Rect getScreenRect() const;
+
     void startGame();
     void endGame();
-    void startRandomBattle();
+
+
 private:
     void handleInput(const SDL_Event &event);
     void update();
     void render();
 
+    void startRandomBattle();
+
     bool isRunning = false;
+    SDL_Rect screen = {0, 0, 900, 600};
     GameState state{GameState::CreatePlayer};
     GameState prevState{GameState::CreatePlayer};
 
@@ -56,13 +65,11 @@ private:
     std::vector<NotGamePerson> npss;
     std::vector<Quest> quests;
     std::string pathToSave;
-    Battle battle;
-    // Менеджеры
-    std::unique_ptr<ResourceManager> resourceManager;
 
+    std::unique_ptr<Battle> battle;
+    std::unique_ptr<ResourceManager> resourceManager;
     std::unique_ptr<Visualizer> visualizer;
     std::unique_ptr<UIManager> uiManager;
-
     std::unique_ptr<InputManager> inputManager;
     std::unique_ptr<InputController> inputController;
 

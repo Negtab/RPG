@@ -7,13 +7,16 @@
 Game::Game(SDL_Renderer* renderer) : renderer(renderer)
 {
     players.push_back(Player("Test"));
+
     resourceManager = std::make_unique<ResourceManager>(*renderer);
+
     visualizer = std::make_unique<Visualizer>(renderer);
     uiManager = std::make_unique<UIManager>(*visualizer, *resourceManager, *this, players.at(0));
 
     inputManager = std::make_unique<InputManager>();
     inputController = std::make_unique<InputController>(*inputManager);
 
+    battle = std::make_unique<Battle>(players.at(0));
 }
 
 void Game::run()
@@ -99,3 +102,5 @@ GameState Game::getPrevGameState() const { return prevState; }
 
 void Game::addLocation(Location location) { locations.push_back(location); }
 std::vector<Location> Game::getLocations() const { return locations; }
+
+SDL_Rect Game::getScreenRect() const { return screen; }

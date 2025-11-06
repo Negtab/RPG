@@ -1,6 +1,8 @@
 #include "enemy.h"
 
-Enemy::Enemy(EnemiesNames enemy, const Player&) : name(enemy)
+#include <utility>
+
+Enemy::Enemy(std::string  enemy, const Player&) : name(std::move(enemy))
 {
     resurrectPerson();
 }

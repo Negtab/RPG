@@ -1,3 +1,6 @@
-//
-// Created by User on 19.10.2025.
-//
+#include "battle.h"
+
+std::vector<Enemy> Battle::getEnemies() const
+{
+    return this->enemies;
+}

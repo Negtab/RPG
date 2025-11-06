@@ -222,14 +222,14 @@ void ResourceManager::loadPLayer(const std::string& path, Player& player)
     // Если нужно — можешь добавить player.setCoords(coords);
 
     // -------- 3. Известные враги --------
-    size_t enemyCount;
+    /*size_t enemyCount;
     in.read(reinterpret_cast<char*>(&enemyCount), sizeof(enemyCount));
     for (size_t i = 0; i < enemyCount; ++i)
     {
         EnemiesNames e;
         in.read(reinterpret_cast<char*>(&e), sizeof(e));
         player.addDiscoveredEnemy(e);
-    }
+    }*/
 
     // -------- 4. Предметы --------
     size_t itemCount;

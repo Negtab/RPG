@@ -24,10 +24,8 @@ public:
     void handleClickEvent(const SDL_Event& event, const std::string& sceneId);
     void handleHoverEvent(const SDL_Event& event, const std::string& sceneId);
     void drawScene(const std::string& sceneId);
-    void addEnemys(const Game& game);
-        void initialize();
-    SDL_Rect screen;
-
+    void addEnemys();
+    void initialize();
 
     void addButton(const std::string& id, const std::string& sceneId, const SDL_Rect& rect, SDL_Texture* texture, std::function<void()> onClick, std::function<void()> onHover, std::string panelId = "");
     void addImage(const std::string& id, const std::string& sceneId, const SDL_Rect& rect, SDL_Texture* texture, SDL_Rect srect = {0,0,0,0}, std::string panelId = "");
@@ -37,14 +35,18 @@ public:
     void addSound(const std::string& soundId, const std::string& sceneId);
     void playSound(const std::string& sceneId, const std::string& soundId);
 
+    void setVisible(const std::string& id, const std::string& sceneId, const bool& visible);
+    void setEnabled(const std::string& id, const std::string& sceneId, const bool& enabled);
+    void setTexture(const std::string& id, const std::string& sceneId, const SDL_Texture* texture);
+    void setRect(const std::string& id, const std::string& sceneId, const SDL_Rect& rect);
 private:
     class UIObject
     {
     public:
         SDL_Rect rect{0,0,0,0};
         SDL_Texture* texture = nullptr;
-        bool isVisible = true;
-        bool isEnabled = true;
+        bool isVisible {true};
+        bool isEnabled {true};
     };
 
     class Button : public UIObject
@@ -110,6 +112,8 @@ private:
         void handleClickLocal(int x, int y) override;
         void handleHoverLocal(int x, int y) override;
     };
+
+    UIObject findUIObject(const std::string &id, const std::string &sceneId);
 
     std::map<std::string, Scene> scenes;
     Visualizer& visualizer;

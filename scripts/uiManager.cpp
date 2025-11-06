@@ -268,7 +268,7 @@ void UIManager::Panel::handleClickLocal(int x, int y)
         if (x >= btn.rect.x && x <= btn.rect.x + btn.rect.w &&
             y >= btn.rect.y && y <= btn.rect.y + btn.rect.h)
         {
-            if (btn.onClick) btn.onClick();
+            if (btn.onClick && btn.isEnabled) btn.onClick();
             return; // Нашли кнопку, выходим
         }
     }
@@ -342,7 +342,8 @@ void UIManager::handleHoverEvent(const SDL_Event& event, const std::string& scen
 void UIManager::drawScene(const std::string& sceneId)
 {
     auto sit = scenes.find(sceneId);
-    if (sit == scenes.end()) {
+    if (sit == scenes.end())
+    {
         SDL_Log("drawScene: scene '%s' not found", sceneId.c_str());
         return;
     }
@@ -364,6 +365,8 @@ void UIManager::drawScene(const std::string& sceneId)
         // image
         auto itImage = scene.images.find(key);
         if (itImage != scene.images.end()) {
+            if (!itImage->second.isVisible)
+                continue;
             const auto& im = itImage->second;
             if (im.srect.w == 0 || im.srect.h == 0)
                 visualizer.drawTexture(im.texture, im.rect.x, im.rect.y, im.rect.w, im.rect.h);
@@ -377,6 +380,8 @@ void UIManager::drawScene(const std::string& sceneId)
         auto itBtn = scene.buttons.find(key);
         if (itBtn != scene.buttons.end())
         {
+            if (!itBtn->second.isVisible)
+                continue;
             const auto& btn = itBtn->second;
             visualizer.drawTexture(btn.texture, btn.rect.x, btn.rect.y, btn.rect.w, btn.rect.h);
             continue;
@@ -386,6 +391,8 @@ void UIManager::drawScene(const std::string& sceneId)
         auto itLbl = scene.labels.find(key);
         if (itLbl != scene.labels.end())
         {
+            if (!itLbl->second.isVisible)
+                continue;
             const auto& lbl = itLbl->second;
             if (lbl.image.srect.w == 0 || lbl.image.srect.h == 0)
                 visualizer.drawTexture(lbl.image.texture, lbl.image.rect.x, lbl.image.rect.y, lbl.image.rect.w, lbl.image.rect.h);
@@ -400,6 +407,8 @@ void UIManager::drawScene(const std::string& sceneId)
         auto itPanel = scene.panels.find(key);
         if (itPanel != scene.panels.end())
         {
+            if (!itPanel->second.isVisible)
+                continue;
             scene.drawPanel(itPanel->second, visualizer);
             continue;
         }
@@ -411,26 +420,72 @@ void UIManager::drawScene(const std::string& sceneId)
         scene.playMusicLocal(visualizer, music);
 }
 
-void UIManager::addEnemys(const Game& /*game*/)
+void UIManager::addEnemys()
 {
-    // заглушка — реализация зависит от структуры Game/Enemy
-    // Здесь можно пройтись по game и добавить элементы в сцену "Battle" и т.д.
+    //std::vector<Enemy> enemies = this->game.getBattle()->getEnemies();
+    //addImage("Enemy1", "Battle", {0,0,0,0}, resourceManager.getTexture())
+
 }
+
+void UIManager::setEnabled(const std::string &id, const std::string &sceneId, const bool &enabled)
+{
+    auto sit = scenes.find(sceneId);
+    if (sit == scenes.end())
+    {
+        SDL_Log("drawScene: scene '%s' not found", sceneId.c_str());
+        return;
+    }
+    Scene& scene = sit->second;
+    for (const auto& key : scene.order)
+        if (key == id)
+        {
+            auto itImage = scene.images.find(key);
+            if (itImage != scene.images.end()) {
+                itImage->second.isEnabled = enabled;
+                return;
+            }
+
+            auto itBtn = scene.buttons.find(key);
+            if (itBtn != scene.buttons.end())
+            {
+                itBtn->second.isEnabled = enabled;
+                return;
+            }
+
+            auto itLbl = scene.labels.find(key);
+            if (itLbl != scene.labels.end())
+            {
+                itLbl->second.isEnabled = enabled;
+                return;
+            }
+
+            auto itPanel = scene.panels.find(key);
+            if (itPanel != scene.panels.end())
+            {
+                itPanel->second.isEnabled = enabled;
+                return;
+            }
+        }
+
+
+}
+
+
 void UIManager::initialize()
 {
+    SDL_Rect screen = game.getScreenRect();
     addScene(gameStateToString(GameState::Battle));
     addScene(gameStateToString(GameState::Instruction));
     addScene(gameStateToString(GameState::Menu));
     addScene(gameStateToString(GameState::CreatePlayer));
     addScene(gameStateToString(GameState::Map));
     addScene(gameStateToString(GameState::Inventory));
-    screen.x = 0;//-900;
-    screen.y = 0;//-500;
-    screen.w = 900;//18000;
-    screen.h = 600;//18000;
+
     // --- Map
     addImage("Map", "Map", {-900, -500, 18000, 18000}, resourceManager.getTexture("MapBackground"));
     addImage("Character", "Map", {screen.w/2 - 25, screen.h/2 - 25, 192, 48}, resourceManager.getTexture("MovingCharacter"), {0,0,48,48});
+    addImage("Press E", "Map", {screen.w/2 - 25, screen.h/2 - 25, 40, 40}, resourceManager.getTextTexture("Press E", resourceManager.getFont("RetroByte"), {0, 0,0,100}));
+    setEnabled("Prees E", "Map", false);
     addMusic("MapTheme", "Map");
     // --- Menu
     addImage("Menu", "Menu", screen, resourceManager.getTexture("MenuBackground"));
@@ -476,7 +531,9 @@ void UIManager::initialize()
 
     /*addButton("Run", "Battle", {0, 528, 60, 20},
         resourceManager.getTextTexture("Run", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
-        [this]() {this->game.endRandomBattle();},
+        [this]() {this->endRandomBattle();},
         [this]() {this->playSound("Battle", "ButtonHover");},
-        "ActionPanel");*/
+        "ActionPanel");
+    */
+
 }
