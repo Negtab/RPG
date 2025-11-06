@@ -3,6 +3,46 @@
 #include "game.h"
 
 // --- Local methods ------------------------------------------------------------------------------
+UIManager::Scene *UIManager::findScene(const std::string &id) {
+    auto sit = scenes.find(id);
+    if (sit == scenes.end())
+    {
+        SDL_Log("UIManager: scene '%s' not found", id.c_str());
+        return nullptr;
+    }
+
+    return &sit->second;
+}
+
+UIManager::UIObject* UIManager::findUIObject(const std::string &id, const std::string &sceneId)
+{
+    Scene *scene = findScene(sceneId);
+
+    // image
+    auto itImage = scene->images.find(id);
+    if (itImage != scene->images.end())
+        return &itImage->second;
+
+    // button
+    auto itBtn = scene->buttons.find(id);
+    if (itBtn != scene->buttons.end())
+        return &itBtn->second;
+
+    // label
+    auto itLbl = scene->labels.find(id);
+    if (itLbl != scene->labels.end())
+        return &itLbl->second;
+
+    // panel
+    auto itPanel = scene->panels.find(id);
+    if (itPanel != scene->panels.end())
+        return &itPanel->second;
+
+    SDL_Log("UIManager: element '%s' not found in scene '%s'", id.c_str(), sceneId.c_str());
+    return nullptr;
+}
+
+
 void UIManager::Panel::addButtonLocal(const std::string& id, const SDL_Rect& rect, SDL_Texture* texture,
                                       std::function<void()> onClick, std::function<void()> onHover)
 {
@@ -429,45 +469,24 @@ void UIManager::addEnemys()
 
 void UIManager::setEnabled(const std::string &id, const std::string &sceneId, const bool &enabled)
 {
-    auto sit = scenes.find(sceneId);
-    if (sit == scenes.end())
-    {
-        SDL_Log("drawScene: scene '%s' not found", sceneId.c_str());
-        return;
-    }
-    Scene& scene = sit->second;
-    for (const auto& key : scene.order)
-        if (key == id)
-        {
-            auto itImage = scene.images.find(key);
-            if (itImage != scene.images.end()) {
-                itImage->second.isEnabled = enabled;
-                return;
-            }
+    findUIObject(id, sceneId)->isEnabled = enabled;
+}
 
-            auto itBtn = scene.buttons.find(key);
-            if (itBtn != scene.buttons.end())
-            {
-                itBtn->second.isEnabled = enabled;
-                return;
-            }
+void UIManager::setVisible(const std::string &id, const std::string &sceneId, const bool &visible)
+{
+    UIObject *obj = findUIObject(id, sceneId);
+    obj->isVisible = visible;
+    obj->isEnabled = visible;
+}
 
-            auto itLbl = scene.labels.find(key);
-            if (itLbl != scene.labels.end())
-            {
-                itLbl->second.isEnabled = enabled;
-                return;
-            }
+void UIManager::setRect(const std::string &id, const std::string &sceneId, const SDL_Rect &rect)
+{
+    findUIObject(id, sceneId)->rect = rect;
+}
 
-            auto itPanel = scene.panels.find(key);
-            if (itPanel != scene.panels.end())
-            {
-                itPanel->second.isEnabled = enabled;
-                return;
-            }
-        }
-
-
+void UIManager::setTexture(const std::string &id, const std::string &sceneId, SDL_Texture *texture)
+{
+    findUIObject(id,sceneId)->texture = texture;
 }
 
 
@@ -486,6 +505,7 @@ void UIManager::initialize()
     addImage("Character", "Map", {screen.w/2 - 25, screen.h/2 - 25, 192, 48}, resourceManager.getTexture("MovingCharacter"), {0,0,48,48});
     addImage("Press E", "Map", {screen.w/2 - 25, screen.h/2 - 25, 40, 40}, resourceManager.getTextTexture("Press E", resourceManager.getFont("RetroByte"), {0, 0,0,100}));
     setEnabled("Prees E", "Map", false);
+
     addMusic("MapTheme", "Map");
     // --- Menu
     addImage("Menu", "Menu", screen, resourceManager.getTexture("MenuBackground"));

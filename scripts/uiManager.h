@@ -37,7 +37,7 @@ public:
 
     void setVisible(const std::string& id, const std::string& sceneId, const bool& visible);
     void setEnabled(const std::string& id, const std::string& sceneId, const bool& enabled);
-    void setTexture(const std::string& id, const std::string& sceneId, const SDL_Texture* texture);
+    void setTexture(const std::string &id, const std::string &sceneId, SDL_Texture *texture);
     void setRect(const std::string& id, const std::string& sceneId, const SDL_Rect& rect);
 private:
     class UIObject
@@ -113,7 +113,8 @@ private:
         void handleHoverLocal(int x, int y) override;
     };
 
-    UIObject findUIObject(const std::string &id, const std::string &sceneId);
+    UIObject* findUIObject(const std::string &id, const std::string &sceneId);
+    Scene* findScene(const std::string &id);
 
     std::map<std::string, Scene> scenes;
     Visualizer& visualizer;
