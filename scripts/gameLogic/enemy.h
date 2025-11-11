@@ -12,10 +12,10 @@ public:
     explicit Enemy(std::string  name, const class Player& player);
     ~Enemy() override = default;
 
-    uint32_t getAttackPower(const Skill* skill) const override;
-    uint32_t getDefense() const override { return defence; }
-    uint32_t getSpeed() const override { return agility; }
-    std::vector<int> getAvailableSkills() const override { return skills; }
+    [[nodiscard]] uint32_t getAttackPower(const Skill* skill) const override;
+    [[nodiscard]] uint32_t getDefense() const override { return defence; }
+    [[nodiscard]] uint32_t getSpeed() const override { return agility; }
+    [[nodiscard]] std::vector<int> getAvailableSkills() const override { return skills; }
 
 private:
     std::string name{};

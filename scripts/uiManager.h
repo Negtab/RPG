@@ -13,6 +13,7 @@
 
 #include "controllers/visualizer.h"
 #include "controllers/resourceManager.h"
+#include "types.h"
 
 class UIManager
 {
@@ -71,11 +72,17 @@ private:
     class MusicPlayer
     {
     public:
-        int chanel = 0;
+        int chanel {0};
         std::string currentMusicId;
         std::string currentSoundId;
         std::map<std::string, Mix_Music*> music;
         std::map<std::string, Mix_Chunk*> sound;
+    };
+    class AnimPlayer
+    {
+    public:
+        std::vector<std::string> currentAnimationId;
+        std::map<std::string, std::vector<SDL_Texture*>> animations;
     };
 
     class Panel : public UIObject
@@ -103,6 +110,10 @@ private:
     public:
         std::string name;
         MusicPlayer musicPlayer;
+        AnimPlayer animPlayer;
+        //std::stack<std::string> animationsStack;
+        //std::stack<std::string> soundsStack;
+        //std::stack<std::string> musicStack;
 
         void drawPanel(const Panel& panel, Visualizer& visualizer);
         void changePanelOrder(const std::string& panelId, int newOrder);

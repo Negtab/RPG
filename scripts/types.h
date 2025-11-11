@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <string>
 
+constexpr int MAX_ENEMY_COUNT = 9;
+
 enum class GameState { CreatePlayer, Menu, Battle, Inventory, Instruction, Map };
 enum class BattleAction { Attack, Magic, Item, Run };
 enum class BattleState { SelectAction, SelectTarget, SelectSkill, SelectItem, Animation, Result };

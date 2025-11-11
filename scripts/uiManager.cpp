@@ -2,8 +2,8 @@
 #include "uiManager.h"
 #include "game.h"
 
-// --- Local methods ------------------------------------------------------------------------------
-UIManager::Scene *UIManager::findScene(const std::string &id) {
+UIManager::Scene *UIManager::findScene(const std::string &id)
+{
     auto sit = scenes.find(id);
     if (sit == scenes.end())
     {
@@ -18,22 +18,19 @@ UIManager::UIObject* UIManager::findUIObject(const std::string &id, const std::s
 {
     Scene *scene = findScene(sceneId);
 
-    // image
     auto itImage = scene->images.find(id);
     if (itImage != scene->images.end())
         return &itImage->second;
 
-    // button
     auto itBtn = scene->buttons.find(id);
     if (itBtn != scene->buttons.end())
         return &itBtn->second;
 
-    // label
+
     auto itLbl = scene->labels.find(id);
     if (itLbl != scene->labels.end())
         return &itLbl->second;
 
-    // panel
     auto itPanel = scene->panels.find(id);
     if (itPanel != scene->panels.end())
         return &itPanel->second;
@@ -148,10 +145,9 @@ void UIManager::Scene::drawPanel(const Panel& panel, Visualizer& visualizer)
             continue;
         }
 
-        // ✅ Добавляем поддержку вложенных панелей
         auto itPanel = panel.panels.find(key);
         if (itPanel != panel.panels.end()) {
-            drawPanel(itPanel->second, visualizer); // рекурсивная отрисовка
+            drawPanel(itPanel->second, visualizer);
             continue;
         }
 
@@ -163,7 +159,8 @@ void UIManager::Scene::drawPanel(const Panel& panel, Visualizer& visualizer)
 void UIManager::Scene::changePanelOrder(const std::string& panelId, int newOrder)
 {
     // change order inside this->order vector: find panelId and move to new index newOrder
-    auto it = std::find(order.begin(), order.end(), panelId);
+    auto it = std::
+    find(order.begin(), order.end(), panelId);
     if (it == order.end()) return;
     int oldIndex = static_cast<int>(std::distance(order.begin(), it));
     if (oldIndex == newOrder) return;
@@ -175,7 +172,6 @@ void UIManager::Scene::changePanelOrder(const std::string& panelId, int newOrder
     order.insert(order.begin() + newOrder, std::move(val));
 }
 
-// --- UIManager ---------------------------------------------
 void UIManager::addScene(const std::string& id)
 {
     if (scenes.find(id) == scenes.end())
@@ -193,15 +189,12 @@ void UIManager::addPanel(const std::string &id, const std::string &sceneId, std:
         return;
     }
 
-    if (panelId.empty()) {
+    if (panelId.empty())
         scenes[sceneId].addPanelLocal(id);
-    }
-    else if (scenes[sceneId].panels.contains(panelId)) {
+    else if (scenes[sceneId].panels.contains(panelId))
         scenes[sceneId].panels[panelId].addPanelLocal(id);
-    }
-    else {
+    else
         SDL_Log("Panel '%s' not found.", panelId.c_str());
-    }
 }
 
 
@@ -313,23 +306,18 @@ void UIManager::Panel::handleClickLocal(int x, int y)
         }
     }
 
-    // Рекурсивно проверяем вложенные панели
     for (auto& [id, panel] : panels)
-    {
         panel.handleClickLocal(x, y);
-    }
+
 }
 
-// Обработка кликов для Scene
 void UIManager::Scene::handleClickLocal(int x, int y)
 {
-    Panel::handleClickLocal(x, y); // Вызываем базовую реализацию
+    Panel::handleClickLocal(x, y);
 }
 
-// Обработка ховеров для Panel
 void UIManager::Panel::handleHoverLocal(int x, int y)
 {
-    // Проверяем кнопки в текущей панели
     for (auto& [id, btn] : buttons)
     {
         if (x >= btn.rect.x && x <= btn.rect.x + btn.rect.w &&
@@ -340,14 +328,12 @@ void UIManager::Panel::handleHoverLocal(int x, int y)
         }
     }
 
-    // Рекурсивно проверяем вложенные панели
     for (auto& [id, panel] : panels)
     {
         panel.handleHoverLocal(x, y);
     }
 }
 
-// Обработка ховеров для Scene
 void UIManager::Scene::handleHoverLocal(int x, int y)
 {
     Panel::handleHoverLocal(x, y);
@@ -363,7 +349,7 @@ void UIManager::handleClickEvent(const SDL_Event& event, const std::string& scen
     auto sit = scenes.find(sceneId);
     if (sit == scenes.end()) return;
 
-    sit->second.handleClickLocal(x, y); // Используем рекурсивный метод
+    sit->second.handleClickLocal(x, y);
 }
 
 void UIManager::handleHoverEvent(const SDL_Event& event, const std::string& sceneId)
@@ -376,7 +362,7 @@ void UIManager::handleHoverEvent(const SDL_Event& event, const std::string& scen
     auto sit = scenes.find(sceneId);
     if (sit == scenes.end()) return;
 
-    sit->second.handleHoverLocal(x, y); // Используем рекурсивный метод
+    sit->second.handleHoverLocal(x, y);
 }
 
 void UIManager::drawScene(const std::string& sceneId)
@@ -392,7 +378,6 @@ void UIManager::drawScene(const std::string& sceneId)
 
     if (sceneId == "Map")
     {
-        // безопасно проверяем есть ли Map image
         auto it = scene.images.find("Map");
         if (it != scene.images.end()) {
             it->second.rect.x = player.getPlayerCoords().x - 900;
@@ -402,7 +387,6 @@ void UIManager::drawScene(const std::string& sceneId)
 
     for (const auto& key : scene.order)
     {
-        // image
         auto itImage = scene.images.find(key);
         if (itImage != scene.images.end()) {
             if (!itImage->second.isVisible)
@@ -416,7 +400,6 @@ void UIManager::drawScene(const std::string& sceneId)
             continue;
         }
 
-        // button
         auto itBtn = scene.buttons.find(key);
         if (itBtn != scene.buttons.end())
         {
@@ -427,7 +410,6 @@ void UIManager::drawScene(const std::string& sceneId)
             continue;
         }
 
-        // label
         auto itLbl = scene.labels.find(key);
         if (itLbl != scene.labels.end())
         {
@@ -443,7 +425,6 @@ void UIManager::drawScene(const std::string& sceneId)
             continue;
         }
 
-        // panel
         auto itPanel = scene.panels.find(key);
         if (itPanel != scene.panels.end())
         {
@@ -462,33 +443,49 @@ void UIManager::drawScene(const std::string& sceneId)
 
 void UIManager::addEnemys()
 {
-    //std::vector<Enemy> enemies = this->game.getBattle()->getEnemies();
-    //addImage("Enemy1", "Battle", {0,0,0,0}, resourceManager.getTexture())
-
+    std::vector<Enemy> enemies = this->game.getBattle()->getEnemies();
+    for (int i = 0; i < MAX_ENEMY_COUNT; i++)
+        setTexture(("Enemy" + i), "Battle", resourceManager.getTexture(enemies.at(i).getName() + "Texture"));
 }
 
 void UIManager::setEnabled(const std::string &id, const std::string &sceneId, const bool &enabled)
 {
-    findUIObject(id, sceneId)->isEnabled = enabled;
+    auto obj = findUIObject(id, sceneId);
+    if (obj != nullptr)
+        findUIObject(id, sceneId)->isEnabled = enabled;
+    else
+        SDL_Log("Object '%s' not found %s", id.c_str(), sceneId.c_str());
 }
 
 void UIManager::setVisible(const std::string &id, const std::string &sceneId, const bool &visible)
 {
-    UIObject *obj = findUIObject(id, sceneId);
-    obj->isVisible = visible;
-    obj->isEnabled = visible;
+    auto obj = findUIObject(id, sceneId);
+    if (obj != nullptr)
+    {
+        obj->isVisible = visible;
+        obj->isEnabled = visible;
+    }
+    else
+        SDL_Log("Object '%s' not found %s", id.c_str(), sceneId.c_str());
 }
 
 void UIManager::setRect(const std::string &id, const std::string &sceneId, const SDL_Rect &rect)
 {
-    findUIObject(id, sceneId)->rect = rect;
+    auto obj = findUIObject(id, sceneId);
+    if (obj != nullptr)
+        findUIObject(id, sceneId)->rect = rect;
+    else
+        SDL_Log("Object '%s' not found %s", id.c_str(), sceneId.c_str());
 }
 
 void UIManager::setTexture(const std::string &id, const std::string &sceneId, SDL_Texture *texture)
 {
-    findUIObject(id,sceneId)->texture = texture;
+    auto obj = findUIObject(id, sceneId);
+    if (obj != nullptr)
+        findUIObject(id, sceneId)->texture = texture;
+    else
+        SDL_Log("Object '%s' not found %s", id.c_str(), sceneId.c_str());
 }
-
 
 void UIManager::initialize()
 {
@@ -504,7 +501,7 @@ void UIManager::initialize()
     addImage("Map", "Map", {-900, -500, 18000, 18000}, resourceManager.getTexture("MapBackground"));
     addImage("Character", "Map", {screen.w/2 - 25, screen.h/2 - 25, 192, 48}, resourceManager.getTexture("MovingCharacter"), {0,0,48,48});
     addImage("Press E", "Map", {screen.w/2 - 25, screen.h/2 - 25, 40, 40}, resourceManager.getTextTexture("Press E", resourceManager.getFont("RetroByte"), {0, 0,0,100}));
-    setEnabled("Prees E", "Map", false);
+    setEnabled("Press E", "Map", false);
 
     addMusic("MapTheme", "Map");
     // --- Menu
@@ -532,6 +529,7 @@ void UIManager::initialize()
     addPanel("CharacterPanel", "Battle");
     addPanel("InventoryPanel", "Battle");
     addPanel("MagicPanel", "Battle");
+    addPanel("EnemyPanel", "Battle");
     addMusic("BattleTheme", "Battle");
     addButton("AttackButton", "Battle", {0, 453, 60, 25},
         resourceManager.getTextTexture("Attack", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
@@ -548,7 +546,8 @@ void UIManager::initialize()
         [this]() {this->scenes["Battle"].changePanelOrder("Magic", 0);},
         [this]() {this->playSound("Battle", "ButtonHover");},
         "ActionPanel");
-
+    for (int i = 0; i <  MAX_ENEMY_COUNT; i++)
+        addImage(("Enemy" + i), "Battle", {0, 0, 0, 0}, nullptr, {0, 0, 0, 0}, "EnemyPanel");
     /*addButton("Run", "Battle", {0, 528, 60, 20},
         resourceManager.getTextTexture("Run", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
         [this]() {this->endRandomBattle();},

@@ -11,6 +11,7 @@ public:
     GamePerson() = default;
     virtual ~GamePerson() = default;
 
+    [[nodiscard]] std::string getName() const { return name; }
     [[nodiscard]] uint8_t getLevel() const noexcept { return level; }
     [[nodiscard]] virtual uint32_t getAttackPower(const Skill* skill) const = 0;
     [[nodiscard]] virtual uint32_t getDefense() const = 0;

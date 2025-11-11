@@ -10,12 +10,13 @@ Mix_Chunk *ResourceManager::getSound(const std::string &name) { return sounds[na
 Mix_Music *ResourceManager::getMusic(const std::string &name) { return music[name]; }
 SDL_Texture *ResourceManager::getTexture(const std::string &name) { return textures[name]; }
 TTF_Font *ResourceManager::getFont(const std::string &name) { return fonts[name]; }
+std::vector<SDL_Texture*>* ResourceManager::getAnimation(const std::string& name) {return &animations[name]; }
 
 
 bool ResourceManager::addFont(const std::string &path)
 {
     if (fonts.contains(getName(path)))
-        return fonts[getName(path)];
+        return false;
 
     TTF_Font* font = TTF_OpenFont(path.c_str(), 24);
     if (!font)
@@ -30,7 +31,7 @@ bool ResourceManager::addFont(const std::string &path)
 bool ResourceManager::addTexture(const std::string& path)
 {
     if (textures.contains(getName(path)))
-        return textures[getName(path)];
+        return false;
 
     SDL_Surface* surface = IMG_Load(path.c_str());
     if (!surface) throw std::runtime_error("Failed to load image: " + path);
@@ -43,7 +44,7 @@ bool ResourceManager::addTexture(const std::string& path)
 bool ResourceManager::addTextTexture(const std::string& name, const std::string& text, TTF_Font* font, SDL_Color color)
 {
     if (textures.contains(name))
-        return textures[name];
+        return false;
     SDL_Surface* textSurface = TTF_RenderText_Solid( font, text.c_str(), color );
     if (!textSurface)
         SDL_Log("Failed to render text: ", TTF_GetError());
@@ -62,7 +63,6 @@ SDL_Texture* ResourceManager::getTextTexture(const std::string& text, TTF_Font* 
     SDL_FreeSurface(textSurface);
     return textTexture;
 }
-
 
 bool ResourceManager::addImage(const std::string &path)
 {
@@ -87,6 +87,24 @@ bool ResourceManager::addSound(const std::string &path)
         return false;
     sounds[getName(path)] = Mix_LoadWAV(path.c_str());
     return sounds[getName(path)] != nullptr;
+}
+
+bool ResourceManager::addAnimation(const std::string &path)
+{
+    if (animations.contains(getName(path)))
+        return false;
+    std::string path_to_folder = "путь_к_вашей_папке";
+    int file_count = 0;
+
+    try {
+        for (const auto& entry : std::filesystem::directory_iterator(path_to_folder)) {
+            file_count++;
+        }
+        //std::cout << "Количество файлов в папке: " << file_count << std::endl;
+    } catch (const std::filesystem::filesystem_error& e) {
+        //std::cerr << "Ошибка: " << e.what() << std::endl;
+    }
+
 }
 
 bool ResourceManager::isFileTTF(const std::string &path)

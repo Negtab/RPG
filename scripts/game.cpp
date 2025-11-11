@@ -103,4 +103,8 @@ GameState Game::getPrevGameState() const { return prevState; }
 void Game::addLocation(Location location) { locations.push_back(location); }
 std::vector<Location> Game::getLocations() const { return locations; }
 
+void Game::setScreenRect(const SDL_Rect *rect) {this->screen = *rect;}
+
 SDL_Rect Game::getScreenRect() const { return screen; }
+
+Battle* Game::getBattle() const { return battle.get(); }

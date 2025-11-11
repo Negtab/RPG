@@ -21,6 +21,7 @@ public:
     [[nodiscard]] Mix_Chunk *getSound(const std::string& name);
     [[nodiscard]] SDL_Texture *getTexture(const std::string& name);
     [[nodiscard]] TTF_Font *getFont(const std::string& name);
+    [[nodiscard]] std::vector<SDL_Texture*>* getAnimation(const std::string& name);
     SDL_Texture* getTextTexture(const std::string& text, TTF_Font* font, SDL_Color color);
 
     void initialize();
@@ -34,11 +35,13 @@ public:
     bool addSound(const std::string& path);
     bool addMusic(const std::string& path);
     bool addFont(const std::string& path);
+    bool addAnimation(const std::string& path);
 private:
     std::map<std::string, SDL_Texture*> textures;
     std::map<std::string, Mix_Music*> music;
     std::map<std::string, Mix_Chunk*> sounds;
     std::map<std::string, SDL_Surface*> images;
+    std::map<std::string, std::vector<SDL_Texture*>> animations;
     std::map<std::string, TTF_Font*> fonts;
 
     static bool isFilePNG(const std::string& path);
