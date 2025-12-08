@@ -12,6 +12,8 @@ int Player::getAverageLevel() const
     return (count > 0) ? total / count : 0;
 }
 
+std::vector<Hero> Player::getHeroes() const noexcept { return heroes; }
+
 uint32_t Player::getPlayerGold() const noexcept { return gold; }
 void Player::setPlayerGold(uint32_t g) noexcept { gold = g; }
 

@@ -18,62 +18,63 @@
 #include "types.h"
 #include "uiManager.h"
 
-class Game {
-public:
-    explicit Game(SDL_Renderer* renderer);
-    ~Game() = default;
+    class Game {
+    public:
+        explicit Game(SDL_Renderer* renderer);
+        ~Game() = default;
 
-    void run();
+        void run();
 
-    void addPlayer(const Player& player);
-    void addQuest(const Quest& quest);
-    void addItem(const Item& item);
+        void addPlayer(const Player& player);
+        void addQuest(const Quest& quest);
+        void addItem(const Item& item);
 
-    void setGameState(GameState state);
-    void setPreviousGameState(GameState state);
-    [[nodiscard]] GameState getGameState() const;
-    [[nodiscard]] GameState getPrevGameState() const;
+        void setGameState(GameState state);
+        void setPreviousGameState(GameState state);
+        [[nodiscard]] GameState getGameState() const;
+        [[nodiscard]] GameState getPrevGameState() const;
 
-    void addLocation(Location location);
-    [[nodiscard]] std::vector<Location> getLocations() const;
+        void addLocation(const Location &location);
+        [[nodiscard]] std::vector<Location> getLocations() const;
 
-    [[nodiscard]] Battle* getBattle() const;
+        [[nodiscard]] Battle* getBattle() const;
 
-    void setScreenRect(const SDL_Rect *rect);
-    [[nodiscard]] SDL_Rect getScreenRect() const;
+        void setScreenRect(const SDL_Rect *rect);
+        [[nodiscard]] SDL_Rect getScreenRect() const;
 
-    void startGame();
-    void endGame();
+        void startGame();
+        void endGame();
+
+        void startRandomBattle();
+        void endRandomBattle();
+    private:
+        void handleInput(const SDL_Event &event);
+        void update();
+        void render();
 
 
-private:
-    void handleInput(const SDL_Event &event);
-    void update();
-    void render();
 
-    void startRandomBattle();
+        bool isRunning = false;
+        SDL_Rect screen = {0, 0, 900, 600};
+        GameState state{GameState::CreatePlayer};
+        GameState prevState{GameState::CreatePlayer};
 
-    bool isRunning = false;
-    SDL_Rect screen = {0, 0, 900, 600};
-    GameState state{GameState::CreatePlayer};
-    GameState prevState{GameState::CreatePlayer};
+        std::map<int, Item> items;
+        std::map<int, Skill> skills;
+        std::vector<Location> locations;
+        std::vector<Player> players;
+        std::vector<NotGamePerson> npss;
+        std::vector<Quest> quests;
+        std::string pathToSave;
 
-    std::map<int, Item> items;
-    std::map<int, Skill> skills;
-    std::vector<Location> locations;
-    std::vector<Player> players;
-    std::vector<NotGamePerson> npss;
-    std::vector<Quest> quests;
-    std::string pathToSave;
+        std::unique_ptr<Battle> battle;
+        std::unique_ptr<ResourceManager> resourceManager;
+        std::unique_ptr<Visualizer> visualizer;
+        std::unique_ptr<UIManager> uiManager;
+        std::unique_ptr<InputManager> inputManager;
+        std::unique_ptr<InputController> inputController;
 
-    std::unique_ptr<Battle> battle;
-    std::unique_ptr<ResourceManager> resourceManager;
-    std::unique_ptr<Visualizer> visualizer;
-    std::unique_ptr<UIManager> uiManager;
-    std::unique_ptr<InputManager> inputManager;
-    std::unique_ptr<InputController> inputController;
-
-    SDL_Renderer* renderer;
-};
+        SDL_Renderer* renderer;
+    };
 
 #endif // PROJECT_NAME_GAME_H

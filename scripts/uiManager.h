@@ -13,7 +13,7 @@
 
 #include "controllers/visualizer.h"
 #include "controllers/resourceManager.h"
-#include "types.h"
+
 
 class UIManager
 {
@@ -26,21 +26,26 @@ public:
     void handleHoverEvent(const SDL_Event& event, const std::string& sceneId);
     void drawScene(const std::string& sceneId);
     void addEnemys();
+    void addCharacters();
     void initialize();
 
+
+    void addAnimation(const std::string &id, const std::string &sceneId, std::vector<SDL_Texture*> frames, std::vector<SDL_Rect*> rect, const float &time);
     void addButton(const std::string& id, const std::string& sceneId, const SDL_Rect& rect, SDL_Texture* texture, std::function<void()> onClick, std::function<void()> onHover, std::string panelId = "");
     void addImage(const std::string& id, const std::string& sceneId, const SDL_Rect& rect, SDL_Texture* texture, SDL_Rect srect = {0,0,0,0}, std::string panelId = "");
     void addLabel(const std::string& id, const std::string& sceneId, const SDL_Rect& textRect, const SDL_Rect& imageRect, SDL_Texture* text, SDL_Texture* texture, SDL_Rect srect = {0,0,0,0}, std::string panelId = "");
-    void addPanel(const std::string& id, const std::string& sceneId, std::string panelId = "");
+    void addPanel(const std::string& id, const std::string& sceneId, const std::string &panelId = "");
     void addMusic(const std::string& musicId, const std::string& sceneId);
     void addSound(const std::string& soundId, const std::string& sceneId);
     void playSound(const std::string& sceneId, const std::string& soundId);
 
     void setVisible(const std::string& id, const std::string& sceneId, const bool& visible);
     void setEnabled(const std::string& id, const std::string& sceneId, const bool& enabled);
+    void setEnVI(const std::string& id, const std::string& sceneId, const bool& enabled);
     void setTexture(const std::string &id, const std::string &sceneId, SDL_Texture *texture);
     void setRect(const std::string& id, const std::string& sceneId, const SDL_Rect& rect);
 private:
+
     class UIObject
     {
     public:
@@ -80,9 +85,14 @@ private:
     };
     class AnimPlayer
     {
+        typedef struct anim {
+            float time;
+            std::vector<SDL_Texture*> frames;
+            std::vector<SDL_Rect*> rects;
+        } anim;
     public:
         std::vector<std::string> currentAnimationId;
-        std::map<std::string, std::vector<SDL_Texture*>> animations;
+        std::map<std::string, anim> animations;
     };
 
     class Panel : public UIObject
@@ -125,7 +135,16 @@ private:
     };
 
     UIObject* findUIObject(const std::string &id, const std::string &sceneId);
+    UIObject* findInPanel(const std::string& id, Panel* panel);
+
     Scene* findScene(const std::string &id);
+
+    void onClickAttack();
+    void onClickMagic();
+    void onClickItem();
+    void onChooseSkill(int skillId);
+    void onChooseEnemy();
+
 
     std::map<std::string, Scene> scenes;
     Visualizer& visualizer;

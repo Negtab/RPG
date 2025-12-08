@@ -29,6 +29,8 @@ public:
     [[nodiscard]] GameState getLastGameState() const noexcept;
     void setLastGameState(GameState newGameState);
 
+    [[nodiscard]] std::vector<Hero> getHeroes() const noexcept;
+
     [[nodiscard]] std::vector<std::string> getDiscoveredEnemies() const;
     [[nodiscard]] std::vector<int> getAvailableItems() const;
     [[nodiscard]] Location getPlayerLocation(const Game& game) const;
@@ -42,10 +44,14 @@ private:
     uint32_t gold{0};
     Point coords{0, 0};
     int32_t speed{1};
+
     GameState lastState{GameState::Map};
+
     std::vector<Hero> heroes;
     std::vector<std::string> discoveredEnemies;
     std::map<int, uint8_t> itemIds;
+
+
 };
 
 

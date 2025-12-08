@@ -19,6 +19,10 @@ public:
     uint32_t getSpeed() const override { return agility; }
     std::vector<int> getAvailableSkills() const override { return skills; }
 
+    void addXP(const uint32_t& xp);
+
+    uint32_t xpToNextLevel;
+
     Specialization spec;
 };
 

@@ -9,7 +9,7 @@ void InputController::chooseInput(SDL_Event event, Game& game, Player& player, U
     {
         case GameState::Map:      mapInput(player); break;
         case GameState::Menu:       menuInput(event, game, uiManager); break;
-        case GameState::Battle:     battleInput(player); break;
+        case GameState::Battle:     battleInput(event, game, player, uiManager); break;
         case GameState::Inventory:  inventoryInput(player); break;
         default: ;
     }
@@ -41,11 +41,14 @@ void InputController::menuInput(SDL_Event event, Game& game, UIManager& manager)
 
 }
 
-void InputController::battleInput(Player& player)
+void InputController::battleInput(SDL_Event event, Game& game, Player & player,  UIManager& manager)
 {
+    if (input.isMousePressed(SDL_BUTTON_LEFT))
+        manager.handleClickEvent(event,gameStateToString(game.getGameState()));
     if (input.isKeyPressed(SDL_SCANCODE_SPACE)) {
         // атаковать
     }
+
 }
 
 void InputController::inventoryInput(Player& player)

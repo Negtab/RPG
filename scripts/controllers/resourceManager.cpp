@@ -151,21 +151,43 @@ std::string ResourceManager::getName(const std::string &path)
 void ResourceManager::initialize()
 {
     std::filesystem::path mainPath {std::filesystem::current_path().remove_filename()};
-    std::filesystem::path pathToImages {mainPath.string() + "resources\\Images\\"};
     std::filesystem::path pathToMusic {mainPath.string() + "resources\\Music\\"};
     std::filesystem::path pathToSounds {mainPath.string() + "resources\\Sounds\\"};
+    std::filesystem::path pathToEnemies {mainPath.string() + "resources\\Images\\Enemies\\"};
+    std::filesystem::path pathToCharacters {mainPath.string() + "resources\\Images\\Characters\\"};
+    std::filesystem::path pathToBackgrounds {mainPath.string() + "resources\\Images\\Backgrounds\\"};
+
     addFont(mainPath.string() + "resources\\Fonts\\RetroByte.ttf");
     addMusic(pathToMusic.string() + "MenuTheme.mp3");
     addMusic(pathToMusic.string() + "MapTheme.mp3");
     addMusic(pathToMusic.string() + "BattleTheme.mp3");
     addSound(pathToSounds.string() + "Menu\\ButtonHover.wav");
-    addTexture(pathToImages.string() + "Characters\\MovingCharacter.png");
-    addTexture(pathToImages.string() + "Backgrounds\\MapBackground.png");
-    addTexture(pathToImages.string() + "Backgrounds\\MenuBackground.png");
-    addTexture(pathToImages.string() + "Backgrounds\\BattleImage0.png");
-    addTexture(pathToImages.string() + "Backgrounds\\BattleImage1.png");
-    addTexture(pathToImages.string() + "Backgrounds\\BattleImage2.png");
-    addTexture(pathToImages.string() + "Backgrounds\\BattleTile.png");
+
+    addTexture(pathToCharacters.string() + "MovingCharacter.png");
+    addTexture(pathToCharacters.string() + "Image1.png");
+    addTexture(pathToCharacters.string() + "Image2.png");
+    addTexture(pathToCharacters.string() + "Image3.png");
+    addTexture(pathToCharacters.string() + "Image4.png");
+
+    addTexture(pathToEnemies.string() + "EvilMagician.png");
+    addTexture(pathToEnemies.string() + "EvilWarrior.png");
+    addTexture(pathToEnemies.string() + "Gargoyle.png");
+    addTexture(pathToEnemies.string() + "Gargoyle(Strong).png");
+    addTexture(pathToEnemies.string() + "Ghost.png");
+    addTexture(pathToEnemies.string() + "Ghost(Strong).png");
+    addTexture(pathToEnemies.string() + "Golem.png");
+    addTexture(pathToEnemies.string() + "Knight.png");
+    addTexture(pathToEnemies.string() + "Knight(Royle).png");
+    addTexture(pathToEnemies.string() + "Ogr.png");
+    addTexture(pathToEnemies.string() + "Lich.png");
+
+    addTexture(pathToBackgrounds.string() + "MapBackground.png");
+    addTexture(pathToBackgrounds.string() + "MenuBackground.png");
+    addTexture(pathToBackgrounds.string() + "BattleImage0.png");
+    addTexture(pathToBackgrounds.string() + "BattleImage1.png");
+    addTexture(pathToBackgrounds.string() + "BattleImage2.png");
+    addTexture(pathToBackgrounds.string() + "BattleTile.png");
+
 }
 
 void ResourceManager::savePLayer(const std::string& path, Player& player)

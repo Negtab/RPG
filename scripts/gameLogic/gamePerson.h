@@ -22,12 +22,23 @@ public:
     void resurrectPerson(uint32_t hp = 1) noexcept { isAlive = true; currentHp = hp; }
 
     [[nodiscard]] uint32_t getMaxHp() const noexcept { return maxHp; }
+    void setMaxHp(uint32_t hp) noexcept { maxHp = hp; }
+
     [[nodiscard]] uint32_t getCurrentHp() const noexcept { return currentHp; }
     void setCurrentHp(uint32_t hp) noexcept { currentHp = (hp < maxHp) ? hp : maxHp; }
 
+
     [[nodiscard]] uint32_t getMaxMp() const noexcept { return maxMp; }
+    void setMaxMp(uint32_t mp) noexcept { maxMp = mp; }
+
     [[nodiscard]] uint32_t getCurrentMp() const noexcept { return currentMp; }
     void setCurrentMp(uint32_t mp) noexcept { currentMp = (mp < maxMp) ? mp : maxMp; }
+
+    [[nodiscard]] uint32_t getExperience() const noexcept { return experience; }
+    void setExperience(uint32_t exp) noexcept { experience = exp; }
+
+    [[nodiscard]] uint32_t getGold() const noexcept { return gold; }
+    void setGold(uint32_t gold) noexcept { gold = gold; }
 
 protected:
     std::string name;
@@ -35,6 +46,7 @@ protected:
     bool isAlive{false};
     uint32_t currentHp{0}, maxHp{0};
     uint32_t currentMp{0}, maxMp{0};
+    uint32_t experience{0}, gold{0};
     uint8_t level{1};
     std::vector<int> skills;
     std::vector<Elemental> resists, vulnerability;

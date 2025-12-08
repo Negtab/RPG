@@ -16,7 +16,7 @@ public:
 
     void mapInput(Player& player);
     void menuInput(SDL_Event event, Game& game, UIManager& manager);
-    void battleInput(Player& player);
+    void battleInput(SDL_Event event, Game& game, Player& player, UIManager& uiManager);
     void inventoryInput(Player& player);
 };
 

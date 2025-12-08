@@ -1,12 +1,12 @@
 #include "game.h"
-#include <SDL.h>
-#include <ctime>
-
 #include "inputController.h"
+
+#include <SDL.h>
+
 
 Game::Game(SDL_Renderer* renderer) : renderer(renderer)
 {
-    players.push_back(Player("Test"));
+    players.emplace_back("Test");
 
     resourceManager = std::make_unique<ResourceManager>(*renderer);
 
@@ -26,7 +26,7 @@ void Game::run()
     this->setGameState(GameState::Menu);
     resourceManager->initialize();
     uiManager->initialize();
-    srand(static_cast<unsigned int>(time(0)));
+    srand(static_cast<unsigned int>(time(nullptr)));
 
     while (this->isRunning)
     {
@@ -88,6 +88,19 @@ void Game::startRandomBattle()
     {
         this->setPreviousGameState(this->getGameState());
         this->setGameState(GameState::Battle);
+        battle->run();
+        this->uiManager->addEnemys();
+        this->uiManager->addCharacters();
+    }
+}
+
+void Game::endRandomBattle()
+{
+    int randomNumber = rand()/100;
+    if (randomNumber > 30)
+    {
+        this->setGameState(this->getPrevGameState());
+        this->setPreviousGameState(GameState::Battle);
     }
 }
 
@@ -100,7 +113,7 @@ void Game::setPreviousGameState(GameState s) { prevState = s; }
 GameState Game::getGameState() const { return state; }
 GameState Game::getPrevGameState() const { return prevState; }
 
-void Game::addLocation(Location location) { locations.push_back(location); }
+void Game::addLocation(const Location &location) { locations.push_back(location); }
 std::vector<Location> Game::getLocations() const { return locations; }
 
 void Game::setScreenRect(const SDL_Rect *rect) {this->screen = *rect;}

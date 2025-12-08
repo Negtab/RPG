@@ -19,3 +19,13 @@ uint32_t Hero::getAttackPower(const Skill* skill) const
         return attack + skill->damage;
     return attack;
 }
+
+void Hero::addXP(const uint32_t &xp)
+{
+    this->experience += xp;
+    if (this->experience > xpToNextLevel)
+    {
+        experience -= xpToNextLevel;
+        this->levelUp();
+    }
+}

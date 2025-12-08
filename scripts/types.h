@@ -5,8 +5,8 @@
 #include <string>
 
 constexpr int MAX_ENEMY_COUNT = 9;
+constexpr int MAX_HERO_COUNT = 4;
 
-enum class GameState { CreatePlayer, Menu, Battle, Inventory, Instruction, Map };
 enum class BattleAction { Attack, Magic, Item, Run };
 enum class BattleState { SelectAction, SelectTarget, SelectSkill, SelectItem, Animation, Result };
 enum class BattlePhase { PlayerTurn, EnemyTurn, EndBattle };
@@ -18,20 +18,33 @@ struct Location { Point coord{}; std::string name; int32_t h{0}, w{0}; bool isSa
 struct Skill { int id{0}; std::string name; uint32_t damage{0}, manaCost{0}; uint8_t cooldown{0}, aimCount{0}; bool isDamaging{true}; Elemental damageType{Elemental::None}; };
 struct Specialization { SpecializationNames name{SpecializationNames::None}; uint32_t buffXp{0}, buffCurrentMp{0}; };
 
-const std::string EnemiesNames[] = {};
-const std::string gameStateString[] =  {"CreatePlayer", "Menu", "Battle", "Inventory", "Map", "Instruction", "None"};
+enum class EnemyName {Ghost, Knight, Ogr, Gargoyle};
+const std::string EnemyNameString[] = {"Ghost", "Knight", "Ogr", "Gargoyle", "None"};
+inline const std::string& enemyNameToString(const EnemyName name)
+{
+    switch (name)
+    {
+        case EnemyName::Ghost: return EnemyNameString[0];
+        case EnemyName::Knight: return EnemyNameString[1];
+        case EnemyName::Ogr: return EnemyNameString[2];
+        case EnemyName::Gargoyle: return EnemyNameString[3];
+        default: return EnemyNameString[4];
+    }
+}
 
+enum class GameState { CreatePlayer, Menu, Battle, Inventory, Instruction, Map };
+const std::string GameStateString[] =  {"CreatePlayer", "Menu", "Battle", "Inventory", "Map", "Instruction", "None"};
 inline const std::string& gameStateToString(const GameState state)
 {
     switch (state)
     {
-        case GameState::CreatePlayer: return gameStateString[0];
-        case GameState::Menu: return gameStateString[1];
-        case GameState::Battle: return gameStateString[2];
-        case GameState::Inventory: return gameStateString[3];
-        case GameState::Map: return gameStateString[4];
-        case GameState::Instruction: return gameStateString[5];
-        default: return gameStateString[6];
+        case GameState::CreatePlayer: return GameStateString[0];
+        case GameState::Menu: return GameStateString[1];
+        case GameState::Battle: return GameStateString[2];
+        case GameState::Inventory: return GameStateString[3];
+        case GameState::Map: return GameStateString[4];
+        case GameState::Instruction: return GameStateString[5];
+        default: return GameStateString[6];
     }
 }
 #endif

@@ -4,12 +4,14 @@
 
 #ifndef PROJECT_NAME_ENEMY_H
 #define PROJECT_NAME_ENEMY_H
+#include <memory>
+#include "../player.h"
 #include "gamePerson.h"
 
 class Enemy : public GamePerson
 {
 public:
-    explicit Enemy(std::string  name, const class Player& player);
+    explicit Enemy(EnemyName name, Player *player);
     ~Enemy() override = default;
 
     [[nodiscard]] uint32_t getAttackPower(const Skill* skill) const override;
@@ -18,8 +20,14 @@ public:
     [[nodiscard]] std::vector<int> getAvailableSkills() const override { return skills; }
 
 private:
-    std::string name{};
-    uint32_t experience{0}, gold{0};
+    void makeGhost();
+    void makeKnight();
+    void makeOgr();
+    void makeGargoyle();
+
+    std::unique_ptr<Player> player;
+    EnemyName enemyName{};
+
     std::vector<uint8_t> items;
 };
 
