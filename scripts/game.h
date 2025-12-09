@@ -37,7 +37,7 @@
         void addLocation(const Location &location);
         [[nodiscard]] std::vector<Location> getLocations() const;
 
-        [[nodiscard]] Battle* getBattle() const;
+        [[nodiscard]] Battle *getBattle() const;
 
         void setScreenRect(const SDL_Rect *rect);
         [[nodiscard]] SDL_Rect getScreenRect() const;

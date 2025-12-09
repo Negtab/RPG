@@ -12,7 +12,9 @@ public:
     ~Battle() = default;
 
     void run();
-    [[nodiscard]] std::vector<Enemy> getEnemies() const;
+
+    [[nodiscard]] const std::vector<Enemy> &getEnemies() const;
+
     void getResult() const;
 
     void setState(BattleState state);
@@ -21,6 +23,7 @@ public:
     void setChoose(bool isChoose);
     [[nodiscard]] bool getChoose() const;
 
+    void finishChoose();
 private:
     void setOrder();
     void processAttack();

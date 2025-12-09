@@ -16,7 +16,7 @@ Game::Game(SDL_Renderer* renderer) : renderer(renderer)
     inputManager = std::make_unique<InputManager>();
     inputController = std::make_unique<InputController>(*inputManager);
 
-    battle = std::make_unique<Battle>(players.at(0));
+    battle = std::make_unique<Battle>(&players.at(0), uiManager.get());
 }
 
 void Game::run()
@@ -63,7 +63,7 @@ void Game::endGame()
 
 void Game::handleInput(const SDL_Event &event)
 {
-    inputController->chooseInput(event, *this, players.at(0), *this->uiManager);
+    inputController->chooseInput(event, *this, *this->getBattle(), players.at(0), *this->uiManager);
 }
 
 
@@ -120,4 +120,4 @@ void Game::setScreenRect(const SDL_Rect *rect) {this->screen = *rect;}
 
 SDL_Rect Game::getScreenRect() const { return screen; }
 
-Battle* Game::getBattle() const { return battle.get(); }
+Battle *Game::getBattle() const { return battle.get(); }

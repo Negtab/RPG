@@ -4,19 +4,20 @@
 #include "uiManager.h"
 #include "controllers/inputManager.h"
 #include "player.h"
+#include "gameLogic/battle.h"
 
 class InputController
 {
 public:
     explicit InputController(InputManager& input) : input(input) {}
 
-    void chooseInput(SDL_Event even, Game& game, Player& player,  UIManager& uiManager);
+    void chooseInput(SDL_Event even, Game& game, Battle &battle, Player& player,  UIManager& uiManager);
 
     InputManager& input;
 
     void mapInput(Player& player);
     void menuInput(SDL_Event event, Game& game, UIManager& manager);
-    void battleInput(SDL_Event event, Game& game, Player& player, UIManager& uiManager);
+    void battleInput(SDL_Event event, Game& game, Battle& battle, UIManager& uiManager);
     void inventoryInput(Player& player);
 };
 

@@ -44,6 +44,12 @@ public:
     void setEnVI(const std::string& id, const std::string& sceneId, const bool& enabled);
     void setTexture(const std::string &id, const std::string &sceneId, SDL_Texture *texture);
     void setRect(const std::string& id, const std::string& sceneId, const SDL_Rect& rect);
+
+    [[nodiscard]] SDL_Rect getRect(const std::string& id, const std::string& sceneId);
+
+    void moveSelectorToNext();
+    void moveSelectorToPrevious();
+    void moveSelectorToMouse(int x, int y);
 private:
 
     class UIObject
@@ -145,6 +151,7 @@ private:
     void onChooseSkill(int skillId);
     void onChooseEnemy();
 
+    int currentEnemy {0};
 
     std::map<std::string, Scene> scenes;
     Visualizer& visualizer;

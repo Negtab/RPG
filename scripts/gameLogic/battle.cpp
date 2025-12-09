@@ -2,8 +2,7 @@
 #include <algorithm>
 #include <chrono>
 
-std::vector<Enemy> Battle::getEnemies() const
-{
+const std::vector<Enemy> &Battle::getEnemies() const {
     return enemies;
 }
 
@@ -47,7 +46,7 @@ void Battle::setChoose(bool isChoose) {
 
 void Battle::setOrder()
 {
-    order.clear();
+    /*order.clear();
 
     bool surpriseAttack = (rand() % 100) < 30; // 30% что враги начинают
 
@@ -68,7 +67,7 @@ void Battle::setOrder()
         std::reverse(order.begin(), order.end());
 
     for (auto& u : order)
-        order.push_back(u.second);
+        order.push_back(u.second);*/
 }
 
 void Battle::processAttack()
@@ -125,6 +124,10 @@ void Battle::processAttack()
     }
 }
 
+void Battle::finishChoose() {
+    //sd;da
+}
+
 
 /*void Battle::WinBattle()
 {
@@ -154,11 +157,11 @@ void Battle::heroTurn()
 
 void Battle::startBattle()
 {
-    for (auto u : order)
+    /*for (auto u : order)
         if (u.second <= 0)
             heroTurn();
-        else
-            enemyTurn();
+        elsess
+            enemyTurn();*/
 }
 
 void Battle::run()
@@ -171,12 +174,12 @@ void Battle::run()
 
     int enemyCount = 1 + rand() % std::min(3, avgLvl + 1);
 
-    for (int i = 0; i < enemyCount; i++)
+    /*for (int i = 0; i < enemyCount; i++)
     {
         int t = rand() % 4;
         EnemyName name = static_cast<EnemyName>(t);
-        enemies.emplace_back(name, player.get());
-    }
+        //enemies.emplace_back(name, player.get());
+    }*/
 
     setOrder();
     startBattle();

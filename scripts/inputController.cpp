@@ -2,14 +2,14 @@
 #include "types.h"
 #include "game.h"
 
-void InputController::chooseInput(SDL_Event event, Game& game, Player& player, UIManager& uiManager)
+void InputController::chooseInput(SDL_Event event, Game& game, Battle& battle, Player& player, UIManager& uiManager)
 {
     GameState state = game.getGameState();
     switch (state)
     {
         case GameState::Map:      mapInput(player); break;
         case GameState::Menu:       menuInput(event, game, uiManager); break;
-        case GameState::Battle:     battleInput(event, game, player, uiManager); break;
+        case GameState::Battle:     battleInput(event, game, battle, uiManager); break;
         case GameState::Inventory:  inventoryInput(player); break;
         default: ;
     }
@@ -41,12 +41,21 @@ void InputController::menuInput(SDL_Event event, Game& game, UIManager& manager)
 
 }
 
-void InputController::battleInput(SDL_Event event, Game& game, Player & player,  UIManager& manager)
+void InputController::battleInput(SDL_Event event, Game& game, Battle& battle,  UIManager& manager)
 {
     if (input.isMousePressed(SDL_BUTTON_LEFT))
         manager.handleClickEvent(event,gameStateToString(game.getGameState()));
-    if (input.isKeyPressed(SDL_SCANCODE_SPACE)) {
-        // атаковать
+
+    if (battle.getState() == BattleState::SelectTarget)
+    {
+        if (input.isKeyPressed(SDL_SCANCODE_SPACE) || input.isKeyPressed(SDL_SCANCODE_RETURN))
+            battle.finishChoose();
+        if (input.isKeyPressed(SDL_SCANCODE_W) || input.isKeyPressed(SDL_SCANCODE_UP) ||
+            input.isKeyPressed(SDL_SCANCODE_D) || input.isKeyPressed(SDL_SCANCODE_RIGHT))
+            manager.moveSelectorToNext();
+        if (input.isKeyPressed(SDL_SCANCODE_S) || input.isKeyPressed(SDL_SCANCODE_DOWN) ||
+            input.isKeyPressed(SDL_SCANCODE_A) || input.isKeyPressed(SDL_SCANCODE_LEFT))
+            manager.moveSelectorToPrevious();
     }
 
 }

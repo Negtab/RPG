@@ -470,7 +470,7 @@ void UIManager::drawScene(const std::string& sceneId)
 
 void UIManager::addEnemys()
 {
-    std::vector<Enemy> enemies = this->game.getBattle()->getEnemies();
+    const std::vector<Enemy> &enemies = this->game.getBattle()->getEnemies();
     for (int i = 0; i < 4; i++)
         setTexture(("Enemy" + std::to_string(i + 1)), "Battle", resourceManager.getTexture(enemies.at(i).getName()));
 }
@@ -532,6 +532,18 @@ void UIManager::setTexture(const std::string &id, const std::string &sceneId, SD
         SDL_Log("Object '%s' not found %s", id.c_str(), sceneId.c_str());
 }
 
+SDL_Rect UIManager::getRect(const std::string &id, const std::string &sceneId) {
+    auto obj = findUIObject(id, sceneId);
+    if (obj != nullptr)
+        return findUIObject(id, sceneId)->rect;
+    else
+    {
+        SDL_Log("Object '%s' not found %s", id.c_str(), sceneId.c_str());
+        return {0,0,0,0};
+    }
+}
+
+
 void UIManager::onClickAttack()
 {
     game.getBattle()->setState(BattleState::Animation);
@@ -557,8 +569,39 @@ void UIManager::onChooseSkill(int skillId)
 
 void UIManager::onChooseEnemy() {
     game.getBattle()->setState(BattleState::SelectTarget);
+    currentEnemy = 0;
     setEnVI("Selector", "Battle", true);
+}
 
+void UIManager::moveSelectorToNext()
+{
+    currentEnemy++;
+    SDL_Rect newRect = getRect("Enemy" + std::to_string(currentEnemy), "Battle");
+    newRect.y += 20;
+    setRect("Selector", "Battle", newRect);
+}
+
+void UIManager::moveSelectorToPrevious() {
+    currentEnemy--;
+    SDL_Rect newRect = getRect("Enemy" + std::to_string(currentEnemy), "Battle");
+    newRect.y += 20;
+    setRect("Selector", "Battle", newRect);
+}
+
+void UIManager::moveSelectorToMouse(int x, int y)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        SDL_Rect rect = getRect(("Enemy" + std::to_string(i + 1)), "Battle");
+        if (x >= rect.x && x <= rect.x + rect.w &&
+            y >= rect.y && y <= rect.y + rect.h)
+        {
+            currentEnemy = i;
+            SDL_Rect newRect = getRect("Enemy" + std::to_string(currentEnemy), "Battle");
+            newRect.y += 20;
+            setRect("Selector", "Battle", newRect);
+        }
+    }
 }
 
 
