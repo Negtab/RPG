@@ -11,7 +11,6 @@ add_executable(${PROJECT_NAME} scripts/main.cpp
         scripts/gameLogic/quest.h
         scripts/gameLogic/quest.cpp
         scripts/gameLogic/gamePerson.h
-        scripts/gameLogic/gamePerson.cpp
         scripts/player.h
         scripts/player.cpp
         scripts/game.h
@@ -38,6 +37,7 @@ add_executable(${PROJECT_NAME} scripts/main.cpp
         scripts/gameLogic/notGamePerson.h
         scripts/gameLogic/shopPerson.h
         scripts/gameLogic/shopPerson.cpp
+        scripts/gameLogic/action.h
 )
 
 # --- SDL2 SETUP ---

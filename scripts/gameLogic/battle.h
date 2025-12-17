@@ -1,50 +1,89 @@
 #ifndef PROJECT_NAME_BATTLE_H
 #define PROJECT_NAME_BATTLE_H
+
+#include <vector>
+
 #include "enemy.h"
 #include "item.h"
+#include "action.h"
+
 #include "../player.h"
 #include "../uiManager.h"
+
+class Game;
+
+struct BattleTarget
+{
+    bool isHero;
+    int index;
+};
 
 class Battle
 {
 public:
-    explicit Battle(Player *player, UIManager *ui) : player(player), ui(ui) {}
+    Battle(Player* player, UIManager* ui, Game* game) : player(player), ui(ui), game(game) {};
     ~Battle() = default;
 
     void run();
+    void update();
 
-    [[nodiscard]] const std::vector<Enemy> &getEnemies() const;
-
-    void getResult() const;
-
-    void setState(BattleState state);
     [[nodiscard]] BattleState getState() const;
+    void setState(BattleState state);
 
-    void setChoose(bool isChoose);
-    [[nodiscard]] bool getChoose() const;
+    [[nodiscard]] const std::vector<Enemy>& getEnemies() const;
+    [[nodiscard]] int  getCurrentHeroIndex() const;
+    [[nodiscard]] bool isPlayerChoosing() const;
 
-    void finishChoose();
+    void startPlayerChoose();
+    void confirmAction(const Action& action);
+
+    void tryEscape();
+    [[nodiscard]] bool canEscape() const;
+
+    void startExecuteActions();
+    void updateExecuteActions();
+
+    void startEnemyTurn();
+    void updateEnemyTurn();
+
+    void onAnimationFinished();
+
 private:
-    void setOrder();
-    void processAttack();
-    void startPlayerTurn();
-    void finishBattle();
+    void spawnEnemies();
+    void determineFirstTurn();
+    void endRound();
 
-    void enemyTurn();
-    void heroTurn();
+    void executeAction(const Action& action);
+    void executeAttack(Hero& attacker, const std::vector<int>& targets);
+    void executeSkill(GamePerson& caster,int skillId,const std::vector<int>& targets,bool casterIsHero);
+    void executeItem(Hero& user, const std::vector<int>& targets, int itemId);
 
-    void startBattle();
+    void tryCounterAttack(Hero& attacker, Enemy& target);
 
+    [[nodiscard]] int selectHeroTarget() const;
+    std::vector<int> resolveTargets(const Action& action);
 
-    bool isWin {false}, isLose {false}, isChoose {false};
-    int currentSkill;
-    std::unique_ptr<Player> player;
-    std::unique_ptr<UIManager> ui;
-    BattleState state = BattleState::SelectAction;
+    void checkBattleResult();
+    void finishBattle(const bool &isWin);
+
+    Player *player;
+    UIManager *ui;
+    Game *game;
+
+    BattleState state = BattleState::Start;
+    bool firstTurnIsPlayer = false;
+    bool isWin = false;
+
+    bool escapeUsed = false;
+    int escapeChance = 40;
+
+    std::vector<Action> plannedActions;
+    int currentHeroIndex = 0;
+    int currentEnemyIndex = 0;
+    int currentActionIndex = 0;
+
     std::vector<Enemy> enemies;
-    std::vector<std::pair<int,int>> order;
     std::vector<Item> rewards;
 };
 
-
-#endif //PROJECT_NAME_BATTLE_H
+#endif // PROJECT_NAME_BATTLE_H

@@ -16,7 +16,7 @@ Game::Game(SDL_Renderer* renderer) : renderer(renderer)
     inputManager = std::make_unique<InputManager>();
     inputController = std::make_unique<InputController>(*inputManager);
 
-    battle = std::make_unique<Battle>(&players.at(0), uiManager.get());
+    battle = std::make_unique<Battle>(&players.at(0), uiManager.get(), this);
 }
 
 void Game::run()
@@ -69,8 +69,11 @@ void Game::handleInput(const SDL_Event &event)
 
 void Game::update()
 {
-    if (this->getGameState() == GameState::Map)
+    if (state == GameState::Map)
         startRandomBattle();
+
+    if (state == GameState::Battle)
+        battle->update();
 }
 
 void Game::render()
@@ -121,3 +124,23 @@ void Game::setScreenRect(const SDL_Rect *rect) {this->screen = *rect;}
 SDL_Rect Game::getScreenRect() const { return screen; }
 
 Battle *Game::getBattle() const { return battle.get(); }
+
+Item &Game::getItem(const int &index) {
+    auto it = items.find(index);
+    if (it == items.end()) {
+        SDL_Log("Item not found: %d", index);
+        return items.at(0);
+    }
+
+    return it->second;
+}
+
+Skill &Game::getSkill(const int &id) {
+    auto it = skills.find(id);
+    if (it == skills.end()) {
+        SDL_Log("Skill not found: %d", id);
+        return skills.at(0);
+    }
+
+    return it->second;
+}

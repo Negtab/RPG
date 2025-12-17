@@ -19,7 +19,7 @@ class UIManager
 {
 public:
     explicit UIManager(Visualizer& visualizer, ResourceManager& resourceManager, Game& game, Player& player)
-        : visualizer(visualizer), resourceManager(resourceManager), game(game), player(player) {}
+        : visualizer(visualizer), resourceManager(resourceManager), game(game), player(player) { }
 
     void addScene(const std::string& id);
     void handleClickEvent(const SDL_Event& event, const std::string& sceneId);
@@ -50,6 +50,10 @@ public:
     void moveSelectorToNext();
     void moveSelectorToPrevious();
     void moveSelectorToMouse(int x, int y);
+
+    void confirmTarget();
+    
+    [[nodiscard]] UIChooseState getState() const;
 private:
 
     class UIObject
@@ -139,19 +143,47 @@ private:
         void handleClickLocal(int x, int y) override;
         void handleHoverLocal(int x, int y) override;
     };
+    // class
+    // {
+    // public:
+    //     TargetSelector(UIManager& ui) : ui(ui) {}
+    //     ~TargetSelector() = default;
+    //
+    //     void activate(TargetType type);
+    //     void deactivate();
+    //
+    //     void moveNext();
+    //     void movePrev();
+    //
+    //
+    //     bool isActive() const;
+    //
+    // private:
+    //
+    //     UIManager& ui;
+    //
+    //     bool active {false};
+    // };
+
 
     UIObject* findUIObject(const std::string &id, const std::string &sceneId);
     UIObject* findInPanel(const std::string& id, Panel* panel);
 
     Scene* findScene(const std::string &id);
 
-    void onClickAttack();
-    void onClickMagic();
-    void onClickItem();
-    void onChooseSkill(int skillId);
-    void onChooseEnemy();
+    void onActionButton(ActionType type);
+    void onSkillSelected(int skillId);
+    void onItemSelected(int itemId);
+    void onTargetSelected(int index);
 
-    int currentEnemy {0};
+    [[nodiscard]] int getTargetCount(TargetType type) const;
+    [[nodiscard]] int getSelectedIndex() const;
+
+    Action pendingAction;
+    UIChooseState uiState { UIChooseState::ChooseAction };
+
+    TargetType currentType {TargetType::Enemy};
+    int currentIndex {0};
 
     std::map<std::string, Scene> scenes;
     Visualizer& visualizer;

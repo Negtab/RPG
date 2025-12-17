@@ -42,17 +42,20 @@
         void setScreenRect(const SDL_Rect *rect);
         [[nodiscard]] SDL_Rect getScreenRect() const;
 
+        Item &getItem(const int &index);
+        Skill& getSkill(const int &id);
+
         void startGame();
         void endGame();
 
         void startRandomBattle();
         void endRandomBattle();
+
     private:
+
         void handleInput(const SDL_Event &event);
         void update();
         void render();
-
-
 
         bool isRunning = false;
         SDL_Rect screen = {0, 0, 900, 600};

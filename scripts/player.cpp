@@ -2,7 +2,12 @@
 #include "game.h"
 
 
-Player::Player(std::string name) : name(std::move(name)) {}
+Player::Player(std::string name) : name(std::move(name)) {
+    heroes.emplace_back(Specialization());
+    heroes.emplace_back(Specialization());
+    heroes.emplace_back(Specialization());
+    heroes.emplace_back(Specialization());
+}
 
 int Player::getAverageLevel() const
 {
@@ -52,4 +57,23 @@ Location Player::getPlayerLocation(const Game& game) const
 
 void Player::addDiscoveredEnemy(const std::string& enemy) { discoveredEnemies.push_back(enemy); }
 void Player::addItem(int itemId, uint8_t count) { itemIds[itemId] += count; }
+bool Player::hasItem(int itemId) const
+{
+    auto it = itemIds.find(itemId);
+    return it != itemIds.end() && it->second > 0;
+}
+
+bool Player::consumeItem(int itemId)
+{
+    auto it = itemIds.find(itemId);
+    if (it == itemIds.end() || it->second == 0)
+        return false;
+
+    it->second--;
+
+    if (it->second == 0)
+        itemIds.erase(it);
+
+    return true;
+}
 

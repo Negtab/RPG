@@ -46,10 +46,10 @@ void InputController::battleInput(SDL_Event event, Game& game, Battle& battle,  
     if (input.isMousePressed(SDL_BUTTON_LEFT))
         manager.handleClickEvent(event,gameStateToString(game.getGameState()));
 
-    if (battle.getState() == BattleState::SelectTarget)
+    if (manager.getState() == UIChooseState::ChooseTarget)
     {
         if (input.isKeyPressed(SDL_SCANCODE_SPACE) || input.isKeyPressed(SDL_SCANCODE_RETURN))
-            battle.finishChoose();
+            manager.confirmTarget();
         if (input.isKeyPressed(SDL_SCANCODE_W) || input.isKeyPressed(SDL_SCANCODE_UP) ||
             input.isKeyPressed(SDL_SCANCODE_D) || input.isKeyPressed(SDL_SCANCODE_RIGHT))
             manager.moveSelectorToNext();

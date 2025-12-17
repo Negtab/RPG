@@ -11,15 +11,14 @@ void Item::setCost(int8_t newCost) { this->cost = newCost; }
 std::string Item::getName() const { return name; }
 void Item::setName(std::string newName) { this->name = std::move(newName); }
 
-int8_t Item::getBonus() const { return bonus; }
-void Item::setBonus(int8_t newBonus) { this->bonus = newBonus; }
+int8_t Item::getPower() const { return power; }
+void Item::setPower(int8_t newPower) { this->power = newPower; }
 
-SpecializationNames Item::getSpecName() const { return spec; }
-void Item::setSpecName(SpecializationNames newSpec) { this->spec = newSpec; }
+bool Item::isConsumable() const { return true; }
+void Item::setConsumable(bool newConsumable) { this->consumable = newConsumable; }
 
-bool Item::getIsTemporary() const { return isTemporary; }
-void Item::setIsTemporary(bool IsNewTemporary) { this->isTemporary = IsNewTemporary; }
+void Item::setEffectType(ItemEffectType newEffectType) { this->effectType = newEffectType; }
+void Item::setTargetType(TargetType newTargetType) { this->targetType = newTargetType; }
 
-bool Item::getIsDamageBoost() const { return isDamageBoost; }
-void Item::setIsDamageBoost() { this->isDamageBoost = true; }
-
+ItemEffectType Item::getEffectType() const { return this->effectType; }
+TargetType Item::getTargetType() const { return this->targetType; }

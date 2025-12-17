@@ -16,7 +16,7 @@ void Hero::levelUp()
 uint32_t Hero::getAttackPower(const Skill* skill) const
 {
     if (skill && skill->isDamaging)
-        return attack + skill->damage;
+        return attack + skill->power;
     return attack;
 }
 

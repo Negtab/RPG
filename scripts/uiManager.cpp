@@ -5,6 +5,11 @@
 #include "uiManager.h"
 #include "game.h"
 
+UIChooseState UIManager::getState() const {
+    return uiState;
+}
+
+
 UIManager::Scene *UIManager::findScene(const std::string &id)
 {
     auto sit = scenes.find(id);
@@ -412,6 +417,28 @@ void UIManager::drawScene(const std::string& sceneId)
         }
     }
 
+    if (sceneId == "Battle")
+    {
+        auto it = scene.images.find("HerosStatus");
+        if (it != scene.images.end())
+        {
+            std::string text;
+            for (int i = 0; i < game.getBattle()->getEnemies().size(); i++)
+                text +=  "Hero" + std::to_string(i + 1) + " " + std::to_string(player.getHeroes().at(i).getCurrentHp()) + "/" + std::to_string(player.getHeroes().at(i).getMaxHp()) + "\n";
+            scenes[sceneId].images["HerosStatus"].texture = resourceManager.getTextTexture(text, resourceManager.getFont("RetroByte"), {0, 0, 0, 0});
+        }
+
+        it = scene.images.find("EnemiesStatus");
+        if (it != scene.images.end())
+        {
+            std::string text;
+            for (int i = 0; i < game.getBattle()->getEnemies().size(); i++)
+                text +=  "Enemy" + std::to_string(i + 1) + " " + std::to_string(game.getBattle()->getEnemies().at(i).getCurrentHp()) + "/" + std::to_string(game.getBattle()->getEnemies().at(i).getMaxHp()) + "\n";
+            scenes[sceneId].images["EnemiesStatus"].texture = resourceManager.getTextTexture(text, resourceManager.getFont("RetroByte"), {0, 0, 0, 0});
+        }
+
+    }
+
     for (const auto& key : scene.order)
     {
         auto itImage = scene.images.find(key);
@@ -471,7 +498,7 @@ void UIManager::drawScene(const std::string& sceneId)
 void UIManager::addEnemys()
 {
     const std::vector<Enemy> &enemies = this->game.getBattle()->getEnemies();
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < enemies.size(); i++)
         setTexture(("Enemy" + std::to_string(i + 1)), "Battle", resourceManager.getTexture(enemies.at(i).getName()));
 }
 
@@ -543,65 +570,186 @@ SDL_Rect UIManager::getRect(const std::string &id, const std::string &sceneId) {
     }
 }
 
-
-void UIManager::onClickAttack()
+void UIManager::onActionButton(ActionType type)
 {
-    game.getBattle()->setState(BattleState::Animation);
-    game.getBattle()->setChoose(true);
+    pendingAction = Action{};
+    pendingAction.actorIndex = game.getBattle()->getCurrentHeroIndex();
+    pendingAction.type = type;
+
+    setEnVI("ActionPanel", "Battle", false);
+
+    switch (type)
+    {
+        case ActionType::Attack:
+            pendingAction.targetType = TargetType::Enemy;
+            uiState = UIChooseState::ChooseTarget;
+            setEnVI("TargetSelector", "Battle", true);
+            break;
+
+        case ActionType::Magic:
+            uiState = UIChooseState::ChooseSkill;
+            setEnVI("MagicPanel", "Battle", true);
+            break;
+
+        case ActionType::Item:
+            uiState = UIChooseState::ChooseItem;
+            setEnVI("InventoryPanel", "Battle", true);
+            break;
+
+        case ActionType::Skip:
+            game.getBattle()->confirmAction(pendingAction);
+            uiState = UIChooseState::ChooseAction;
+            setEnVI("ActionPanel", "Battle", true);
+            break;
+    }
 }
 
-void UIManager::onClickMagic() {
-    game.getBattle()->setState(BattleState::SelectSkill);
-    setEnVI("MagicPanel","Battle", true);
-    setEnVI("InventoryPanel","Battle", false);
-}
 
-void UIManager::onClickItem() {
-    game.getBattle()->setState(BattleState::SelectItem);
-    setEnVI("MagicPanel","Battle", false);
-    setEnVI("InventoryPanel","Battle", true);
-}
-
-void UIManager::onChooseSkill(int skillId)
+void UIManager::onSkillSelected(int skillId)
 {
-    setEnVI("SelectEnemy", "Battle", true);
+    pendingAction.payloadId = skillId;
+
+    const Skill& skill = game.getSkill(skillId);
+    pendingAction.targetType = skill.targetType;
+
+    setEnVI("MagicPanel", "Battle", false);
+
+    if (skill.targetType == TargetType::Self ||
+        skill.targetType == TargetType::AllEnemies ||
+        skill.targetType == TargetType::AllAllies)
+    {
+        game.getBattle()->confirmAction(pendingAction);
+        uiState = UIChooseState::ChooseAction;
+        setEnVI("ActionPanel", "Battle", true);
+    }
+    else
+    {
+        uiState = UIChooseState::ChooseTarget;
+        setEnVI("TargetSelector", "Battle", true);
+    }
 }
 
-void UIManager::onChooseEnemy() {
-    game.getBattle()->setState(BattleState::SelectTarget);
-    currentEnemy = 0;
-    setEnVI("Selector", "Battle", true);
+
+void UIManager::onItemSelected(int itemId)
+{
+    pendingAction.payloadId = itemId;
+
+    const Item& item = game.getItem(itemId);
+    pendingAction.targetType = item.getTargetType();
+
+    setEnVI("InventoryPanel", "Battle", false);
+
+    if (pendingAction.targetType == TargetType::Self ||
+        pendingAction.targetType == TargetType::AllEnemies ||
+        pendingAction.targetType == TargetType::AllAllies)
+    {
+        game.getBattle()->confirmAction(pendingAction);
+        uiState = UIChooseState::ChooseAction;
+        setEnVI("ActionPanel", "Battle", true);
+    }
+    else
+    {
+        uiState = UIChooseState::ChooseTarget;
+        setEnVI("TargetSelector", "Battle", true);
+    }
 }
+
+void UIManager::onTargetSelected(int index)
+{
+    pendingAction.targetIndex = index;
+
+    game.getBattle()->confirmAction(pendingAction);
+
+    setEnVI("TargetSelector", "Battle", false);
+
+    uiState = UIChooseState::ChooseAction;
+    setEnVI("ActionPanel", "Battle", true);
+}
+
+// void UIManager::activateSelector(TargetType type)
+// {
+//     currentType = type;
+//     currentIndex = 0;
+//     setEnabled("TargetSelector", "Battle", true);
+// }
+//
+// void UIManager::deactivateSelector()
+// {
+//     setEnabled("TargetSelector", "Battle", false);
+// }
+
+int UIManager::getSelectedIndex() const {
+    return currentIndex;
+}
+
+void UIManager::confirmTarget()
+{
+    pendingAction.targetIndex = getSelectedIndex();
+
+    setEnVI("TargetSelector", "Battle", false);
+
+    game.getBattle()->confirmAction(pendingAction);
+
+    uiState = UIChooseState::ChooseTarget;
+    setEnVI("ActionPanel", "Battle", true);
+}
+
+
+int UIManager::getTargetCount(TargetType type) const
+{
+    switch (type)
+    {
+        case TargetType::Enemy:
+            return game.getBattle()->getEnemies().size();
+
+        case TargetType::Ally:
+            return player.getHeroes().size();
+
+        default:
+            return 0;
+    }
+}
+
 
 void UIManager::moveSelectorToNext()
 {
-    currentEnemy++;
-    SDL_Rect newRect = getRect("Enemy" + std::to_string(currentEnemy), "Battle");
+    if (!findUIObject("TargetSelector", "Battle")->isEnabled) return;
+
+    const int max = getTargetCount(currentType);
+    if (max == 0) return;
+
+    currentIndex = (currentIndex + 1) % max;
+    SDL_Rect newRect = getRect("Enemy" + std::to_string(currentIndex + 1), "Battle");
     newRect.y += 20;
-    setRect("Selector", "Battle", newRect);
+    setRect("TargetSelector", "Battle", newRect);
 }
 
 void UIManager::moveSelectorToPrevious() {
-    currentEnemy--;
-    SDL_Rect newRect = getRect("Enemy" + std::to_string(currentEnemy), "Battle");
+    if (!findUIObject("TargetSelector", "Battle")->isEnabled) return;
+
+    const int max = getTargetCount(currentType);
+    if (max == 0) return;
+
+    currentIndex = (currentIndex - 1 + max) % max;
+    SDL_Rect newRect = getRect("Enemy" + std::to_string(currentIndex + 1), "Battle");
     newRect.y += 20;
-    setRect("Selector", "Battle", newRect);
+    setRect("TargetSelector", "Battle", newRect);
 }
 
 void UIManager::moveSelectorToMouse(int x, int y)
 {
-    for (int i = 0; i < 4; i++)
-    {
-        SDL_Rect rect = getRect(("Enemy" + std::to_string(i + 1)), "Battle");
-        if (x >= rect.x && x <= rect.x + rect.w &&
-            y >= rect.y && y <= rect.y + rect.h)
-        {
-            currentEnemy = i;
-            SDL_Rect newRect = getRect("Enemy" + std::to_string(currentEnemy), "Battle");
-            newRect.y += 20;
-            setRect("Selector", "Battle", newRect);
-        }
-    }
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     SDL_Rect rect = getRect(("Enemy" + std::to_string(i + 1)), "Battle");
+    //     if (x >= rect.x && x <= rect.x + rect.w &&
+    //         y >= rect.y && y <= rect.y + rect.h)
+    //     {
+    //         currentEnemy = i;
+    //         SDL_Rect newRect = getRect("Enemy" + std::to_string(currentEnemy + 1), "Battle");
+    //         newRect.y += 20;
+    //         setRect("Selector", "Battle", newRect);
+    //     }
+    // }
 }
 
 
@@ -642,16 +790,11 @@ void UIManager::initialize()
         "ButtonPanel");
     // --- Battle
 
-    addImage("BattleBackground", "Battle", {0, 0, 732, 452}, resourceManager.getTexture("BattleImage0"));
-    addImage("DownMenuBackground", "Battle", {0, 453, 732, screen.h - 452}, resourceManager.getTexture("BattleTile"));
-    /*addImage("DopAction", "Battle", {150, 453, 732 - 150, screen.h - 452}, resourceManager.getTexture("BattleTile"));
-    addImage("Book", "Battle", {732, 453, screen.w - 732, screen.h - 452}, resourceManager.getTexture("BattleTile"));
-    addImage("Characters", "Battle", {732, 0, screen.w - 732, 452}, resourceManager.getTexture("BattleTile"));*/
+    addImage("BattleBackground", "Battle", {0, 0, screen.w, 452}, resourceManager.getTexture("BattleImage0"));
+    addImage("DownMenuBackground", "Battle", {0, 453, screen.w, screen.h - 452}, resourceManager.getTexture("BattleTile"));
+
 
     addPanel("ActionPanel", "Battle");
-
-    addPanel("CharacterStPanel", "Battle");
-    addPanel("EnemyStPanel", "Battle");
 
     addPanel("InventoryPanel", "Battle");
     addPanel("MagicPanel", "Battle");
@@ -663,31 +806,37 @@ void UIManager::initialize()
 
     addButton("AttackButton", "Battle", {0, 453, 60, 25},
         resourceManager.getTextTexture("Attack", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
-        [this]() {this->scenes["Battle"].changePanelOrder("Attack", 0);},
+        [this]() {this->onActionButton(ActionType::Attack);},
         [this]() {this->playSound("Battle", "ButtonHover");},
         "ActionPanel");
     addButton("ItemsButton", "Battle", {0, 478, 60, 25},
         resourceManager.getTextTexture("Items", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
-        [this]() {this->scenes["Battle"].changePanelOrder("Items", 0);},
+        [this]() {this->onActionButton(ActionType::Item);},
         [this]() {this->playSound("Battle", "ButtonHover");},
         "ActionPanel");
     addButton("MagicButton", "Battle", {0, 503, 60, 25},
         resourceManager.getTextTexture("Magic", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
-        [this]() {this->scenes["Battle"].changePanelOrder("Magic", 0);},
+        [this]() {this->onActionButton(ActionType::Magic);},
         [this]() {this->playSound("Battle", "ButtonHover");},
         "ActionPanel");
-
-    for (int i = 0; i < 4; i++)
-        addImage(("Enemy" + std::to_string(i + 1)), "Battle", {screen.w/2 - 100, screen.h/2 - 230 + (i * 100), 76, 94}, nullptr, {0, 0, 108, 144}, "EnemyPanel");
-    for (int i = 0; i < 4; i++)
-        addImage(("Hero" + std::to_string(i + 1)), "Battle", {screen.w/2 + 140, screen.h/2 - 230 + (i * 100), 56, 74}, nullptr, {0, 0, 16, 24}, "HeroPanel");
-
-
     addButton("Run", "Battle", {0, 528, 60, 20},
         resourceManager.getTextTexture("Run", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
         [this]() {this->game.endRandomBattle();},
         [this]() {this->playSound("Battle", "ButtonHover");},
         "ActionPanel");
+
+    addImage("TargetSelector", "Battle", {0,0,100,100}, resourceManager.getTexture("TargetSelector"), {0,0,100,100});
+    setVisible("TargetSelector", "Battle", true);
+
+    for (int i = 0; i < 4; i++)
+        addImage(("Enemy" + std::to_string(i + 1)), "Battle", {screen.w/2 - 100, screen.h/2 - 230 + (i * 100), 76, 94}, nullptr, {0, 0, 108, 144}, "EnemyPanel");
+    for (int i = 0; i < 4; i++)
+        addImage(("Hero" + std::to_string(i + 1)), "Battle", {screen.w - 100, screen.h/2 - 230 + (i * 100), 56, 74}, nullptr, {0, 0, 16, 24}, "HeroPanel");
+
+    addImage("HerosStatus", "Battle",{screen.w/2 + 100, screen.h/2, 200, 200} , nullptr, {screen.w/2 + 100, screen.h/2, 100, 100});
+    //addImage("EnemiesStatus", "Battle", {screen.w/2 + 100, screen.h/2, 200, 200}, nullptr, {screen.w/2 + 100, screen.h/2, 100, 100});
+
+
 
 
 }

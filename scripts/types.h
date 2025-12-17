@@ -3,19 +3,69 @@
 
 #include <cstdint>
 #include <string>
+#include "gameLogic/action.h"
 
 constexpr int MAX_ENEMY_COUNT = 9;
 constexpr int MAX_HERO_COUNT = 4;
 
 enum class BattleAction { Attack, Magic, Item, Run };
-enum class BattleState { SelectAction, SelectTarget, SelectSkill, SelectItem, Animation, Result };
+enum class BattleState
+{
+    Start,
+    EnemyTurn,
+    PlayerChoose,
+    ExecuteActions,
+    Animation,
+    EscapeResult,
+    Result
+};
+enum class UIChooseState
+{
+    ChooseAction,   // Attack / Magic / Item / Skip
+    ChooseSkill,    // список скиллов
+    ChooseItem,     // инвентарь
+    ChooseTarget    // враг / союзник / AoE
+};
+
 enum class BattlePhase { PlayerTurn, EnemyTurn, EndBattle };
 enum class Elemental { Fire, Water, Earth, Air, Ice, Lava, Dark, Light, None };
 enum class SpecializationNames { Archer, Magician, Warrior, Thief, None };
 
 struct Point { int32_t x{0}, y{0}; };
 struct Location { Point coord{}; std::string name; int32_t h{0}, w{0}; bool isSafe{false}; };
-struct Skill { int id{0}; std::string name; uint32_t damage{0}, manaCost{0}; uint8_t cooldown{0}, aimCount{0}; bool isDamaging{true}; Elemental damageType{Elemental::None}; };
+
+struct SkillInstance
+{
+    int skillId{0};
+    uint8_t cooldownLeft{0};
+};
+
+enum class SkillEffectType
+{
+    Damage,
+    Heal,
+    Buff,
+    Debuff,
+    None
+};
+
+struct Skill
+{
+    int id{0};
+    bool isDamaging{false};
+    std::string name;
+
+    uint32_t manaCost{0};
+    uint8_t maxCooldown{0};
+
+    uint8_t targetCount{1};
+    TargetType targetType{TargetType::Enemy};
+
+    SkillEffectType effectType{SkillEffectType::Damage};
+    Elemental element{Elemental::None};
+
+    int32_t power{0};
+};
 struct Specialization { SpecializationNames name{SpecializationNames::None}; uint32_t buffXp{0}, buffCurrentMp{0}; };
 
 enum class EnemyName {Ghost, Knight, Ogr, Gargoyle};

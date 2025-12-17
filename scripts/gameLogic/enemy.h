@@ -17,15 +17,14 @@ public:
     [[nodiscard]] uint32_t getAttackPower(const Skill* skill) const override;
     [[nodiscard]] uint32_t getDefense() const override { return defence; }
     [[nodiscard]] uint32_t getSpeed() const override { return agility; }
-    [[nodiscard]] std::vector<int> getAvailableSkills() const override { return skills; }
+    [[nodiscard]] std::vector<SkillInstance> getAvailableSkills() const override { return skills; }
 
 private:
     void makeGhost();
     void makeKnight();
     void makeOgr();
     void makeGargoyle();
-
-    std::unique_ptr<Player> player;
+    Player *player;
     EnemyName enemyName{};
 
     std::vector<uint8_t> items;

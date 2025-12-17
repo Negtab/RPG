@@ -28,7 +28,7 @@ void Enemy::makeGargoyle()
     experience = 15 + lvl * 5;
     gold       = 5 + lvl * 2;
 
-    skills = {0}; // базовый удар
+    //skills.at(0). = {0}; // базовый удар
 }
 
 void Enemy::makeGhost()
@@ -46,7 +46,7 @@ void Enemy::makeGhost()
     experience = 12 + lvl * 5;
     gold = 3 + lvl * 2;
 
-    skills = {1}; // яд/магия
+    //skills = {1}; // яд/магия
 }
 
 
@@ -61,6 +61,6 @@ void Enemy::makeOgr() {
 
 uint32_t Enemy::getAttackPower(const Skill* skill) const
 {
-    return skill ? attack + skill->damage : attack;
+    return skill ? attack + skill->power : attack;
 }
 

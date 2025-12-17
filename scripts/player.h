@@ -35,10 +35,13 @@ public:
     [[nodiscard]] std::vector<int> getAvailableItems() const;
     [[nodiscard]] Location getPlayerLocation(const Game& game) const;
 
-
     void addDiscoveredEnemy(const std::string& enemy);
     void addItem(int itemId, uint8_t count);
+
+    bool hasItem(int itemId) const;
+    bool consumeItem(int itemId);
     void removeItem(int itemId);
+
 private:
     std::string name;
     uint32_t gold{0};
@@ -50,8 +53,6 @@ private:
     std::vector<Hero> heroes;
     std::vector<std::string> discoveredEnemies;
     std::map<int, uint8_t> itemIds;
-
-
 };
 
 

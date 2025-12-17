@@ -151,11 +151,12 @@ std::string ResourceManager::getName(const std::string &path)
 void ResourceManager::initialize()
 {
     std::filesystem::path mainPath {std::filesystem::current_path().remove_filename()};
-    std::filesystem::path pathToMusic {mainPath.string() + "resources\\Music\\"};
-    std::filesystem::path pathToSounds {mainPath.string() + "resources\\Sounds\\"};
-    std::filesystem::path pathToEnemies {mainPath.string() + "resources\\Images\\Enemies\\"};
-    std::filesystem::path pathToCharacters {mainPath.string() + "resources\\Images\\Characters\\"};
-    std::filesystem::path pathToBackgrounds {mainPath.string() + "resources\\Images\\Backgrounds\\"};
+    std::filesystem::path pathToMusic {mainPath.string() + R"(resources\Music\)"};
+    std::filesystem::path pathToSounds {mainPath.string() + R"(resources\Sounds\)"};
+    std::filesystem::path pathToEnemies {mainPath.string() + R"(resources\Images\Enemies\)"};
+    std::filesystem::path pathToCharacters {mainPath.string() + R"(resources\Images\Characters\)"};
+    std::filesystem::path pathToBackgrounds {mainPath.string() + R"(resources\Images\Backgrounds\)"};
+    std::filesystem::path pathToEnvironment {mainPath.string() + R"(resources\Images\Environment\)"};
 
     addFont(mainPath.string() + "resources\\Fonts\\RetroByte.ttf");
     addMusic(pathToMusic.string() + "MenuTheme.mp3");
@@ -187,6 +188,8 @@ void ResourceManager::initialize()
     addTexture(pathToBackgrounds.string() + "BattleImage1.png");
     addTexture(pathToBackgrounds.string() + "BattleImage2.png");
     addTexture(pathToBackgrounds.string() + "BattleTile.png");
+
+    addTexture(pathToEnvironment.string() + "TargetSelector.png");
 
 }
 

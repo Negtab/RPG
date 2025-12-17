@@ -1,7 +1,18 @@
 #ifndef PROJECT_NAME_ITEM_H
 #define PROJECT_NAME_ITEM_H
 
+#include "action.h"
 #include "../types.h"
+
+enum class ItemEffectType
+{
+    Heal,
+    Damage,
+    Buff,
+    Debuff,
+    RestoreMana,
+    None
+};
 
 class Item
 {
@@ -19,24 +30,25 @@ public:
     [[nodiscard]] std::string getName() const;
     void setName(std::string newName);
 
-    [[nodiscard]] int8_t getBonus() const;
-    void setBonus(int8_t newBonus);
+    [[nodiscard]] int8_t getPower() const;
+    void setPower(int8_t value);
 
-    [[nodiscard]] SpecializationNames getSpecName() const;
-    void setSpecName(SpecializationNames newSpec);
+    [[nodiscard]] bool isConsumable() const;
+    void setConsumable(bool value);
 
-    [[nodiscard]] bool getIsTemporary() const;
-    void setIsTemporary(bool IsNewTemporary);
+    [[nodiscard]] ItemEffectType getEffectType() const;
+    [[nodiscard]] TargetType getTargetType() const;
 
-    [[nodiscard]] bool getIsDamageBoost() const;
-    void setIsDamageBoost();
-
+    void setEffectType(ItemEffectType type);
+    void setTargetType(TargetType type);
 private:
     int id{0};
-    int8_t cost{0}, bonus{0};
+    int8_t cost{0}, power{0};
     std::string name;
-    bool isDamageBoost{true}, isTemporary{false};
-    SpecializationNames spec{SpecializationNames::None};
+
+    bool consumable{true};
+    ItemEffectType effectType{ItemEffectType::None};
+    TargetType targetType{TargetType::Self};
 };
 
 
