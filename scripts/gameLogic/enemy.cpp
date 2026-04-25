@@ -9,7 +9,8 @@ Enemy::Enemy(const EnemyName name, Player *player) : player(player), enemyName(n
         case EnemyName::Ogr:      makeOgr(); break;
         case EnemyName::Ghost:    makeGhost(); break;
     }
-    this->name = enemyNameToString(name);
+    this->name = enemyNameString.at(name);
+    isAlive = true;
 }
 
 
@@ -51,11 +52,37 @@ void Enemy::makeGhost()
 
 
 void Enemy::makeKnight() {
-    //
+    const int lvl = player->getAverageLevel();
+    level = lvl;
+
+    maxHp = 25 + lvl * 8;
+    currentHp = maxHp;
+
+    attack   = 8 + lvl * 2;
+    defence  = 4 + lvl * 1;
+    agility  = 10 + lvl * 3;
+
+    experience = 12 + lvl * 5;
+    gold = 3 + lvl * 2;
 }
 
 void Enemy::makeOgr() {
-    //
+    const int lvl = player->getAverageLevel();
+    level = lvl;
+
+    maxHp = 25 + lvl * 8;
+    currentHp = maxHp;
+
+    attack   = 8 + lvl * 2;
+    defence  = 4 + lvl * 1;
+    agility  = 10 + lvl * 3;
+
+    experience = 12 + lvl * 5;
+    gold = 3 + lvl * 2;
+}
+
+EnemyName Enemy::getEnemyName() const {
+    return enemyName;
 }
 
 

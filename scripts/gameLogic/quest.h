@@ -3,7 +3,7 @@
 
 #include <map>
 
-#include "../types.h"
+#include "../main/types.h"
 
 class Quest
 {

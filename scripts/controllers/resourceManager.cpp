@@ -4,13 +4,24 @@
 
 #include "resourceManager.h"
 
-SDL_Texture *ResourceManager::getTextureFromImage(SDL_Surface *surface) const { return SDL_CreateTextureFromSurface(&this->renderer, surface); }
+#include <algorithm>
+
+std::unordered_map<std::string, SDL_Texture*> ResourceManager::textCache;
+std::unordered_map<std::string, SDL_Texture*> ResourceManager::textures;
+std::unordered_map<std::string, Mix_Music*> ResourceManager::music;
+std::unordered_map<std::string, Mix_Chunk*> ResourceManager::sounds;
+std::unordered_map<std::string, SDL_Surface*> ResourceManager::images;
+std::unordered_map<std::string, std::vector<SDL_Texture*>> ResourceManager::animations;
+std::unordered_map<std::string, TTF_Font*> ResourceManager::fonts;
+SDL_Renderer* ResourceManager::renderer = nullptr; 
+
+SDL_Texture *ResourceManager::getTextureFromImage(SDL_Surface *surface) { return SDL_CreateTextureFromSurface(renderer, surface); }
 SDL_Surface *ResourceManager::getImage(const std::string &name) { return images[name]; }
 Mix_Chunk *ResourceManager::getSound(const std::string &name) { return sounds[name]; }
 Mix_Music *ResourceManager::getMusic(const std::string &name) { return music[name]; }
 SDL_Texture *ResourceManager::getTexture(const std::string &name) { return textures[name]; }
 TTF_Font *ResourceManager::getFont(const std::string &name) { return fonts[name]; }
-std::vector<SDL_Texture*>* ResourceManager::getAnimation(const std::string& name) {return &animations[name]; }
+std::vector<SDL_Texture*>& ResourceManager::getAnimation(const std::string& name) {return animations.at(name);}
 
 
 bool ResourceManager::addFont(const std::string &path)
@@ -35,7 +46,7 @@ bool ResourceManager::addTexture(const std::string& path)
 
     SDL_Surface* surface = IMG_Load(path.c_str());
     if (!surface) throw std::runtime_error("Failed to load image: " + path);
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(&this->renderer, surface);
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(this->renderer, surface);
     SDL_FreeSurface(surface);
     textures[getName(path)] = texture;
     return texture;
@@ -48,21 +59,33 @@ bool ResourceManager::addTextTexture(const std::string& name, const std::string&
     SDL_Surface* textSurface = TTF_RenderText_Solid( font, text.c_str(), color );
     if (!textSurface)
         SDL_Log("Failed to render text: ", TTF_GetError());
-    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(&this->renderer, textSurface);
+    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(this->renderer, textSurface);
     SDL_FreeSurface(textSurface);
     textures[name] = textTexture;
     return textTexture;
 }
 
-SDL_Texture* ResourceManager::getTextTexture(const std::string& text, TTF_Font* font, SDL_Color color)
+SDL_Texture* ResourceManager::getTextTexture(const std::string& text, TTF_Font* font, SDL_Color color, uint32_t wrapWidth)
 {
-    SDL_Surface* textSurface = TTF_RenderText_Solid( font, text.c_str(), color );
+    if (textCache.contains(text))
+        return textCache[text];
+
+    SDL_Surface* textSurface;
+    if (wrapWidth <= 0)
+        textSurface = TTF_RenderText_Solid( font, text.c_str(), color);
+    else
+        textSurface = TTF_RenderUTF8_Blended_Wrapped( font, text.c_str(), color, wrapWidth);
     if (!textSurface)
         SDL_Log("Failed to render text: ", TTF_GetError());
-    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(&this->renderer, textSurface);
+    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
     SDL_FreeSurface(textSurface);
+
+    if (!textCache.contains(text))
+        textCache[text] = textTexture;
+
     return textTexture;
 }
+
 
 bool ResourceManager::addImage(const std::string &path)
 {
@@ -89,23 +112,44 @@ bool ResourceManager::addSound(const std::string &path)
     return sounds[getName(path)] != nullptr;
 }
 
-bool ResourceManager::addAnimation(const std::string &path)
+bool ResourceManager::addAnimation(const std::string& path)
 {
-    if (animations.contains(getName(path)))
+    const std::string name = getName(path);
+    if (animations.contains(name))
         return false;
-    std::string path_to_folder = "путь_к_вашей_папке";
-    int file_count = 0;
 
-    try {
-        for (const auto& entry : std::filesystem::directory_iterator(path_to_folder)) {
-            file_count++;
+    try
+    {
+        std::vector<std::filesystem::path> files;
+        for (const auto& entry : std::filesystem::directory_iterator(path))
+            files.push_back(entry.path());
+
+        std::sort(files.begin(), files.end());
+
+        for (const auto& file : files)
+        {
+            SDL_Surface* surface = IMG_Load(file.string().c_str());
+            if (!surface)
+            {
+                SDL_Log("IMG_Load failed: %s", IMG_GetError());
+                continue;
+            }
+
+            SDL_Texture* tex = SDL_CreateTextureFromSurface(this->renderer, surface);
+            SDL_FreeSurface(surface);
+
+            if (tex)
+                animations[name].push_back(tex);
         }
-        //std::cout << "Количество файлов в папке: " << file_count << std::endl;
-    } catch (const std::filesystem::filesystem_error& e) {
-        //std::cerr << "Ошибка: " << e.what() << std::endl;
+    }
+    catch (...)
+    {
+        return false;
     }
 
+    return true;
 }
+
 
 bool ResourceManager::isFileTTF(const std::string &path)
 {
@@ -157,11 +201,13 @@ void ResourceManager::initialize()
     std::filesystem::path pathToCharacters {mainPath.string() + R"(resources\Images\Characters\)"};
     std::filesystem::path pathToBackgrounds {mainPath.string() + R"(resources\Images\Backgrounds\)"};
     std::filesystem::path pathToEnvironment {mainPath.string() + R"(resources\Images\Environment\)"};
+    std::filesystem::path pathToAnimations {mainPath.string() + R"(resources\Animations\)"};
 
     addFont(mainPath.string() + "resources\\Fonts\\RetroByte.ttf");
     addMusic(pathToMusic.string() + "MenuTheme.mp3");
     addMusic(pathToMusic.string() + "MapTheme.mp3");
     addMusic(pathToMusic.string() + "BattleTheme.mp3");
+    addMusic(pathToMusic.string() + "OptionsTheme.mp3");
     addSound(pathToSounds.string() + "Menu\\ButtonHover.wav");
 
     addTexture(pathToCharacters.string() + "MovingCharacter.png");
@@ -169,6 +215,10 @@ void ResourceManager::initialize()
     addTexture(pathToCharacters.string() + "Image2.png");
     addTexture(pathToCharacters.string() + "Image3.png");
     addTexture(pathToCharacters.string() + "Image4.png");
+    addTexture(pathToCharacters.string() + "Image1Dead.png");
+    addTexture(pathToCharacters.string() + "Image2Dead.png");
+    addTexture(pathToCharacters.string() + "Image3Dead.png");
+    addTexture(pathToCharacters.string() + "Image4Dead.png");
 
     addTexture(pathToEnemies.string() + "EvilMagician.png");
     addTexture(pathToEnemies.string() + "EvilWarrior.png");
@@ -184,73 +234,115 @@ void ResourceManager::initialize()
 
     addTexture(pathToBackgrounds.string() + "MapBackground.png");
     addTexture(pathToBackgrounds.string() + "MenuBackground.png");
+    addTexture(pathToBackgrounds.string() + "OptionsBackground.png");
     addTexture(pathToBackgrounds.string() + "BattleImage0.png");
     addTexture(pathToBackgrounds.string() + "BattleImage1.png");
     addTexture(pathToBackgrounds.string() + "BattleImage2.png");
     addTexture(pathToBackgrounds.string() + "BattleTile.png");
 
+    addTexture(pathToEnvironment.string() + "ActorSelector.png");
     addTexture(pathToEnvironment.string() + "TargetSelector.png");
+    addImage(pathToEnvironment.string() + "Sword.png");
 
+    addAnimation(pathToAnimations.string() + "Hero1Animation");
+    addAnimation(pathToAnimations.string() + "Hero2Animation");
+    addAnimation(pathToAnimations.string() + "Hero3Animation");
+    addAnimation(pathToAnimations.string() + "Hero4Animation");
+
+    addAnimation(pathToAnimations.string() + "MoveDownAnimation");
+    addAnimation(pathToAnimations.string() + "MoveUpAnimation");
+    addAnimation(pathToAnimations.string() + "MoveLeftAnimation");
+    addAnimation(pathToAnimations.string() + "MoveRightAnimation");
 }
 
-void ResourceManager::savePLayer(const std::string& path, Player& player)
+static void writeString(std::ofstream& out, const std::string& str)
 {
-    // Создаём папку, если её нет
-    std::filesystem::path filePath(path);
-    std::filesystem::create_directories(filePath.parent_path());
+    uint64_t size = str.size();
+    out.write(reinterpret_cast<const char*>(&size), sizeof(size));
+    out.write(str.data(), size);
+}
 
+static std::string readString(std::ifstream& in)
+{
+    uint64_t size;
+    in.read(reinterpret_cast<char*>(&size), sizeof(size));
+
+    std::string str(size, '\0');
+    in.read(str.data(), size);
+    return str;
+}
+
+bool ResourceManager::isPlayerNew(const std::string& path) const {
+    std::ifstream in(path);
+    if (!in || !in.is_open())
+        return true;
+    return false;
+}
+
+
+void ResourceManager::savePlayer(const std::string& path, const Player& player)
+{
     std::ofstream out(path, std::ios::binary);
     if (!out)
         throw std::runtime_error("Cannot open file for saving player: " + path);
 
-    // -------- 1. Имя --------
-    const std::string& name = player.getPlayerName();
-    size_t nameSize = name.size();
-    out.write(reinterpret_cast<const char*>(&nameSize), sizeof(nameSize));
-    out.write(name.data(), nameSize);
+    // --- Header ---
+    uint32_t magic = 0x504C5952; // 'PLYR'
+    uint32_t version = 1;
+    out.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
+    out.write(reinterpret_cast<const char*>(&version), sizeof(version));
 
-    // -------- 2. Простые данные --------
+    // --- Base data ---
+    writeString(out, player.getPlayerName());
+
     uint32_t gold = player.getPlayerGold();
     out.write(reinterpret_cast<const char*>(&gold), sizeof(gold));
 
     int32_t speed = player.getPlayerSpeed();
     out.write(reinterpret_cast<const char*>(&speed), sizeof(speed));
 
-    // Координаты (Point)
-    const auto& coords = player.getPlayerCoords(); // если не нужно Game — просто coords
-    out.write(reinterpret_cast<const char*>(&coords.x), sizeof(coords.x));
-    out.write(reinterpret_cast<const char*>(&coords.y), sizeof(coords.y));
+    Point coords = player.getPlayerCoords();
+    out.write(reinterpret_cast<const char*>(&coords), sizeof(coords));
 
-    // -------- 3. Известные враги --------
+    // --- Enemies ---
     const auto enemies = player.getDiscoveredEnemies();
-    size_t enemyCount = enemies.size();
+    uint64_t enemyCount = enemies.size();
     out.write(reinterpret_cast<const char*>(&enemyCount), sizeof(enemyCount));
-    for (auto e : enemies)
-        out.write(reinterpret_cast<const char*>(&e), sizeof(e));
+    for (const auto& e : enemies)
+        writeString(out, e);
 
-    // -------- 4. Предметы --------
-    const auto items = player.getAvailableItems();
-    size_t itemCount = items.size();
+    // --- Items ---
+    const auto items = player.getAvailableItems(); // vector<int>
+    uint64_t itemCount = items.size();
     out.write(reinterpret_cast<const char*>(&itemCount), sizeof(itemCount));
-    for (auto id : items)
+    for (int id : items)
+    {
+        uint8_t count = 1; // если нет доступа к map — минимум
         out.write(reinterpret_cast<const char*>(&id), sizeof(id));
-
-    out.close();
+        out.write(reinterpret_cast<const char*>(&count), sizeof(count));
+    }
 }
 
-void ResourceManager::loadPLayer(const std::string& path, Player& player)
+
+void ResourceManager::loadPlayer(const std::string& path, Player& player)
 {
     std::ifstream in(path, std::ios::binary);
     if (!in)
         throw std::runtime_error("Cannot open file for loading player: " + path);
 
-    // -------- 1. Имя --------
-    size_t nameSize;
-    in.read(reinterpret_cast<char*>(&nameSize), sizeof(nameSize));
-    std::string name(nameSize, '\0');
-    in.read(&name[0], nameSize);
+    uint32_t magic, version;
+    in.read(reinterpret_cast<char*>(&magic), sizeof(magic));
+    in.read(reinterpret_cast<char*>(&version), sizeof(version));
 
-    // -------- 2. Простые данные --------
+    if (magic != 0x504C5952)
+        throw std::runtime_error("Invalid save file");
+
+    if (version != 1)
+        throw std::runtime_error("Unsupported save version");
+
+    // --- Base data ---
+    player.setPlayerName(readString(in));
+
     uint32_t gold;
     in.read(reinterpret_cast<char*>(&gold), sizeof(gold));
     player.setPlayerGold(gold);
@@ -259,30 +351,25 @@ void ResourceManager::loadPLayer(const std::string& path, Player& player)
     in.read(reinterpret_cast<char*>(&speed), sizeof(speed));
     player.setPlayerSpeed(speed);
 
-    Point coords{};
-    in.read(reinterpret_cast<char*>(&coords.x), sizeof(coords.x));
-    in.read(reinterpret_cast<char*>(&coords.y), sizeof(coords.y));
-    // Если нужно — можешь добавить player.setCoords(coords);
+    Point coords;
+    in.read(reinterpret_cast<char*>(&coords), sizeof(coords));
+    player.setPlayerCoords(coords);
 
-    // -------- 3. Известные враги --------
-    /*size_t enemyCount;
+    // --- Enemies ---
+    uint64_t enemyCount;
     in.read(reinterpret_cast<char*>(&enemyCount), sizeof(enemyCount));
-    for (size_t i = 0; i < enemyCount; ++i)
-    {
-        EnemiesNames e;
-        in.read(reinterpret_cast<char*>(&e), sizeof(e));
-        player.addDiscoveredEnemy(e);
-    }*/
+    for (uint64_t i = 0; i < enemyCount; ++i)
+        player.addDiscoveredEnemy(readString(in));
 
-    // -------- 4. Предметы --------
-    size_t itemCount;
+    // --- Items ---
+    uint64_t itemCount;
     in.read(reinterpret_cast<char*>(&itemCount), sizeof(itemCount));
-    for (size_t i = 0; i < itemCount; ++i)
+    for (uint64_t i = 0; i < itemCount; ++i)
     {
         int id;
+        uint8_t count;
         in.read(reinterpret_cast<char*>(&id), sizeof(id));
-        player.addItem(id, 1); // по умолчанию 1, можно записывать count
+        in.read(reinterpret_cast<char*>(&count), sizeof(count));
+        player.addItem(id, count);
     }
-
-    in.close();
 }

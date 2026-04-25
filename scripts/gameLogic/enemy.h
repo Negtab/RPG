@@ -5,7 +5,7 @@
 #ifndef PROJECT_NAME_ENEMY_H
 #define PROJECT_NAME_ENEMY_H
 #include <memory>
-#include "../player.h"
+#include "../main/player.h"
 #include "gamePerson.h"
 
 class Enemy : public GamePerson
@@ -14,6 +14,7 @@ public:
     explicit Enemy(EnemyName name, Player *player);
     ~Enemy() override = default;
 
+    [[nodiscard]] EnemyName getEnemyName() const;
     [[nodiscard]] uint32_t getAttackPower(const Skill* skill) const override;
     [[nodiscard]] uint32_t getDefense() const override { return defence; }
     [[nodiscard]] uint32_t getSpeed() const override { return agility; }

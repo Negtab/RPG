@@ -2,8 +2,10 @@
 #define PROJECT_NAME_PLAYER_H
 
 #include "types.h"
-#include "gameLogic/gamePerson.h"
-#include "gameLogic/hero.h"
+#include "../gameLogic/gamePerson.h"
+#include "../gameLogic/hero.h"
+#include "../online/client.h"
+#include "../online/server.h"
 
 class Game;
 
@@ -11,7 +13,16 @@ class Player
 {
 public:
     explicit Player(std::string name);
+
+    Player(Player&& other) noexcept = default;
+    Player& operator=(Player&& other) noexcept = default;
+
+
+    Player(const Player&) = delete;
+    Player& operator=(const Player&) = delete;
+
     ~Player() = default;
+
 
     [[nodiscard]] int getAverageLevel() const;
     [[nodiscard]] uint32_t getPlayerGold() const noexcept;
@@ -27,9 +38,11 @@ public:
     void setPlayerCoords(Point newCoords) noexcept;
 
     [[nodiscard]] GameState getLastGameState() const noexcept;
-    void setLastGameState(GameState newGameState);
+    //void setLastGameState(GameState newGameState);
 
-    [[nodiscard]] std::vector<Hero> getHeroes() const noexcept;
+    [[nodiscard]] std::vector<Hero> getCopyOfHeroes() const noexcept;
+    std::vector<Hero>& getLinkTOHeroes() noexcept;
+    [[nodiscard]] const std::vector<Hero>& getHeroes() const noexcept;
 
     [[nodiscard]] std::vector<std::string> getDiscoveredEnemies() const;
     [[nodiscard]] std::vector<int> getAvailableItems() const;
@@ -38,9 +51,12 @@ public:
     void addDiscoveredEnemy(const std::string& enemy);
     void addItem(int itemId, uint8_t count);
 
-    bool hasItem(int itemId) const;
+    [[nodiscard]] bool hasItem(int itemId) const;
     bool consumeItem(int itemId);
-    void removeItem(int itemId);
+    //void removeItem(int itemId);
+
+    [[nodiscard]] Direction getDirection() const;
+    void setDirection(const Direction &newDirection);
 
 private:
     std::string name;
@@ -49,6 +65,10 @@ private:
     int32_t speed{1};
 
     GameState lastState{GameState::Map};
+    Direction direction {Direction::Idle};
+
+    std::unique_ptr<Client> client;
+    std::unique_ptr<Server> server;
 
     std::vector<Hero> heroes;
     std::vector<std::string> discoveredEnemies;

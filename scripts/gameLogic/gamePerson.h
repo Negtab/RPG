@@ -1,7 +1,7 @@
 #ifndef PROJECT_NAME_GAMEPERSON_H
 #define PROJECT_NAME_GAMEPERSON_H
 
-#include "../types.h"
+#include "../main/types.h"
 #include <vector>
 #include <map>
 
@@ -37,10 +37,27 @@ public:
     void setExperience(uint32_t exp) noexcept { experience = exp; }
 
     [[nodiscard]] uint32_t getGold() const noexcept { return gold; }
-    void setGold(uint32_t gold) noexcept { gold = gold; }
+    void setGold(uint32_t newgold) noexcept { gold = newgold; }
 
-    void heal(uint32_t hp) { currentHp += hp; }
-    void takeDamage(uint32_t damage) { currentHp -= damage ; }
+    [[nodiscard]] bool getIsAlive() const noexcept { return isAlive; }
+    void heal(uint32_t hp)
+    {
+        isAlive = true;
+        if (maxHp <= hp + currentHp)
+            currentHp = maxHp;
+        else
+            currentHp += hp;
+    }
+    void takeDamage(uint32_t damage)
+    {
+        if (currentHp <= damage)
+        {
+            currentHp = 0;
+            isAlive = false;
+        }
+        else
+            currentHp -= damage;
+    }
     void takeDamage(uint32_t damage, Elemental type)
     {
         for (int i = 0; i < resists.size(); ++i)
@@ -51,11 +68,16 @@ public:
                 currentHp -= damage * 1.5;
                 return;
             }
-        currentHp -= damage;
-
+        if (currentHp <= damage)
+        {
+            currentHp = 0;
+            isAlive = false;
+        }
+        else
+            currentHp -= damage;
     }
-    void restoreMana(uint32_t mana) {currentMp += mana; }
-    void spendMana(uint32_t mana) { currentMp -= mana; }
+    void restoreMana(uint32_t mana) { maxMp < currentMp + mana ? maxMp : currentMp += mana ; }
+    void spendMana(uint32_t mana) { currentMp < mana ? 0 : currentMp -= mana; }
 
     void setCooldown(int skillId, uint8_t value)
     {

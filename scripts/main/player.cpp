@@ -2,11 +2,11 @@
 #include "game.h"
 
 
-Player::Player(std::string name) : name(std::move(name)) {
-    heroes.emplace_back(Specialization());
-    heroes.emplace_back(Specialization());
-    heroes.emplace_back(Specialization());
-    heroes.emplace_back(Specialization());
+Player::Player(std::string name) : name(std::move(name)), client(std::make_unique<Client>()), server(std::make_unique<Server>()) {
+    heroes.emplace_back(Specialization(SpecializationNames::Archer));
+    heroes.emplace_back(Specialization(SpecializationNames::Magician));
+    heroes.emplace_back(Specialization(SpecializationNames::Thief));
+    heroes.emplace_back(Specialization(SpecializationNames::Warrior));
 }
 
 int Player::getAverageLevel() const
@@ -17,7 +17,10 @@ int Player::getAverageLevel() const
     return (count > 0) ? total / count : 0;
 }
 
-std::vector<Hero> Player::getHeroes() const noexcept { return heroes; }
+const std::vector<Hero>& Player::getHeroes() const noexcept { return heroes; }
+std::vector<Hero>& Player::getLinkTOHeroes() noexcept { return heroes; }
+std::vector<Hero> Player::getCopyOfHeroes() const noexcept { return heroes; }
+
 
 uint32_t Player::getPlayerGold() const noexcept { return gold; }
 void Player::setPlayerGold(uint32_t g) noexcept { gold = g; }
@@ -77,3 +80,5 @@ bool Player::consumeItem(int itemId)
     return true;
 }
 
+Direction Player::getDirection() const { return this->direction; }
+void Player::setDirection(const Direction &newDirection) { this->direction = newDirection; }

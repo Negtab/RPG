@@ -4,29 +4,27 @@ project(PROJECT_NAME)
 set(CMAKE_CXX_STANDARD 20)
 
 # Must set the path to the main.cpp, for example: scripts/main.cpp if it is inside a folder
-add_executable(${PROJECT_NAME} scripts/main.cpp
-        scripts/Types.h
-        scripts/gameLogic/item.h
-        scripts/gameLogic/item.cpp
+add_executable(${PROJECT_NAME} scripts/main/main.cpp
+        scripts/main/types.h
         scripts/gameLogic/quest.h
         scripts/gameLogic/quest.cpp
         scripts/gameLogic/gamePerson.h
-        scripts/player.h
-        scripts/player.cpp
-        scripts/game.h
-        scripts/game.cpp
+        scripts/main/player.h
+        scripts/main/player.cpp
+        scripts/main/game.h
+        scripts/main/game.cpp
         scripts/controllers/resourceManager.h
-        scripts/errors.h
+        scripts/main/errors.h
         scripts/controllers/resourceManager.cpp
         scripts/controllers/visualizer.h
         scripts/controllers/visualizer.cpp
         scripts/controllers/inputManager.h
         scripts/controllers/inputManager.cpp
-        scripts/inputController.h
-        scripts/inputController.cpp
-        scripts/utils.h
-        scripts/uiManager.cpp
-        scripts/uiManager.h
+        scripts/main/inputController.h
+        scripts/main/inputController.cpp
+        scripts/main/utils.h
+        scripts/main/uiManager.cpp
+        scripts/main/uiManager.h
         scripts/gameLogic/battle.cpp
         scripts/gameLogic/battle.h
         scripts/gameLogic/hero.h
@@ -38,6 +36,10 @@ add_executable(${PROJECT_NAME} scripts/main.cpp
         scripts/gameLogic/shopPerson.h
         scripts/gameLogic/shopPerson.cpp
         scripts/gameLogic/action.h
+        scripts/online/Server.h
+        scripts/online/Client.h
+        scripts/online/server.cpp
+        scripts/online/client.cpp
 )
 
 # --- SDL2 SETUP ---
@@ -59,4 +61,4 @@ include_directories(${SDL2_MIXER_INCLUDE_DIR})
 include_directories(${SDL2_TTF_INCLUDE_DIR})
 
 
-target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARIES} ${SDL2_MIXER_LIBRARIES} ${SDL2_TTF_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARIES} ${SDL2_MIXER_LIBRARIES} ${SDL2_TTF_LIBRARIES} ws2_32)

@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <chrono>
 
-#include "../game.h"
+#include "../main/game.h"
 
 const std::vector<Enemy> &Battle::getEnemies() const {
     return enemies;
@@ -55,12 +55,14 @@ void Battle::tryEscape()
 
 void Battle::startExecuteActions()
 {
+    currentTurn = TurnOwner::Player;
     state = BattleState::ExecuteActions;
     currentActionIndex = 0;
 }
 
 void Battle::startPlayerChoose()
 {
+    currentTurn = TurnOwner::Player;
     plannedActions.clear();
     currentHeroIndex = 0;
     state = BattleState::PlayerChoose;
@@ -72,10 +74,6 @@ void Battle::startPlayerChoose()
 
 void Battle::confirmAction(const Action& action)
 {
-    if (state != BattleState::PlayerChoose)
-        return;
-
-    // защита от рассинхрона UI / Battle
     if (action.actorIndex != currentHeroIndex)
         return;
 
@@ -83,7 +81,6 @@ void Battle::confirmAction(const Action& action)
 
     // переход к следующему герою
     currentHeroIndex++;
-
     while (currentHeroIndex < player->getHeroes().size() &&
         player->getHeroes()[currentHeroIndex].getCurrentHp() <= 0)
         currentHeroIndex++;
@@ -113,7 +110,7 @@ void Battle::updateExecuteActions()
     Action& action = plannedActions[currentActionIndex];
 
     // атакующий мёртв — пропускаем
-    if (!(player->getHeroes()[action.actorIndex].getCurrentHp() > 0))
+    if (player->getHeroes()[action.actorIndex].getCurrentHp() <= 0)
     {
         currentActionIndex++;
         return;
@@ -125,6 +122,7 @@ void Battle::updateExecuteActions()
     currentActionIndex++;
 
     // после каждого действия — анимация
+    currentTurn = TurnOwner::Player;
     state = BattleState::Animation;
 }
 
@@ -137,18 +135,18 @@ void Battle::executeItem(Hero& user, const std::vector<int>& targets, int itemId
 
     for (int idx : targets)
     {
-        switch (item.getEffectType())
+        switch (item.effectType)
         {
             case ItemEffectType::Heal:
-                player->getHeroes()[idx].heal(item.getPower());
+                player->getLinkTOHeroes()[idx].heal(item.power);
                 break;
 
             case ItemEffectType::Damage:
-                enemies[idx].takeDamage(item.getPower());
+                enemies[idx].takeDamage(item.power);
                 break;
 
             case ItemEffectType::RestoreMana:
-                player->getHeroes()[idx].restoreMana(item.getPower());
+                player->getLinkTOHeroes()[idx].restoreMana(item.power);
                 break;
 
             default:
@@ -156,7 +154,7 @@ void Battle::executeItem(Hero& user, const std::vector<int>& targets, int itemId
         }
     }
 
-    if (item.isConsumable())
+    if (item.consumable)
         player->consumeItem(itemId);
 }
 
@@ -177,12 +175,12 @@ void Battle::executeSkill(GamePerson& caster, int skillId, const std::vector<int
                 if (casterIsHero)
                     enemies[idx].takeDamage(skill.power, skill.element);
                 else
-                    player->getHeroes()[idx].takeDamage(skill.power, skill.element);
+                    player->getLinkTOHeroes()[idx].takeDamage(skill.power, skill.element);
                 break;
 
             case SkillEffectType::Heal:
                 if (casterIsHero)
-                    player->getHeroes()[idx].heal(skill.power);
+                    player->getLinkTOHeroes()[idx].heal(skill.power);
                 else
                     enemies[idx].heal(skill.power);
                 break;
@@ -210,7 +208,7 @@ void Battle::executeAttack(Hero& attacker, const std::vector<int>& targets)
 
 void Battle::executeAction(const Action& action)
 {
-    Hero& actor = player->getHeroes()[action.actorIndex];
+    Hero& actor = player->getLinkTOHeroes()[action.actorIndex];
 
     if (actor.getCurrentHp() <= 0)
         return;
@@ -238,6 +236,7 @@ void Battle::executeAction(const Action& action)
             break;
     }
 
+    currentTurn = TurnOwner::Player;
     state = BattleState::Animation;
 }
 
@@ -269,13 +268,9 @@ void Battle::tryCounterAttack(Hero& attacker, Enemy& target)
 
 void Battle::startEnemyTurn()
 {
+    currentTurn = TurnOwner::Enemy;
     state = BattleState::EnemyTurn;
     currentEnemyIndex = 0;
-
-    // если хочешь — можно здесь скрыть панели игрока
-    //ui->setEnVI("ActionPanel", "Battle", false);
-    //ui->setEnVI("MagicPanel", "Battle", false);
-    //ui->setEnVI("InventoryPanel", "Battle", false);
 }
 
 
@@ -312,7 +307,7 @@ void Battle::updateEnemyTurn()
         return;
     }
 
-    Hero& target = player->getHeroes()[targetIndex];
+    Hero& target = player->getLinkTOHeroes()[targetIndex];
 
     uint32_t damage = enemy.getAttackPower(nullptr);
     target.takeDamage(damage);
@@ -320,6 +315,7 @@ void Battle::updateEnemyTurn()
     currentEnemyIndex++;
 
     // после каждой атаки — анимация
+    currentTurn = TurnOwner::Enemy;
     state = BattleState::Animation;
 }
 
@@ -397,16 +393,18 @@ std::vector<int> Battle::resolveTargets(const Action& action)
 
 void Battle::onAnimationFinished()
 {
-    if (state == BattleState::Animation)
-    {
-        // возвращаемся туда, откуда пришли
-        // EnemyTurn или ExecuteActions
-        if (currentEnemyIndex < enemies.size())
-            state = BattleState::EnemyTurn;
-        else
-            state = BattleState::ExecuteActions;
-    }
+    if (!ui->isAnimationFinished("Battle"))
+        return;
+
+    isAnimationsStarted = false;
+    plannedActions.clear();
+
+    if (currentTurn == TurnOwner::Player)
+        state = BattleState::ExecuteActions;
+    else
+        state = BattleState::EnemyTurn;
 }
+
 
 void Battle::checkBattleResult()
 {
@@ -414,10 +412,10 @@ void Battle::checkBattleResult()
     bool enemiesAlive = false;
 
     for (auto& h : player->getHeroes())
-        if (h.getCurrentHp() > 0) heroesAlive = true;
+        if (h.getCurrentHp() > 0) { heroesAlive = true; break;}
 
     for (auto& e : enemies)
-        if (e.getCurrentHp() > 0) enemiesAlive = true;
+        if (e.getCurrentHp() > 0) { enemiesAlive = true; break;}
 
     if (!heroesAlive && enemiesAlive) {
         finishBattle(false);
@@ -434,7 +432,7 @@ void Battle::checkBattleResult()
 
 void Battle::endRound()
 {
-    for (auto& hero : player->getHeroes())
+    for (auto& hero : player->getLinkTOHeroes())
         hero.tickCooldowns();
 
     for (auto& enemy : enemies)
@@ -455,7 +453,22 @@ void Battle::update()
             break;
 
         case BattleState::Animation:
-            // ждём onAnimationFinished()
+            if (!isAnimationsStarted)
+            {
+
+                for (const auto& plannedAction : plannedActions)
+                {
+                    ui->playAnimation(
+                        "Hero" + std::to_string(plannedAction.actorIndex + 1) + "Animation",
+                        "Battle",
+                        false
+                    );
+                }
+
+                isAnimationsStarted = true;
+            }
+
+            onAnimationFinished(); // ← ТОЛЬКО ПРОВЕРКА
             break;
 
         case BattleState::Result:
@@ -465,6 +478,7 @@ void Battle::update()
         case BattleState::EscapeResult:
             finishBattle(false);
             break;
+
 
         default:
             break;
@@ -482,13 +496,14 @@ void Battle::finishBattle(const bool &isWin)
             sumGold += e.getGold();
         }
         player->setPlayerGold(player->getPlayerGold() + sumGold);
-        std::vector<Hero> heroes = player->getHeroes();
+        std::vector<Hero> heroes = player->getLinkTOHeroes();
         for (int i = 0; i < heroes.size(); i++)
             heroes.at(i).addXP(sumExp/heroes.size());
     }
     else {
         //sd
     }
+
     game->setGameState(GameState::Map);
 }
 
@@ -510,6 +525,15 @@ void Battle::determineFirstTurn()
     firstTurnIsPlayer = (rand() % 100) < 30;
 }
 
+void Battle::prepairUI()
+{
+    for (int i = 0; i < enemies.size(); i++)
+    {
+        SDL_Rect enemyRect = enemiesSize.at(enemies.at(i).getEnemyName());
+        ui->setSrcRect("Enemy" + std::to_string(i + 1), "Battle", enemyRect);
+    }
+}
+
 void Battle::run()
 {
     enemies.clear();
@@ -518,9 +542,15 @@ void Battle::run()
     escapeChance = false;
 
     spawnEnemies();
+    prepairUI();
     determineFirstTurn();
 
-    state = firstTurnIsPlayer
-        ? BattleState::PlayerChoose
-        : BattleState::EnemyTurn;
+
+    if (firstTurnIsPlayer) {
+        currentTurn = TurnOwner::Player;
+        state = BattleState::PlayerChoose;
+    } else {
+        currentTurn = TurnOwner::Enemy;
+        state = BattleState::EnemyTurn;
+    }
 }

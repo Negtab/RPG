@@ -9,7 +9,7 @@ int main(int argc, char* args [])
     if (!initSDL(ctx, 900, 600))
         return 1;
 
-    Game game(ctx.renderer);
+    Game game(ctx.window, ctx.renderer);
     game.run();
 
     cleanupSDL(ctx);

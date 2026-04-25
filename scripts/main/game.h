@@ -6,26 +6,27 @@
 #include <string>
 #include <memory>
 
-#include "gameLogic/battle.h"
-#include "gameLogic/item.h"
-#include "gameLogic/quest.h"
+#include "../gameLogic/battle.h"
+#include "../gameLogic/quest.h"
 #include "player.h"
-#include "controllers/resourceManager.h"
-#include "controllers/visualizer.h"
+#include "../controllers/resourceManager.h"
+#include "../controllers/visualizer.h"
 #include "inputController.h"
-#include "controllers/inputManager.h"
-#include "gameLogic/notGamePerson.h"
+#include "../controllers/inputManager.h"
+#include "../gameLogic/notGamePerson.h"
 #include "types.h"
 #include "uiManager.h"
+#include "../online/client.h"
+#include "../online/server.h"
 
-    class Game {
+class Game {
     public:
-        explicit Game(SDL_Renderer* renderer);
+        explicit Game(SDL_Window* window, SDL_Renderer* renderer);
         ~Game() = default;
 
         void run();
 
-        void addPlayer(const Player& player);
+        void addPlayer(Player&& player);
         void addQuest(const Quest& quest);
         void addItem(const Item& item);
 
@@ -48,16 +49,38 @@
         void startGame();
         void endGame();
 
+        void openOptions(const GameState &prevGame);
+        void closeOptions();
+
+        void openOnlineMenu();
+        void closeOnlineMenu();
+
         void startRandomBattle();
         void endRandomBattle();
 
+        float getDeltaTime();
+        void updateFPS();
+        [[nodiscard]] int getCurrentFPS() const;
+        [[nodiscard]] std::string getCurrentTime() const;
+
+        [[nodiscard]] std::string getIP() const;
     private:
 
         void handleInput(const SDL_Event &event);
-        void update();
+        void update(float dt);
         void render();
 
+        void initItems();
+        void initSkills();
+
         bool isRunning = false;
+
+        Uint64 lastCounter = 0;     // для deltaTime
+        Uint64 fpsLastCounter = 0;  // для подсчёта FPS
+        int frameCount = 0;         // сколько кадров прошло с последнего замера
+        int currentFPS = 0;         // реальный FPS для отображения
+        float targetFPS = 120.0f;    // фиксированный FPS
+
         SDL_Rect screen = {0, 0, 900, 600};
         GameState state{GameState::CreatePlayer};
         GameState prevState{GameState::CreatePlayer};
@@ -77,6 +100,10 @@
         std::unique_ptr<InputManager> inputManager;
         std::unique_ptr<InputController> inputController;
 
+        Client client;
+        Server server;
+
+        SDL_Window* window;
         SDL_Renderer* renderer;
     };
 
