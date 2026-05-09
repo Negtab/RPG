@@ -45,6 +45,10 @@ UIManager::UIObject* UIManager::findInPanel(const std::string& id, Panel* panel)
     if (itLbl != panel->labels.end())
         return &itLbl->second;
 
+    auto itEdt = panel->edits.find(id);
+    if (itEdt != panel->edits.end())
+        return &itEdt->second;
+
     auto itPanel = panel->panels.find(id);
     if (itPanel != panel->panels.end())
         return &itPanel->second;
@@ -186,7 +190,8 @@ void UIManager::Scene::drawPanel(const Panel& panel, Visualizer& visualizer)
             const auto& edn = itEd->second;
             if (!edn.isVisible)
                 continue;
-            edn.texture = ResourceManager::getTextTexture(edn.text, ResourceManager::getFont(""), {0,0,0,0});
+            edn.texture = ResourceManager::getTextTexture(edn.text, ResourceManager::getFont("RetroByte"), {0,0,0,0});
+            visualizer.drawTexture(ResourceManager::getTexture("WhiteBox"), edn.rect.x, edn.rect.y, edn.rect.w, edn.rect.h);
             visualizer.drawTexture(edn.texture, edn.rect.x, edn.rect.y, edn.rect.w, edn.rect.h);
             continue;
         }
@@ -331,7 +336,7 @@ void UIManager::addMusic(const std::string& musicId, const std::string& sceneId)
         SDL_Log("addMusic: scene '%s' not found.", sceneId.c_str());
         return;
     }
-    Mix_Music* m = resourceManager.getMusic(musicId);
+    Mix_Music* m = ResourceManager::getMusic(musicId);
     if (!m)
     {
         SDL_Log("addMusic: resource '%s' not found", musicId.c_str());
@@ -347,7 +352,7 @@ void UIManager::addSound(const std::string& soundId, const std::string& sceneId)
         SDL_Log("addSound: scene '%s' not found.", sceneId.c_str());
         return;
     }
-    Mix_Chunk* c = resourceManager.getSound(soundId);
+    Mix_Chunk* c = ResourceManager::getSound(soundId);
     if (!c)
     {
         SDL_Log("addSound: resource '%s' not found", soundId.c_str());
@@ -668,11 +673,11 @@ void UIManager::drawScene(const std::string& sceneId)
     Scene& scene = sit->second;
     const std::string music = sceneId + "Theme";
 
-    setTexture("Time", sceneId, resourceManager.getTextTexture(game.getCurrentTime(), resourceManager.getFont("RetroByte"), {0, 0, 0, 0}));
+    setTexture("Time", sceneId, ResourceManager::getTextTexture(game.getCurrentTime(), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
 
     if (sceneId == "Map")
     {
-        setTexture("FPS", "Map", resourceManager.getTextTexture("FPS: " + std::to_string(game.getCurrentFPS()), resourceManager.getFont("RetroByte"), {0, 0, 0, 0}));
+        setTexture("FPS", "Map", ResourceManager::getTextTexture("FPS: " + std::to_string(game.getCurrentFPS()), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
         auto it = scene.images.find("MapBackground");
         if (it != scene.images.end()) {
             it->second.rect.x = player.getPlayerCoords().x - 900;
@@ -682,7 +687,7 @@ void UIManager::drawScene(const std::string& sceneId)
 
     if (sceneId == "Battle")
     {
-        setTexture("FPS", "Battle", resourceManager.getTextTexture("FPS: " + std::to_string(game.getCurrentFPS()), resourceManager.getFont("RetroByte"), {0, 0, 0, 0}));
+        setTexture("FPS", "Battle", ResourceManager::getTextTexture("FPS: " + std::to_string(game.getCurrentFPS()), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
         const int enemyCount = game.getBattle()->getEnemies().size();
         const int heroCount = player.getHeroes().size();
         auto it = scene.images.find("HerosStatus");
@@ -706,9 +711,9 @@ void UIManager::drawScene(const std::string& sceneId)
 
 
                 setRect("Hero" + std::to_string(i + 1), "Battle", drect);
-                setTexture("Hero" + std::to_string(i + 1), "Battle", resourceManager.getTexture(text1));
+                setTexture("Hero" + std::to_string(i + 1), "Battle", ResourceManager::getTexture(text1));
             }
-            setTexture("HerosStatus", "Battle", resourceManager.getTextTexture(text, resourceManager.getFont("RetroByte"), {0, 0, 0, 0}, 245));
+            setTexture("HerosStatus", "Battle", ResourceManager::getTextTexture(text, ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}, 245));
         }
 
         it = scene.images.find("EnemiesStatus");
@@ -726,7 +731,7 @@ void UIManager::drawScene(const std::string& sceneId)
             rect.h = enemyCount * 40;
             setRect("EnemiesStatus", "Battle", rect);
 
-            setTexture("EnemiesStatus", "Battle", resourceManager.getTextTexture(text, resourceManager.getFont("RetroByte"), {0, 0, 0, 0}, 245));
+            setTexture("EnemiesStatus", "Battle", ResourceManager::getTextTexture(text, ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}, 245));
         }
     }
 
@@ -742,6 +747,17 @@ void UIManager::drawScene(const std::string& sceneId)
             else
                 visualizer.drawTexture(im.texture, im.rect.x, im.rect.y, im.rect.w, im.rect.h,
                                        im.srect.x, im.srect.y, im.srect.w, im.srect.h);
+            continue;
+        }
+
+        auto itEd = scene.edits.find(key);
+        if (itEd != scene.edits.end()) {
+            const auto& edn = itEd->second;
+            if (!edn.isVisible)
+                continue;
+            edn.texture = ResourceManager::getTextTexture(edn.text, ResourceManager::getFont("RetroByte"), {0,0,0,0});
+            visualizer.drawTexture(ResourceManager::getTexture("WhiteBox"), edn.rect.x, edn.rect.y, edn.rect.w, edn.rect.h);
+            visualizer.drawTexture(edn.texture, edn.rect.x, edn.rect.y, edn.rect.w, edn.rect.h);
             continue;
         }
 
@@ -795,13 +811,13 @@ void UIManager::addEnemys()
 {
     const std::vector<Enemy> &enemies = this->game.getBattle()->getEnemies();
     for (int i = 0; i < enemies.size(); i++)
-        setTexture(("Enemy" + std::to_string(i + 1)), "Battle", resourceManager.getTexture(enemies.at(i).getName()));
+        setTexture(("Enemy" + std::to_string(i + 1)), "Battle", ResourceManager::getTexture(enemies.at(i).getName()));
 }
 
 void UIManager::addCharacters()
 {
     for (int i = 0; i < MAX_HERO_COUNT; i++)
-        setTexture(("Hero" + std::to_string(i + 1)), "Battle", resourceManager.getTexture(("Image" + std::to_string(i + 1))));
+        setTexture(("Hero" + std::to_string(i + 1)), "Battle", ResourceManager::getTexture(("Image" + std::to_string(i + 1))));
 }
 
 void UIManager::setEnabled(const std::string &id, const std::string &sceneId, const bool &enabled)
@@ -845,10 +861,64 @@ void UIManager::setRect(const std::string &id, const std::string &sceneId, const
 void UIManager::setSrcRect(const std::string& id, const std::string& sceneId, const SDL_Rect& srect)
 {
     if (const auto obj = findUIObject(id, sceneId); obj != nullptr)
+        dynamic_cast<Image*>(obj)->srect = srect;
+    else
+        SDL_Log("Object '%s' not found %s", id.c_str(), sceneId.c_str());
+}
+
+
+void UIManager::setText(const std::string& id, const std::string& sceneId, const std::string& text)
+{
+    if (const auto obj = findUIObject(id, sceneId); obj != nullptr)
+        dynamic_cast<Edit*>(obj)->text = text;
+    else
+        SDL_Log("Object '%s' not found %s", id.c_str(), sceneId.c_str());
+}
+
+
+std::string UIManager::getText(const std::string& id, const std::string& sceneId)
+{
+    if (const auto obj = findUIObject(id, sceneId); obj != nullptr)
+        return dynamic_cast<Edit*>(obj)->text;
+    SDL_Log("Object '%s' not found %s", id.c_str(), sceneId.c_str());
+    return "";
+}
+
+void UIManager::setFocus(const std::string& id, const std::string& sceneId, const bool& focus)
+{
+    if (const auto obj = findUIObject(id, sceneId); obj != nullptr)
+        dynamic_cast<Edit*>(obj)->isFocused = focus;
+    else
+        SDL_Log("Object '%s' not found %s", id.c_str(), sceneId.c_str());
+}
+
+
+bool UIManager::getFocus(const std::string& id, const std::string& sceneId)
+{
+    if (const auto obj = findUIObject(id, sceneId); obj != nullptr)
+        return dynamic_cast<Edit*>(obj)->isFocused;
+    SDL_Log("Object '%s' not found %s", id.c_str(), sceneId.c_str());
+    return false;
+}
+
+int UIManager::getPos(const std::string& id, const std::string& sceneId)
+{
+    if (const auto obj = findUIObject(id, sceneId); obj != nullptr)
+        return dynamic_cast<Edit*>(obj)->pos;
+    SDL_Log("Object '%s' not found %s", id.c_str(), sceneId.c_str());
+    return 0;
+}
+
+
+void UIManager::setPos(const std::string& id, const std::string& sceneId, const int& pos)
+{
+    if (const auto obj = findUIObject(id, sceneId); obj != nullptr)
     {
-        if (auto img = dynamic_cast<Image*>(obj))
-            img->srect = srect;
+        if (dynamic_cast<Edit*>(obj)->text.length() > pos)
+            dynamic_cast<Edit*>(obj)->pos = pos > 0 ? pos : 0;
     }
+    else
+        SDL_Log("Object '%s' not found %s", id.c_str(), sceneId.c_str());
 }
 
 void UIManager::setTexture(const std::string &id, const std::string &sceneId, SDL_Texture *texture)
@@ -920,7 +990,7 @@ void UIManager::initMagic() {
     for (int i = 0 ; i < player.getHeroes().at(currentHeroIndex).getAvailableSkills().size() && i < ENV_BUTTON_COUNT; i+=2)
     {
         std::string text = game.getSkill(player.getHeroes().at(currentHeroIndex).getAvailableSkills().at(i).skillId).name;
-        setTexture("EnButton" + std::to_string(i + 1), "Battle", resourceManager.getTextTexture(text, resourceManager.getFont("RetroByte"), {0,0,0,0}));
+        setTexture("EnButton" + std::to_string(i + 1), "Battle", ResourceManager::getTextTexture(text, ResourceManager::getFont("RetroByte"), {0,0,0,0}));
         setOnClick("EnButton" + std::to_string(i + 1), "Battle", [this, i](){this->onEnvironmentCLick(player.getHeroes().at(currentHeroIndex).getAvailableSkills().at(i).skillId, true);});
         setEnVI("EnButton" + std::to_string(i + 1), "Battle", true);
     }
@@ -930,7 +1000,7 @@ void UIManager::initItems() {
     for (int i = 2 ; i < player.getAvailableItems().size() && i < ENV_BUTTON_COUNT; i+=2)
     {
         std::string text = game.getItem(player.getAvailableItems().at(i)).name;
-        setTexture("EnButton" + std::to_string(i), "Battle", resourceManager.getTextTexture(text, resourceManager.getFont("RetroByte"), {0,0,0,0}));
+        setTexture("EnButton" + std::to_string(i), "Battle", ResourceManager::getTextTexture(text, ResourceManager::getFont("RetroByte"), {0,0,0,0}));
         setOnClick("EnButton" + std::to_string(i), "Battle", [this, i](){this->onEnvironmentCLick(player.getAvailableItems().at(i), false);});
         setEnVI("EnButton" + std::to_string(i), "Battle", true);
     }
@@ -1179,73 +1249,78 @@ void UIManager::initialize() {
     addScene(gameStateString.at(GameState::Online));
 
     // --- Map
-    addImage("MapBackground", "Map", {-900, -500, 18000, 18000}, resourceManager.getTexture("MapBackground"));
-    addImage("Character", "Map", {screen.w/2 - 25, screen.h/2 - 25, 45, 45}, resourceManager.getTexture("MovingCharacter"), {0,0,16,25});
-    addImage("Press E", "Map", {screen.w/2 - 25, screen.h/2 - 25, 40, 40}, resourceManager.getTextTexture("Press E", resourceManager.getFont("RetroByte"), {0, 0,0,100}));
-    addAnimation("MoveLeftAnimation", "Map", resourceManager.getAnimation("MoveLeftAnimation"),  {0,0,45,45}, 0.2f);
-    addAnimation("MoveRightAnimation", "Map", resourceManager.getAnimation("MoveRightAnimation"), {0,0,45,45}, 0.2f);
-    addAnimation("MoveUpAnimation", "Map", resourceManager.getAnimation("MoveUpAnimation"), {0,0,45,45}, 0.2f);
-    addAnimation("MoveDownAnimation", "Map", resourceManager.getAnimation("MoveDownAnimation"),  {0,0,45,45}, 0.2f);
+    addImage("MapBackground", "Map", {-900, -500, 18000, 18000}, ResourceManager::getTexture("MapBackground"));
+    addImage("Character", "Map", {screen.w/2 - 25, screen.h/2 - 25, 45, 45}, ResourceManager::getTexture("MovingCharacter"), {0,0,16,25});
+    addImage("Press E", "Map", {screen.w/2 - 25, screen.h/2 - 25, 40, 40}, ResourceManager::getTextTexture("Press E", ResourceManager::getFont("RetroByte"), {0, 0,0,100}));
+    addAnimation("MoveLeftAnimation", "Map", ResourceManager::getAnimation("MoveLeftAnimation"),  {0,0,45,45}, 0.2f);
+    addAnimation("MoveRightAnimation", "Map", ResourceManager::getAnimation("MoveRightAnimation"), {0,0,45,45}, 0.2f);
+    addAnimation("MoveUpAnimation", "Map", ResourceManager::getAnimation("MoveUpAnimation"), {0,0,45,45}, 0.2f);
+    addAnimation("MoveDownAnimation", "Map", ResourceManager::getAnimation("MoveDownAnimation"),  {0,0,45,45}, 0.2f);
 
     setVisible("Press E", "Map", false);
 
     addMusic("MapTheme", "Map");
 
     // --- Online
-    addImage("OnlineBackground", "Online", screen, resourceManager.getTexture("OptionsBackground"), {0,0,1920,1000});
-    addImage("ID", "Online", {screen.w/2 - 25, screen.h/2, 170, 50}, resourceManager.getTextTexture("Your ID: " + game.getIP(), resourceManager.getFont("RetroByte"), {0,0,0,0}));
+    addImage("OnlineBackground", "Online", screen, ResourceManager::getTexture("OptionsBackground"), {0,0,1920,1000});
+    addImage("ID", "Online", {screen.w/2 - 25, screen.h/2, 170, 50}, ResourceManager::getTextTexture("Your ID: " + game.getIP(), ResourceManager::getFont("RetroByte"), {0,0,0,0}));
+    addEdit("IPEdit", "Online", {190,screen.h/2 +30,170,50}, {0,0,0,0},
+       ResourceManager::getTextTexture("1.1.1.1", ResourceManager::getFont("RetroByte"), {0,0,0,0}),
+       [this](){ },
+       [this](){ this->playSound("Menu","ButtonHover"); });
     addButton("StartServerButton", "Menu", {0,0,0,0},
-        resourceManager.getTextTexture("Start server", resourceManager.getFont("RetroByte"), {0,0,0,0}),
+        ResourceManager::getTextTexture("Start server", ResourceManager::getFont("RetroByte"), {0,0,0,0}),
         [this](){ },
         [this](){ this->playSound("Menu","ButtonHover"); });
 
+
     // --- Menu
-    addImage("MenuBackground", "Menu", screen, resourceManager.getTexture("MenuBackground"));
+    addImage("MenuBackground", "Menu", screen, ResourceManager::getTexture("MenuBackground"));
 
     addMusic("MenuTheme", "Menu");
     addSound("ButtonHover", "Menu");
     addPanel("ButtonPanel", "Menu");
 
     addButton("Online", "Menu", {190,screen.h/2 +30,170,50},
-        resourceManager.getTextTexture("Co-op", resourceManager.getFont("RetroByte"), {0,0,0,0}),
+        ResourceManager::getTextTexture("Co-op", ResourceManager::getFont("RetroByte"), {0,0,0,0}),
         [this](){ game.openOnlineMenu(); },
         [this](){ this->playSound("Menu","ButtonHover"); },
         "ButtonPanel");
     addButton("Continue", "Menu",{190, screen.h/2 + 80, 170, 50},
-        resourceManager.getTextTexture("Continue", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
+        ResourceManager::getTextTexture("Continue", ResourceManager::getFont("RetroByte"), {0, 0, 0,0}),
         [this]() { game.startGame();},
         [this]() {this->playSound("Menu", "ButtonHover");},
         "ButtonPanel");
     addButton("New game", "Menu",{190, screen.h/2 + 130, 170, 50},
-        resourceManager.getTextTexture("New game", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
+        ResourceManager::getTextTexture("New game", ResourceManager::getFont("RetroByte"), {0, 0, 0,0}),
         [this]() { game.startGame();},
         [this]() {this->playSound("Menu", "ButtonHover");},
         "ButtonPanel");
     addButton("Quit", "Menu",{190, screen.h/2 + 230, 100, 50},
-        resourceManager.getTextTexture("Quit", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
+        ResourceManager::getTextTexture("Quit", ResourceManager::getFont("RetroByte"), {0, 0, 0,0}),
         [this]() {game.endGame(); },
         [this]() {this->playSound("Menu", "ButtonHover");},
         "ButtonPanel");
     addButton("Options", "Menu", {190, screen.h/2 + 180, 150, 50},
-        resourceManager.getTextTexture("Options", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
+        ResourceManager::getTextTexture("Options", ResourceManager::getFont("RetroByte"), {0, 0, 0,0}),
         [this]() {this->game.openOptions(GameState::Menu);},
         [this]() {this->playSound("Menu", "ButtonHover");},
         "ButtonPanel");
 
     // --- Options
     std::string optionsText = "Options:\nOn Map:\nFor moving use WASD or arrows\nIn Battle:\nTo select target use WASD or arrows\nTo confirm the taget use SPACE or ENTER(RETURN)";
-    addImage("OptionsBackground", "Options", screen, resourceManager.getTexture("OptionsBackground"), {0,0,1920,1000});
+    addImage("OptionsBackground", "Options", screen, ResourceManager::getTexture("OptionsBackground"), {0,0,1920,1000});
     addImage("InstructionText", "Options", {screen.w/2 - 350,screen.h/2 - 150,700, 240},
-         resourceManager.getTextTexture(optionsText, resourceManager.getFont("RetroByte"), {0, 0, 0,0}, screen.w - 200));
+         ResourceManager::getTextTexture(optionsText, ResourceManager::getFont("RetroByte"), {0, 0, 0,0}, screen.w - 200));
     addButton("BackButton", "Options", {screen.w/2 - 110,screen.h - 100, 220,90},
-         resourceManager.getTextTexture("Back to menu", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
+         ResourceManager::getTextTexture("Back to menu", ResourceManager::getFont("RetroByte"), {0, 0, 0,0}),
          [this]() {this->game.closeOptions();},
          [this]() {this->playSound("Menu", "ButtonHover");});
     addMusic("OptionsTheme", "Options");
 
     // --- Battle
-    addImage("BattleBackground", "Battle", {0, 0, screen.w, 452}, resourceManager.getTexture("BattleImage0"));
-    addImage("DownMenuBackground", "Battle", {0, 452, screen.w, screen.h - 452}, resourceManager.getTexture("BattleTile"));
+    addImage("BattleBackground", "Battle", {0, 0, screen.w, 452}, ResourceManager::getTexture("BattleImage0"));
+    addImage("DownMenuBackground", "Battle", {0, 452, screen.w, screen.h - 452}, ResourceManager::getTexture("BattleTile"));
 
     addPanel("ActionPanel", "Battle");
 
@@ -1257,30 +1332,30 @@ void UIManager::initialize() {
     addMusic("BattleTheme", "Battle");
 
     addButton("AttackButton", "Battle", {0, 453, 60, 25},
-        resourceManager.getTextTexture("Attack", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
+        ResourceManager::getTextTexture("Attack", ResourceManager::getFont("RetroByte"), {0, 0, 0,0}),
         [this]() {this->onActionButton(ActionType::Attack);},
         [this]() {this->playSound("Battle", "ButtonHover");},
         "ActionPanel");
     addButton("ItemsButton", "Battle", {0, 478, 60, 25},
-        resourceManager.getTextTexture("Items", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
+        ResourceManager::getTextTexture("Items", ResourceManager::getFont("RetroByte"), {0, 0, 0,0}),
         [this]() {this->onActionButton(ActionType::Item);},
         [this]() {this->playSound("Battle", "ButtonHover");},
         "ActionPanel");
     addButton("MagicButton", "Battle", {0, 503, 60, 25},
-        resourceManager.getTextTexture("Magic", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
+        ResourceManager::getTextTexture("Magic", ResourceManager::getFont("RetroByte"), {0, 0, 0,0}),
         [this]() {this->onActionButton(ActionType::Magic);},
         [this]() {this->playSound("Battle", "ButtonHover");},
         "ActionPanel");
     addButton("Run", "Battle", {0, 528, 60, 20},
-        resourceManager.getTextTexture("Run", resourceManager.getFont("RetroByte"), {0, 0, 0,0}),
+        ResourceManager::getTextTexture("Run", ResourceManager::getFont("RetroByte"), {0, 0, 0,0}),
         [this]() {this->game.endRandomBattle();},
         [this]() {this->playSound("Battle", "ButtonHover");},
         "ActionPanel");
 
-    addImage("TargetSelector", "Battle", {0,0,100,100}, resourceManager.getTexture("TargetSelector"), {0,0,100,100});
+    addImage("TargetSelector", "Battle", {0,0,100,100}, ResourceManager::getTexture("TargetSelector"), {0,0,100,100});
     setVisible("TargetSelector", "Battle", false);
 
-    addImage("ActorSelector", "Battle", {0,0,50,50}, resourceManager.getTexture("ActorSelector"), {0,0,100,100});
+    addImage("ActorSelector", "Battle", {0,0,50,50}, ResourceManager::getTexture("ActorSelector"), {0,0,100,100});
     setVisible("ActorSelector", "Battle", false);
 
     for (int i = 0; i < 4; i++)
@@ -1307,27 +1382,27 @@ void UIManager::initialize() {
 
     for (int i = 0; i < player.getHeroes().size(); i++)
     {
-        addAnimation("Hero" + std::to_string(i + 1) + "Animation", "Battle", resourceManager.getAnimation("Hero" + std::to_string(i + 1) + "Animation"),
+        addAnimation("Hero" + std::to_string(i + 1) + "Animation", "Battle", ResourceManager::getAnimation("Hero" + std::to_string(i + 1) + "Animation"),
             {{screen.w - 100,screen.h/2 - 230 + (i * 100),56,94}, {screen.w - 150,screen.h/2 - 230 + (i * 100),56,94}, {screen.w - 100,screen.h/2 - 230 + (i * 100),56,94}}, 0.2f);
     }
 
 
     addImage("FPS", "Battle", {10,10,100,30},
-        resourceManager.getTextTexture("FPS: " + std::to_string(game.getCurrentFPS()), resourceManager.getFont("RetroByte"), {0, 0, 0, 0}));
+        ResourceManager::getTextTexture("FPS: " + std::to_string(game.getCurrentFPS()), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
     addImage("FPS", "Map", {10,10,100,30},
-            resourceManager.getTextTexture("FPS: " + std::to_string(game.getCurrentFPS()), resourceManager.getFont("RetroByte"), {0, 0, 0, 0}));
+            ResourceManager::getTextTexture("FPS: " + std::to_string(game.getCurrentFPS()), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
     
 
     addImage("Time", "Menu",  {screen.w - 90, 10, 80, 30},
-        resourceManager.getTextTexture(game.getCurrentTime(), resourceManager.getFont("RetroByte"), {0, 0, 0, 0}));
+        ResourceManager::getTextTexture(game.getCurrentTime(), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
     addImage("Time", "Battle",  {screen.w - 90, 10, 80, 30},
-        resourceManager.getTextTexture(game.getCurrentTime(), resourceManager.getFont("RetroByte"), {0, 0, 0, 0}));
+        ResourceManager::getTextTexture(game.getCurrentTime(), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
     addImage("Time", "Map",  {screen.w - 90, 10, 80, 30},
-        resourceManager.getTextTexture(game.getCurrentTime(), resourceManager.getFont("RetroByte"), {0, 0, 0, 0}));
+        ResourceManager::getTextTexture(game.getCurrentTime(), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
     addImage("Time", "Options",  {screen.w - 90, 10, 80, 30},
-        resourceManager.getTextTexture(game.getCurrentTime(), resourceManager.getFont("RetroByte"), {0, 0, 0, 0}));
+        ResourceManager::getTextTexture(game.getCurrentTime(), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
     addImage("Time", "Online",  {screen.w - 90, 10, 80, 30},
-        resourceManager.getTextTexture(game.getCurrentTime(), resourceManager.getFont("RetroByte"), {0, 0, 0, 0}));
+        ResourceManager::getTextTexture(game.getCurrentTime(), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
 }
 
 void UIManager::update(float dt)

@@ -89,6 +89,38 @@ void InputController::battleInput(SDL_Event event, Game& game, Battle& battle,  
 void InputController::onlineInput(SDL_Event event, Game &game, UIManager& manager) {
     if (input.isMousePressed(SDL_BUTTON_LEFT))
         manager.handleClickEvent(event,gameStateString.at(game.getGameState()));
+    if (input.isKeyPressed(SDL_SCANCODE_KP_ENTER))
+        manager.setFocus("IPEdit","Online", false);
+    if (input.isKeyPressed(SDL_SCANCODE_0))
+    {
+        auto text = manager.getText("IPEdit", "Online");
+        auto pos = manager.getPos("IPEdit", "Online");
+
+        text.insert(pos, "0");
+
+        manager.setText("IPEdit", "Online", text);
+        manager.setPos("IPEdit", "Online", pos + 1);
+    }
+    if (input.isKeyPressed(SDL_SCANCODE_PERIOD)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), ".") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1); }
+    if (input.isKeyPressed(SDL_SCANCODE_1)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "1") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1); }
+    if (input.isKeyPressed(SDL_SCANCODE_2)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "2") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
+    if (input.isKeyPressed(SDL_SCANCODE_3)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "3") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
+    if (input.isKeyPressed(SDL_SCANCODE_4)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "4") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
+    if (input.isKeyPressed(SDL_SCANCODE_5)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "5") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
+    if (input.isKeyPressed(SDL_SCANCODE_6)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "6") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
+    if (input.isKeyPressed(SDL_SCANCODE_7)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "7") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
+    if (input.isKeyPressed(SDL_SCANCODE_8)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "8") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
+    if (input.isKeyPressed(SDL_SCANCODE_9)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "9") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
+
+    if (input.isKeyPressed(SDL_SCANCODE_BACKSPACE))
+    {
+        if (manager.getPos("IPEdit", "Online") == 0)
+            return;
+        manager.setText("IPEdit", "Online", manager.getText("IPEdit", "Online").erase(manager.getPos("IPEdit", "Online") - 1, 1));
+        manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") - 1);
+    }
+    if (input.isKeyPressed(SDL_SCANCODE_LEFT)) { manager.setPos("IPEdit","Online", manager.getPos("IPEdit","Online") - 1); }
+    if (input.isKeyPressed(SDL_SCANCODE_RIGHT)) {  manager.setPos("IPEdit","Online", manager.getPos("IPEdit","Online") + 1); }
 }
 
 

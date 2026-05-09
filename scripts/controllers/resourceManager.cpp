@@ -232,6 +232,7 @@ void ResourceManager::initialize()
     addTexture(pathToEnemies.string() + "Ogr.png");
     addTexture(pathToEnemies.string() + "Lich.png");
 
+    addTexture(pathToBackgrounds.string() + "WhiteBox.jpg");
     addTexture(pathToBackgrounds.string() + "MapBackground.png");
     addTexture(pathToBackgrounds.string() + "MenuBackground.png");
     addTexture(pathToBackgrounds.string() + "OptionsBackground.png");

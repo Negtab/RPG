@@ -62,6 +62,15 @@ public:
     void setSrcRect(const std::string& id, const std::string& sceneId, const SDL_Rect& srect);
     void setOnClick(const std::string &id, const std::string &sceneId, const std::function<void()>& onClick);
 
+    void setText(const std::string& id, const std::string& sceneId, const std::string& text);
+    [[nodiscard]] std::string getText(const std::string& id, const std::string& sceneId);
+
+    void setFocus(const std::string& id, const std::string& sceneId, const bool& isFocus);
+    [[nodiscard]] bool getFocus(const std::string& id, const std::string& sceneId);
+
+    void setPos(const std::string& id, const std::string& sceneId, const int& pos);
+    [[nodiscard]] int getPos(const std::string& id, const std::string& sceneId);
+
     [[nodiscard]] SDL_Rect getRect(const std::string& id, const std::string& sceneId);
 
     void moveSelectorToNext();
@@ -87,6 +96,8 @@ private:
     class Edit : public UIObject
     {
     public:
+        bool isFocused {false};
+        int pos {0};
         std::string text;
         SDL_Rect srect{0,0,0,0};
         std::function<void()> onClick;

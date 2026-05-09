@@ -43,9 +43,7 @@ void Game::run()
 
     pathToSave = std::filesystem::current_path().remove_filename().string() + "save.bin";
     if (resourceManager->isPlayerNew(pathToSave))
-    {
         uiManager->setEnVI("Continue", "Menu", false);
-    }
     else
     {
         uiManager->setEnVI("Continue", "Menu", true);
