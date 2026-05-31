@@ -129,6 +129,120 @@ std::string Game::getCurrentTime() const{
     return std::string(buffer);
 }
 
+void Game::sendLocalPlayerState()
+{
+    if (players.empty())
+        return;
+
+    Player& player = players[0];
+
+    PlayerMovePacket packet{};
+
+    packet.header.type = PacketType::PlayerMove;
+    packet.header.size = sizeof(PlayerMovePacket);
+
+    packet.playerId = localPlayerId;
+
+    packet.x = player.getPlayerCoords().x;
+    packet.y = player.getPlayerCoords().y;
+
+    packet.direction = player.getDirection();
+
+    client.send(reinterpret_cast<const char*>(&packet), sizeof(packet));
+}
+
+void Game::processMovePacket(const PlayerMovePacket& packet)
+{
+    if (packet.playerId == localPlayerId)
+        return;
+
+    if (!remotePlayers.contains(packet.playerId))
+    {
+        Player player("RemotePlayer");
+        player.setRole(NetworkRole::Remote);
+        player.setNetworkId(packet.playerId);
+
+        // ✅ Инициализируем анимации
+        player.animPlayer.animations["MoveLeftAnimation"]  = { 0.2f, ResourceManager::getAnimation("MoveLeftAnimation"),  {}, {0,0,45,45}, 0, 0.f, false, AnimPlayMode::Loop };
+        player.animPlayer.animations["MoveRightAnimation"] = { 0.2f, ResourceManager::getAnimation("MoveRightAnimation"), {}, {0,0,45,45}, 0, 0.f, false, AnimPlayMode::Loop };
+        player.animPlayer.animations["MoveUpAnimation"]    = { 0.2f, ResourceManager::getAnimation("MoveUpAnimation"),    {}, {0,0,45,45}, 0, 0.f, false, AnimPlayMode::Loop };
+        player.animPlayer.animations["MoveDownAnimation"]  = { 0.2f, ResourceManager::getAnimation("MoveDownAnimation"),  {}, {0,0,45,45}, 0, 0.f, false, AnimPlayMode::Loop };
+
+        remotePlayers.emplace(packet.playerId, std::move(player));
+    }
+
+    Player& remote = remotePlayers.at(packet.playerId);
+    remote.setPlayerCoords({ packet.x, packet.y });
+    remote.setDirection(packet.direction);
+}
+
+void Game::updateNetwork()
+{
+    char buffer[512];
+    int received = client.receive(buffer, sizeof(buffer));
+
+    if (received <= 0)
+        return;
+
+    int offset = 0;
+
+    while (offset + (int)sizeof(PacketHeader) <= received)
+    {
+        PacketHeader* header = reinterpret_cast<PacketHeader*>(buffer + offset);
+
+        // ✅ Защита от мусорных данных
+        if (header->size < sizeof(PacketHeader) || header->size > 512)
+        {
+            SDL_Log("Invalid packet size: %d", header->size);
+            break;
+        }
+
+        if (offset + (int)header->size > received)
+            break;
+
+        switch (header->type)
+        {
+            case PacketType::Connect:
+            {
+                auto* packet = reinterpret_cast<ConnectPacket*>(buffer + offset);
+                localPlayerId = packet->assignedId;
+                SDL_Log("Player connect");
+                break;
+            }
+            case PacketType::PlayerMove:
+            {
+                auto* packet = reinterpret_cast<PlayerMovePacket*>(buffer + offset);
+                processMovePacket(*packet);
+                SDL_Log("Player move");
+                break;
+            }
+            case PacketType::PlayerJoined:
+            {
+                auto* packet = reinterpret_cast<PlayerJoinedPacket*>(buffer + offset);
+                SDL_Log("Player joined: %d", packet->playerId);
+                // здесь можно создать удалённого игрока заранее
+                break;
+            }
+            case PacketType::Disconnect:
+            {
+                auto* packet = reinterpret_cast<DisconnectPacket*>(buffer + offset);
+                remotePlayers.erase(packet->playerId);
+                SDL_Log("Player disconnected: %d", packet->playerId);
+                break;
+            }
+            default:
+                break;
+        }
+
+        offset += header->size;
+    }
+}
+
+const std::unordered_map<uint32_t, Player>& Game::getRemotePlayers() const noexcept
+{
+    return remotePlayers;
+}
+
 void Game::startGame()
 {
     this->setPreviousGameState(GameState::Menu);
@@ -149,13 +263,23 @@ void Game::handleInput(const SDL_Event &event)
 void Game::update(float dt)
 {
     if (state == GameState::Map) {
-        inputController->mapMove(players.at(0));
+        inputController->mapMove(*this, players.at(0));
         startRandomBattle();
+
+        if (localPlayerId != 0)
+            sendLocalPlayerState();
+
+        for (auto& [id, remote] : remotePlayers)
+        {
+            uiManager->updateRemoteAnimation(remote.animPlayer, remote);
+            remote.animPlayer.update(dt);
+        }
     }
 
     if (state == GameState::Battle)
         battle->update();
 
+    updateNetwork();
     uiManager->update(dt);
 }
 
@@ -210,28 +334,70 @@ void Game::closeOnlineMenu() {
     this->setPreviousGameState(GameState::Online);
 }
 
-std::string Game::getIP() const {
+void Game::connectToServer(const std::string &ip)
+{
+    client.connectTo(ip, 54000);
+}
+
+void Game::startServer() {
+    server.start();
+    client.connectTo("127.0.0.1", 54000);
+}
+
+std::string Game::getIP() const
+{
     WSADATA wsaData;
-    std::string ipStr;
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) return "ERROR";
+
+    // Инициализация WinSock
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+        return "ERROR";
 
     char hostName[256];
-    gethostname(hostName, sizeof(hostName));
 
-    struct addrinfo hints = {}, *res;
-    hints.ai_family = AF_INET; // IPv4
+    // Получаем имя компьютера
+    if (gethostname(hostName, sizeof(hostName)) == SOCKET_ERROR)
+    {
+        WSACleanup();
+        return "ERROR";
+    }
+
+    addrinfo hints{};
+    hints.ai_family = AF_INET;       // Только IPv4
     hints.ai_socktype = SOCK_STREAM;
 
-    if (getaddrinfo(hostName, NULL, &hints, &res) == 0) {
-        struct addrinfo* p = res;
-        while (p) {
-            struct sockaddr_in* ipv4 = (struct sockaddr_in*)p->ai_addr;
-            inet_ntop(AF_INET, &(ipv4->sin_addr), LPSTR(ipStr.c_str()), INET_ADDRSTRLEN);
-            p = p->ai_next;
-        }
-        freeaddrinfo(res);
+    addrinfo* result = nullptr;
+
+    // Получаем список адресов
+    if (getaddrinfo(hostName, nullptr, &hints, &result) != 0)
+    {
+        WSACleanup();
+        return "ERROR";
     }
+
+    std::string ipStr;
+
+    // Проходим по найденным адресам
+    for (addrinfo* ptr = result; ptr != nullptr; ptr = ptr->ai_next)
+    {
+        sockaddr_in* ipv4 = reinterpret_cast<sockaddr_in*>(ptr->ai_addr);
+
+        char ipBuffer[INET_ADDRSTRLEN];
+
+        // Перевод бинарного IP в строку
+        inet_ntop(AF_INET,
+                  &(ipv4->sin_addr),
+                  ipBuffer,
+                  INET_ADDRSTRLEN);
+
+        ipStr = ipBuffer;
+
+        // Берем первый найденный IP
+        break;
+    }
+
+    freeaddrinfo(result);
     WSACleanup();
+
     return ipStr;
 }
 

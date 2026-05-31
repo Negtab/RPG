@@ -11,7 +11,6 @@ void UIManager::setState(const UIChooseState &state) {
     this->uiState = state;
 }
 
-
 UIChooseState UIManager::getState() const {
     return uiState;
 }
@@ -420,7 +419,7 @@ bool UIManager::isAnimationFinished(const std::string& sceneId) const
     return p.currentAnimationId.empty() && p.animationQueue.empty();
 }
 
-void UIManager::AnimPlayer::play(const std::string& id, bool restart)
+void AnimPlayer::play(const std::string& id, bool restart)
 {
     if (!animations.contains(id))
         return;
@@ -454,7 +453,7 @@ void UIManager::AnimPlayer::play(const std::string& id, bool restart)
 }
 
 
-void UIManager::AnimPlayer::stopLoop()
+void AnimPlayer::stopLoop()
 {
     if (currentAnimationId.empty())
         return;
@@ -464,7 +463,7 @@ void UIManager::AnimPlayer::stopLoop()
 }
 
 
-void UIManager::AnimPlayer::update(float dt)
+void AnimPlayer::update(float dt)
 {
     if (currentAnimationId.empty())
         return;
@@ -513,7 +512,7 @@ void UIManager::AnimPlayer::update(float dt)
 }
 
 
-void UIManager::AnimPlayer::draw(Visualizer& v)
+void AnimPlayer::draw(Visualizer& v)
 {
     // Если нет активной анимации — рисовать нечего
     if (currentAnimationId.empty())
@@ -531,7 +530,7 @@ void UIManager::AnimPlayer::draw(Visualizer& v)
     v.drawTexture(frame, rect.x, rect.y, rect.w, rect.h);
 }
 
-void UIManager::AnimPlayer::draw(Visualizer& v, const SDL_Rect& screen)
+void AnimPlayer::draw(Visualizer& v, const SDL_Rect& screen)
 {
     if (currentAnimationId.empty())
         return;
@@ -578,6 +577,27 @@ void UIManager::updatePlayerAnimation(AnimPlayer &animPlayer, const Player& play
     }
 }
 
+void UIManager::updateRemoteAnimation(AnimPlayer& animPlayer, const Player& player)
+{
+    if (player.getDirection() == Direction::Idle)
+    {
+        animPlayer.stopLoop();
+        return;
+    }
+
+    std::string nextAnim;
+    switch (player.getDirection())
+    {
+        case Direction::Up:    nextAnim = "MoveUpAnimation"; break;
+        case Direction::Down:  nextAnim = "MoveDownAnimation"; break;
+        case Direction::Left:  nextAnim = "MoveLeftAnimation"; break;
+        case Direction::Right: nextAnim = "MoveRightAnimation"; break;
+        default: return;
+    }
+
+    animPlayer.play(nextAnim, false);
+}
+
 
 void UIManager::playSound(const std::string& sceneId, const std::string& soundId)
 {
@@ -599,6 +619,16 @@ void UIManager::Panel::handleClickLocal(int x, int y)
             y >= btn.rect.y && y <= btn.rect.y + btn.rect.h)
         {
             if (btn.onClick && btn.isEnabled) btn.onClick();
+            return;
+        }
+    }
+
+    for (auto& [id, idn] : edits)
+    {
+        if (x >= idn.rect.x && x <= idn.rect.x + idn.rect.w &&
+            y >= idn.rect.y && y <= idn.rect.y + idn.rect.h)
+        {
+            if (idn.onClick && idn.isEnabled) idn.onClick();
             return;
         }
     }
@@ -674,14 +704,17 @@ void UIManager::drawScene(const std::string& sceneId)
     const std::string music = sceneId + "Theme";
 
     setTexture("Time", sceneId, ResourceManager::getTextTexture(game.getCurrentTime(), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
+    Point localPos = player.getPlayerCoords();
 
     if (sceneId == "Map")
     {
         setTexture("FPS", "Map", ResourceManager::getTextTexture("FPS: " + std::to_string(game.getCurrentFPS()), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
+
+
         auto it = scene.images.find("MapBackground");
         if (it != scene.images.end()) {
-            it->second.rect.x = player.getPlayerCoords().x - 900;
-            it->second.rect.y = player.getPlayerCoords().y - 500;
+            it->second.rect.x = localPos.x - 900;
+            it->second.rect.y = localPos.y - 500;
         }
     }
 
@@ -797,6 +830,44 @@ void UIManager::drawScene(const std::string& sceneId)
 
         SDL_Log("UIManager: element '%s' not found in scene '%s'", key.c_str(), sceneId.c_str());
     }
+
+    if (sceneId == "Map")
+        for (const auto& [id, remote] : game.getRemotePlayers())
+        {
+            Point remotePos = remote.getPlayerCoords();
+
+            // Смещение удалённого игрока относительно локального
+            int screenX = (localPos.x - remotePos.x) + screen.w / 2;
+            int screenY = (localPos.y - remotePos.y) + screen.h / 2;
+
+            for (const auto& [id, remote] : game.getRemotePlayers())
+            {
+                Point remotePos = remote.getPlayerCoords();
+                int screenX = (localPos.x - remotePos.x) + screen.w / 2;
+                int screenY = (localPos.y - remotePos.y) + screen.h / 2;
+
+                const AnimPlayer& anim = remote.animPlayer;
+
+                if (remote.getDirection() == Direction::Idle || anim.currentAnimationId.empty())
+                {
+                    // Стоит — статичный спрайт
+                    visualizer.drawTexture(
+                        ResourceManager::getTexture("MovingCharacter"),
+                        screenX, screenY, 45, 45, 0, 0, 16, 25
+                    );
+                }
+                else
+                {
+                    // Идёт — текущий кадр анимации
+                    const auto& currentAnim = anim.animations.at(anim.currentAnimationId);
+                    if (!currentAnim.frames.empty())
+                    {
+                        SDL_Texture* frame = currentAnim.frames[currentAnim.currentFrame];
+                        visualizer.drawTexture(frame, screenX, screenY, 45, 45);
+                    }
+                }
+            }
+        }
 
     if (!music.empty())
         scene.playMusicLocal(visualizer, music);
@@ -914,8 +985,9 @@ void UIManager::setPos(const std::string& id, const std::string& sceneId, const 
 {
     if (const auto obj = findUIObject(id, sceneId); obj != nullptr)
     {
-        if (dynamic_cast<Edit*>(obj)->text.length() > pos)
-            dynamic_cast<Edit*>(obj)->pos = pos > 0 ? pos : 0;
+        auto* edit = dynamic_cast<Edit*>(obj);
+        int clamped = std::clamp(pos, 0, (int)edit->text.length()); // >= вместо >
+        edit->pos = clamped;
     }
     else
         SDL_Log("Object '%s' not found %s", id.c_str(), sceneId.c_str());
@@ -1238,8 +1310,9 @@ void UIManager::moveSelectorToPrevious() {
     setRect("TargetSelector", "Battle", oldRect);
 }
 
-void UIManager::initialize() {
-    SDL_Rect screen = game.getScreenRect();
+void UIManager::initialize()
+{
+    screen = game.getScreenRect();
     addScene(gameStateString.at(GameState::Battle));
     addScene(gameStateString.at(GameState::Options));
     addScene(gameStateString.at(GameState::Menu));
@@ -1262,15 +1335,23 @@ void UIManager::initialize() {
     addMusic("MapTheme", "Map");
 
     // --- Online
+    addMusic("OnlineTheme", "Online");
     addImage("OnlineBackground", "Online", screen, ResourceManager::getTexture("OptionsBackground"), {0,0,1920,1000});
-    addImage("ID", "Online", {screen.w/2 - 25, screen.h/2, 170, 50}, ResourceManager::getTextTexture("Your ID: " + game.getIP(), ResourceManager::getFont("RetroByte"), {0,0,0,0}));
-    addEdit("IPEdit", "Online", {190,screen.h/2 +30,170,50}, {0,0,0,0},
-       ResourceManager::getTextTexture("1.1.1.1", ResourceManager::getFont("RetroByte"), {0,0,0,0}),
-       [this](){ },
-       [this](){ this->playSound("Menu","ButtonHover"); });
-    addButton("StartServerButton", "Menu", {0,0,0,0},
+
+    addImage("IPImage", "Online", {screen.w - 360, screen.h/2 - 25, 170, 50}, ResourceManager::getTextTexture("Your IP: " + game.getIP(), ResourceManager::getFont("RetroByte"), {0,0,0,0}));
+    addButton("StartServerButton", "Online", {screen.w - 360,screen.h/2 +30,170,50},
         ResourceManager::getTextTexture("Start server", ResourceManager::getFont("RetroByte"), {0,0,0,0}),
-        [this](){ },
+        [this](){ game.startServer(); },
+        [this](){ this->playSound("Menu","ButtonHover"); });
+
+    addImage("ConnectImage", "Online", {190,screen.h/2 - 25,170,50}, ResourceManager::getTextTexture("Enter friend IP", ResourceManager::getFont("RetroByte"), {0,0,0,0}));
+    addEdit("IPEdit", "Online", {190,screen.h/2 +30,170,50}, {0,0,0,0},
+      ResourceManager::getTextTexture("1.1.1.1", ResourceManager::getFont("RetroByte"), {0,0,0,0}),
+      [this](){ this->setFocus("IPEdit", "Online", true); },
+      [this](){ this->playSound("Menu","ButtonHover"); });
+    addButton("ConnectButton", "Online", {190,screen.h/2 + 85,170,50},
+        ResourceManager::getTextTexture("Connect", ResourceManager::getFont("RetroByte"), {0,0,0,0}),
+        [this](){ game.connectToServer(getText("IPEdit", "Online")); },
         [this](){ this->playSound("Menu","ButtonHover"); });
 
 
@@ -1391,7 +1472,7 @@ void UIManager::initialize() {
         ResourceManager::getTextTexture("FPS: " + std::to_string(game.getCurrentFPS()), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
     addImage("FPS", "Map", {10,10,100,30},
             ResourceManager::getTextTexture("FPS: " + std::to_string(game.getCurrentFPS()), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
-    
+
 
     addImage("Time", "Menu",  {screen.w - 90, 10, 80, 30},
         ResourceManager::getTextTexture(game.getCurrentTime(), ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));

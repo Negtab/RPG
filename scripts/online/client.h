@@ -2,33 +2,27 @@
 #define PROJECT_NAME_CLIENT_H
 
 #include <winsock2.h>
-
-#include <thread>
-#include <atomic>
 #include <string>
-#include <mutex>
 
-class Client {
+#pragma comment(lib, "ws2_32.lib")
+
+class Client
+{
 public:
     Client();
     ~Client();
 
-    bool connectTo(const std::string& ip, uint16_t port = 54000);
+    bool connectTo(const std::string& ip, int port);
+
+    bool send(const char* data, int size);
+    int receive(char* buffer, int maxSize);
+
     void disconnect();
 
-    void sendInput(const std::string& input);
+    bool isConnected() const;
 
 private:
-    void receiveLoop();
-    void handleServerMessage(const std::string& msg);
-
-private:
-    SOCKET socket_ = INVALID_SOCKET;
-
-    std::atomic<bool> connected{false};
-    std::thread receiveThread;
-
-    std::mutex sendMutex;
+    SOCKET clientSocket = INVALID_SOCKET;
 };
 
-#endif //PROJECT_NAME_CLIENT_H
+#endif

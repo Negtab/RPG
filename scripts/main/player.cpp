@@ -2,11 +2,31 @@
 #include "game.h"
 
 
-Player::Player(std::string name) : name(std::move(name)), client(std::make_unique<Client>()), server(std::make_unique<Server>()) {
+Player::Player(std::string name) : name(std::move(name)) {
     heroes.emplace_back(Specialization(SpecializationNames::Archer));
     heroes.emplace_back(Specialization(SpecializationNames::Magician));
     heroes.emplace_back(Specialization(SpecializationNames::Thief));
     heroes.emplace_back(Specialization(SpecializationNames::Warrior));
+}
+
+uint32_t Player::getNetworkId() const noexcept
+{
+    return networkId;
+}
+
+void Player::setNetworkId(uint32_t id) noexcept
+{
+    networkId = id;
+}
+
+NetworkRole Player::getRole() const noexcept
+{
+    return role;
+}
+
+void Player::setRole(NetworkRole newRole) noexcept
+{
+    role = newRole;
 }
 
 int Player::getAverageLevel() const

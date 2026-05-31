@@ -4,6 +4,9 @@
 #include <iostream>
 #include <ws2tcpip.h>
 
+#include "networkPackets.h"
+#include "SDL_log.h"
+
 Server::Server() {}
 
 Server::~Server() {
@@ -80,14 +83,37 @@ void Server::acceptLoop() {
             nextClientId++
         };
 
+        // Отправляем новому клиенту его ID
+        ConnectPacket packet{};
+        packet.header.type = PacketType::Connect;
+        packet.header.size = sizeof(ConnectPacket);
+        packet.assignedId  = client.id;
+        ::send(clientSocket, reinterpret_cast<const char*>(&packet), sizeof(packet), 0);
+
+        // ✅ Уведомляем всех остальных что кто-то подключился
+        PlayerJoinedPacket joinPacket{};
+        joinPacket.header.type = PacketType::PlayerJoined;
+        joinPacket.header.size = sizeof(PlayerJoinedPacket);
+        joinPacket.playerId = client.id;
+        broadcastBinary(clientSocket, reinterpret_cast<const char*>(&joinPacket), sizeof(joinPacket));
+
         {
             std::lock_guard<std::mutex> lock(clientsMutex);
             clients.push_back(client);
         }
 
-        std::cout << "[Server] Client connected (id=" << client.id << ")\n";
-
         std::thread(&Server::clientLoop, this, client).detach();
+    }
+}
+
+void Server::broadcastBinary(SOCKET sender, const char* data, int size) {
+    std::lock_guard<std::mutex> lock(clientsMutex);
+
+    for (auto& c : clients) {
+        if (c.socket == sender)
+            continue; // не отправляем обратно отправителю
+
+        ::send(c.socket, data, size, 0);
     }
 }
 
@@ -95,12 +121,21 @@ void Server::clientLoop(Client client) {
     char buffer[1024];
 
     while (running) {
-        int received = recv(client.socket, buffer, sizeof(buffer) - 1, 0);
+        // Сначала читаем заголовок
+        int received = recv(client.socket, buffer, sizeof(PacketHeader), MSG_WAITALL);
         if (received <= 0)
             break;
 
-        buffer[received] = '\0';
-        processCommand(client.id, buffer);
+        PacketHeader* header = reinterpret_cast<PacketHeader*>(buffer);
+
+        // Читаем остаток пакета
+        int remaining = header->size - sizeof(PacketHeader);
+        if (remaining > 0 && remaining < (int)sizeof(buffer) - (int)sizeof(PacketHeader)) {
+            recv(client.socket, buffer + sizeof(PacketHeader), remaining, MSG_WAITALL);
+        }
+
+        // Ретранслируем всем остальным бинарно
+        broadcastBinary(client.socket, buffer, header->size);
     }
 
     {
@@ -113,24 +148,34 @@ void Server::clientLoop(Client client) {
             clients.end());
     }
 
-    closesocket(client.socket);
-    std::cout << "[Server] Client disconnected (id=" << client.id << ")\n";
-}
+    DisconnectPacket packet{};
+    packet.header.type = PacketType::Disconnect;
+    packet.header.size = sizeof(DisconnectPacket);
+    packet.playerId = client.id;
+    broadcastBinary(INVALID_SOCKET, reinterpret_cast<const char*>(&packet), sizeof(packet));
 
+    SDL_Log("[Server] Client disconnected (id=%d)", client.id);
+}
 
 void Server::processCommand(uint32_t clientId, const std::string& cmd) {
     std::cout << "[Input] Client " << clientId << ": " << cmd << "\n";
 
-    // ❗ Здесь ДОЛЖНА быть:
-    // - валидация
-    // - очередь команд
-    // - симуляция
-    // - snapshot
-
-    // Пока просто ретрансляция
     std::string snapshot = "SNAPSHOT player=" + std::to_string(clientId) + " cmd=" + cmd;
 
     broadcast(snapshot);
+}
+
+void Server::handlePacket(SOCKET sender, const char* data, int size)
+{
+    std::lock_guard lock(clientsMutex);
+
+    for (auto& client : clients)
+    {
+        if (client.socket == sender)
+            continue;
+
+        send(client.socket, data, size, 0);
+    }
 }
 
 void Server::broadcast(const std::string& msg) {

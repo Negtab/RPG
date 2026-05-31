@@ -1,95 +1,82 @@
 #include "client.h"
 
-#include <iostream>
 #include <ws2tcpip.h>
-Client::Client() {}
 
-Client::~Client() {
-    disconnect();
+Client::Client()
+{
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
 }
 
-bool Client::connectTo(const std::string& ip, uint16_t port) {
-    WSADATA wsa{};
-    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-        std::cerr << "[Client] WSAStartup failed\n";
-        return false;
-    }
+Client::~Client()
+{
+    disconnect();
+    WSACleanup();
+}
 
-    socket_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (socket_ == INVALID_SOCKET) {
-        std::cerr << "[Client] Socket creation failed\n";
+bool Client::connectTo(const std::string& ip, int port)
+{
+    clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (clientSocket == INVALID_SOCKET)
         return false;
-    }
 
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
+    inet_pton(AF_INET, ip.c_str(), &addr.sin_addr);
 
-    if (inet_pton(AF_INET, ip.c_str(), &addr.sin_addr) != 1) {
-        std::cerr << "[Client] Invalid IP address\n";
+    if (connect(clientSocket, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == SOCKET_ERROR)
+    {
+        closesocket(clientSocket);
+        clientSocket = INVALID_SOCKET;
         return false;
     }
 
-    if (connect(socket_, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
-        std::cerr << "[Client] Connection failed\n";
-        return false;
-    }
+    // ✅ Переводим в неблокирующий режим
+    u_long mode = 1;
+    ioctlsocket(clientSocket, FIONBIO, &mode);
 
-    connected = true;
-    receiveThread = std::thread(&Client::receiveLoop, this);
-
-    std::cout << "[Client] Connected to " << ip << ":" << port << "\n";
     return true;
 }
 
-void Client::disconnect() {
-    if (!connected)
-        return;
+bool Client::send(const char* data, int size)
+{
+    if (clientSocket == INVALID_SOCKET)
+        return false;
 
-    connected = false;
+    int result = ::send(clientSocket, data, size, 0);
 
-    closesocket(socket_);
-
-    if (receiveThread.joinable())
-        receiveThread.join();
-
-    WSACleanup();
-    std::cout << "[Client] Disconnected\n";
+    return result != SOCKET_ERROR;
 }
 
-void Client::sendInput(const std::string& input) {
-    if (!connected)
-        return;
+int Client::receive(char* buffer, int maxSize)
+{
+    if (clientSocket == INVALID_SOCKET)
+        return 0;
 
-    std::lock_guard<std::mutex> lock(sendMutex);
-    send(socket_, input.c_str(), (int)input.size(), 0);
-}
+    int result = recv(clientSocket, buffer, maxSize, 0);
 
-void Client::receiveLoop() {
-    char buffer[1024];
-
-    while (connected) {
-        int received = recv(socket_, buffer, sizeof(buffer) - 1, 0);
-        if (received <= 0)
-            break;
-
-        buffer[received] = '\0';
-        handleServerMessage(buffer);
+    if (result == SOCKET_ERROR)
+    {
+        int err = WSAGetLastError();
+        if (err == WSAEWOULDBLOCK)
+            return 0; // ← данных нет, это нормально — не блокируем
+        return -1;    // реальная ошибка
     }
 
-    connected = false;
+    return result;
 }
 
-void Client::handleServerMessage(const std::string& msg) {
-    std::cout << "[Server] " << msg << "\n";
+void Client::disconnect()
+{
+    if (clientSocket != INVALID_SOCKET)
+    {
+        closesocket(clientSocket);
+        clientSocket = INVALID_SOCKET;
+    }
+}
 
-    // Примеры будущей логики:
-    //
-    // if (msg.starts_with("SNAPSHOT")) {
-    //     applySnapshot(msg);
-    // }
-    //
-    // if (msg.starts_with("MODE TURN_BASED")) {
-    //     enterTurnBased();
-    // }
+bool Client::isConnected() const
+{
+    return clientSocket != INVALID_SOCKET;
 }

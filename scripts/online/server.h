@@ -8,6 +8,7 @@
 #include <vector>
 #include <mutex>
 #include <atomic>
+#include <future>
 #include <string>
 
 class Server {
@@ -28,8 +29,11 @@ private:
     void clientLoop(Client client);
     void processCommand(uint32_t clientId, const std::string& cmd);
     void broadcast(const std::string& msg);
+    void handlePacket(SOCKET sender, const char* data, int size);
+    void broadcastBinary(SOCKET sender, const char* data, int size);
 
-private:
+    std::promise<void> readyPromise;
+
     SOCKET listenSocket = INVALID_SOCKET;
 
     std::vector<Client> clients;

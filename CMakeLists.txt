@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.22)
 project(PROJECT_NAME)
 
+set(CMAKE_EXE_LINKER_FLAGS "-static")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -static-libgcc -static-libstdc++")
+
 set(CMAKE_CXX_STANDARD 20)
 
 # Must set the path to the main.cpp, for example: scripts/main.cpp if it is inside a folder
@@ -40,6 +43,9 @@ add_executable(${PROJECT_NAME} scripts/main/main.cpp
         scripts/online/Client.h
         scripts/online/server.cpp
         scripts/online/client.cpp
+        scripts/online/NetworkRole.h
+        scripts/online/networkPackets.h
+        scripts/uiControlls/animPlayer.h
 )
 
 # --- SDL2 SETUP ---

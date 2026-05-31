@@ -3,10 +3,10 @@
 
 #include <functional>
 #include <map>
-#include <queue>
-#include <string>
+#include "../uiControlls/animPlayer.h"
 #include <vector>
 
+#include "game.h"
 #include "SDL_events.h"
 #include "SDL_rect.h"
 #include "SDL_render.h"
@@ -16,18 +16,13 @@
 #include "../controllers/resourceManager.h"
 
 
-enum class AnimPlayMode
-{
-    OneShot,   // проигрывается один раз
-    Loop       // крутится, пока явно не остановят
-};
-
-
 class UIManager
 {
 public:
+    using AnimPlayer = ::AnimPlayer;
+
     explicit UIManager(Visualizer& visualizer, ResourceManager& resourceManager, Game& game, Player& player)
-        : visualizer(visualizer), resourceManager(resourceManager), game(game), player(player) { }
+        : visualizer(visualizer), resourceManager(resourceManager), game(game), player(player), screen({}) {}
 
     void addScene(const std::string& id);
     void handleClickEvent(const SDL_Event& event, const std::string& sceneId);
@@ -81,6 +76,11 @@ public:
 
     void setState(const UIChooseState& state);
     [[nodiscard]] UIChooseState getState() const;
+
+
+    void updatePlayerAnimation(AnimPlayer &animPlayer, const Player& player);
+    void updateRemoteAnimation(AnimPlayer& animPlayer, const Player& player);
+
 private:
 
     class UIObject
@@ -131,38 +131,6 @@ private:
         std::string currentSoundId;
         std::map<std::string, Mix_Music*> music;
         std::map<std::string, Mix_Chunk*> sound;
-    };
-    class AnimPlayer
-    {
-        struct QueuedAnim {
-            std::string id;
-            bool restart;
-        };
-
-        struct Anim
-        {
-            float frameTime;
-            std::vector<SDL_Texture*> frames;
-            std::vector<SDL_Rect> rects;
-            SDL_Rect frameRect;
-
-            size_t currentFrame = 0;
-            float accumulator = 0.0f;
-            bool finished = false;
-
-            AnimPlayMode mode = AnimPlayMode::OneShot;
-        };
-
-    public:
-        std::string currentAnimationId;
-        std::map<std::string, Anim> animations;
-        std::queue<QueuedAnim> animationQueue;
-
-        void play(const std::string& id, bool restart = false);
-        void stopLoop();
-        void update(float deltaTime);
-        void draw(Visualizer& v);
-        void draw(Visualizer &v, const SDL_Rect& screen);
     };
 
     class Panel : public UIObject
@@ -223,7 +191,7 @@ private:
 
     [[nodiscard]] int getTargetCount(TargetType type) const;
 
-    void updatePlayerAnimation(AnimPlayer &animPlayer, const Player& player);
+
 
     std::string currentPlayerAnim;
 
@@ -235,6 +203,7 @@ private:
     int selectedTargetIndex = 0;  // КАКУЮ цель выбираем
     TargetType currentType { TargetType::Enemy };
 
+    SDL_Rect screen;
     std::map<std::string, Scene> scenes;
     Visualizer& visualizer;
     ResourceManager& resourceManager;

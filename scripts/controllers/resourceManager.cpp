@@ -195,19 +195,25 @@ std::string ResourceManager::getName(const std::string &path)
 void ResourceManager::initialize()
 {
     std::filesystem::path mainPath {std::filesystem::current_path().remove_filename()};
-    std::filesystem::path pathToMusic {mainPath.string() + R"(resources\Music\)"};
-    std::filesystem::path pathToSounds {mainPath.string() + R"(resources\Sounds\)"};
-    std::filesystem::path pathToEnemies {mainPath.string() + R"(resources\Images\Enemies\)"};
-    std::filesystem::path pathToCharacters {mainPath.string() + R"(resources\Images\Characters\)"};
-    std::filesystem::path pathToBackgrounds {mainPath.string() + R"(resources\Images\Backgrounds\)"};
-    std::filesystem::path pathToEnvironment {mainPath.string() + R"(resources\Images\Environment\)"};
-    std::filesystem::path pathToAnimations {mainPath.string() + R"(resources\Animations\)"};
 
-    addFont(mainPath.string() + "resources\\Fonts\\RetroByte.ttf");
+    /*char buffer[MAX_PATH];
+    GetModuleFileNameA(NULL, buffer, MAX_PATH);
+    mainPath = std::filesystem::path(buffer).parent_path();*/
+
+    std::filesystem::path pathToMusic {mainPath.string() + R"(\resources\Music\)"};
+    std::filesystem::path pathToSounds {mainPath.string() + R"(\resources\Sounds\)"};
+    std::filesystem::path pathToEnemies {mainPath.string() + R"(\resources\Images\Enemies\)"};
+    std::filesystem::path pathToCharacters {mainPath.string() + R"(\resources\Images\Characters\)"};
+    std::filesystem::path pathToBackgrounds {mainPath.string() + R"(\resources\Images\Backgrounds\)"};
+    std::filesystem::path pathToEnvironment {mainPath.string() + R"(\resources\Images\Environment\)"};
+    std::filesystem::path pathToAnimations {mainPath.string() + R"(\resources\Animations\)"};
+
+    addFont((mainPath / "resources" / "Fonts" / "RetroByte.ttf").string());
     addMusic(pathToMusic.string() + "MenuTheme.mp3");
     addMusic(pathToMusic.string() + "MapTheme.mp3");
     addMusic(pathToMusic.string() + "BattleTheme.mp3");
     addMusic(pathToMusic.string() + "OptionsTheme.mp3");
+    addMusic(pathToMusic.string() + "OnlineTheme.mp3");
     addSound(pathToSounds.string() + "Menu\\ButtonHover.wav");
 
     addTexture(pathToCharacters.string() + "MovingCharacter.png");

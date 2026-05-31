@@ -2,10 +2,12 @@
 #define PROJECT_NAME_PLAYER_H
 
 #include "types.h"
-#include "../gameLogic/gamePerson.h"
+#include "../uiControlls/animPlayer.h"
 #include "../gameLogic/hero.h"
-#include "../online/client.h"
+#include "../online/networkRole.h"
 #include "../online/server.h"
+
+enum class NetworkRole;
 
 class Game;
 
@@ -58,7 +60,18 @@ public:
     [[nodiscard]] Direction getDirection() const;
     void setDirection(const Direction &newDirection);
 
+    [[nodiscard]] uint32_t getNetworkId() const noexcept;
+    void setNetworkId(uint32_t id) noexcept;
+
+    [[nodiscard]] NetworkRole getRole() const noexcept;
+    void setRole(NetworkRole newRole) noexcept;
+
+    AnimPlayer animPlayer;
+
 private:
+    uint32_t networkId {0};
+    NetworkRole role {NetworkRole::Local};
+
     std::string name;
     uint32_t gold{0};
     Point coords{0, 0};
@@ -66,9 +79,6 @@ private:
 
     GameState lastState{GameState::Map};
     Direction direction {Direction::Idle};
-
-    std::unique_ptr<Client> client;
-    std::unique_ptr<Server> server;
 
     std::vector<Hero> heroes;
     std::vector<std::string> discoveredEnemies;

@@ -6,18 +6,25 @@
 #include <string>
 #include <memory>
 
-#include "../gameLogic/battle.h"
-#include "../gameLogic/quest.h"
-#include "player.h"
 #include "../controllers/resourceManager.h"
 #include "../controllers/visualizer.h"
-#include "inputController.h"
+
+#include "../gameLogic/battle.h"
+#include "../gameLogic/quest.h"
 #include "../controllers/inputManager.h"
 #include "../gameLogic/notGamePerson.h"
+
+#include "player.h"
 #include "types.h"
 #include "uiManager.h"
+#include "inputController.h"
+
 #include "../online/client.h"
 #include "../online/server.h"
+#include "../online/networkPackets.h"
+
+struct PlayerMovePacket;
+class InputController;
 
 class Game {
     public:
@@ -64,6 +71,12 @@ class Game {
         [[nodiscard]] std::string getCurrentTime() const;
 
         [[nodiscard]] std::string getIP() const;
+        void connectToServer(const std::string &ip);
+        void startServer();
+
+        void sendLocalPlayerState();
+
+        [[nodiscard]] const std::unordered_map<uint32_t, Player>& getRemotePlayers() const noexcept;
     private:
 
         void handleInput(const SDL_Event &event);
@@ -72,6 +85,10 @@ class Game {
 
         void initItems();
         void initSkills();
+
+        void updateNetwork();
+
+        void processMovePacket(const PlayerMovePacket& packet);
 
         bool isRunning = false;
 
@@ -84,6 +101,9 @@ class Game {
         SDL_Rect screen = {0, 0, 900, 600};
         GameState state{GameState::CreatePlayer};
         GameState prevState{GameState::CreatePlayer};
+
+        std::unordered_map<uint32_t, Player> remotePlayers;
+        uint32_t localPlayerId {1};
 
         std::map<int, Item> items;
         std::map<int, Skill> skills;

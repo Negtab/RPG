@@ -1,17 +1,22 @@
 #ifndef PROJECT_NAME_INPUTCONTROLLER_H
 #define PROJECT_NAME_INPUTCONTROLLER_H
 
-#include "uiManager.h"
-#include "../controllers/inputManager.h"
 #include "player.h"
+#include "uiManager.h"
+
 #include "../gameLogic/battle.h"
+
+#include "../controllers/inputManager.h"
+
+class Battle;
+class UIManager;
 
 class InputController
 {
 public:
     explicit InputController(InputManager& input) : input(input) {}
 
-    void mapMove(Player& player);
+    void mapMove(Game &game, Player& player);
     void chooseInput(SDL_Event even, Game& game, Battle &battle, Player& player,  UIManager& uiManager);
 private:
     InputManager& input;
