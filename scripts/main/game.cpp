@@ -19,7 +19,7 @@ Game::Game(SDL_Window *window, SDL_Renderer* renderer) : window(window), rendere
 
     audioManager = std::make_unique<AudioManager>();
 
-    uiManager = std::make_unique<UIanager>(*visualizer, *audioManager, *resourceManager, *this, players.at(0));
+    uiManager = std::make_unique<UIManager>(*visualizer, *audioManager, *resourceManager, *this, players.at(0));
 
     inputManager = std::make_unique<InputManager>();
     inputController = std::make_unique<InputController>(*inputManager);
