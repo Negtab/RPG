@@ -2,7 +2,7 @@
 #define PROJECT_NAME_INPUTCONTROLLER_H
 
 #include "player.h"
-#include "uiManager.h"
+#include "../ui/uiManager.h"
 
 #include "../gameLogic/battle.h"
 

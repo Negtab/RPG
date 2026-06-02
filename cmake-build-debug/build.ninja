@@ -113,13 +113,13 @@ build CMakeFiles/PROJECT_NAME.dir/scripts/main/inputController.cpp.obj: CXX_COMP
   OBJECT_DIR = CMakeFiles\PROJECT_NAME.dir
   OBJECT_FILE_DIR = CMakeFiles\PROJECT_NAME.dir\scripts\main
 
-build CMakeFiles/PROJECT_NAME.dir/scripts/main/uiManager.cpp.obj: CXX_COMPILER__PROJECT_NAME_unscanned_Debug E$:/CLionProjects/RPG/scripts/main/uiManager.cpp || cmake_object_order_depends_target_PROJECT_NAME
+build CMakeFiles/PROJECT_NAME.dir/scripts/ui/uiManager.cpp.obj: CXX_COMPILER__PROJECT_NAME_unscanned_Debug E$:/CLionProjects/RPG/scripts/ui/uiManager.cpp || cmake_object_order_depends_target_PROJECT_NAME
   CONFIG = Debug
-  DEP_FILE = CMakeFiles\PROJECT_NAME.dir\scripts\main\uiManager.cpp.obj.d
+  DEP_FILE = CMakeFiles\PROJECT_NAME.dir\scripts\ui\uiManager.cpp.obj.d
   FLAGS = -static -static-libgcc -static-libstdc++ -g -std=gnu++20 -fdiagnostics-color=always
   INCLUDES = -IE:/CLionProjects/RPG/SDL2/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_image/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_mixer/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_ttf/x86_64-w64-mingw32/include/SDL2
   OBJECT_DIR = CMakeFiles\PROJECT_NAME.dir
-  OBJECT_FILE_DIR = CMakeFiles\PROJECT_NAME.dir\scripts\main
+  OBJECT_FILE_DIR = CMakeFiles\PROJECT_NAME.dir\scripts\ui
 
 build CMakeFiles/PROJECT_NAME.dir/scripts/gameLogic/battle.cpp.obj: CXX_COMPILER__PROJECT_NAME_unscanned_Debug E$:/CLionProjects/RPG/scripts/gameLogic/battle.cpp || cmake_object_order_depends_target_PROJECT_NAME
   CONFIG = Debug
@@ -177,6 +177,38 @@ build CMakeFiles/PROJECT_NAME.dir/scripts/online/client.cpp.obj: CXX_COMPILER__P
   OBJECT_DIR = CMakeFiles\PROJECT_NAME.dir
   OBJECT_FILE_DIR = CMakeFiles\PROJECT_NAME.dir\scripts\online
 
+build CMakeFiles/PROJECT_NAME.dir/scripts/ui/core/Panel.cpp.obj: CXX_COMPILER__PROJECT_NAME_unscanned_Debug E$:/CLionProjects/RPG/scripts/ui/core/Panel.cpp || cmake_object_order_depends_target_PROJECT_NAME
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles\PROJECT_NAME.dir\scripts\ui\core\Panel.cpp.obj.d
+  FLAGS = -static -static-libgcc -static-libstdc++ -g -std=gnu++20 -fdiagnostics-color=always
+  INCLUDES = -IE:/CLionProjects/RPG/SDL2/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_image/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_mixer/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_ttf/x86_64-w64-mingw32/include/SDL2
+  OBJECT_DIR = CMakeFiles\PROJECT_NAME.dir
+  OBJECT_FILE_DIR = CMakeFiles\PROJECT_NAME.dir\scripts\ui\core
+
+build CMakeFiles/PROJECT_NAME.dir/scripts/ui/core/Scene.cpp.obj: CXX_COMPILER__PROJECT_NAME_unscanned_Debug E$:/CLionProjects/RPG/scripts/ui/core/Scene.cpp || cmake_object_order_depends_target_PROJECT_NAME
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles\PROJECT_NAME.dir\scripts\ui\core\Scene.cpp.obj.d
+  FLAGS = -static -static-libgcc -static-libstdc++ -g -std=gnu++20 -fdiagnostics-color=always
+  INCLUDES = -IE:/CLionProjects/RPG/SDL2/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_image/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_mixer/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_ttf/x86_64-w64-mingw32/include/SDL2
+  OBJECT_DIR = CMakeFiles\PROJECT_NAME.dir
+  OBJECT_FILE_DIR = CMakeFiles\PROJECT_NAME.dir\scripts\ui\core
+
+build CMakeFiles/PROJECT_NAME.dir/scripts/controllers/audioManager.cpp.obj: CXX_COMPILER__PROJECT_NAME_unscanned_Debug E$:/CLionProjects/RPG/scripts/controllers/audioManager.cpp || cmake_object_order_depends_target_PROJECT_NAME
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles\PROJECT_NAME.dir\scripts\controllers\audioManager.cpp.obj.d
+  FLAGS = -static -static-libgcc -static-libstdc++ -g -std=gnu++20 -fdiagnostics-color=always
+  INCLUDES = -IE:/CLionProjects/RPG/SDL2/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_image/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_mixer/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_ttf/x86_64-w64-mingw32/include/SDL2
+  OBJECT_DIR = CMakeFiles\PROJECT_NAME.dir
+  OBJECT_FILE_DIR = CMakeFiles\PROJECT_NAME.dir\scripts\controllers
+
+build CMakeFiles/PROJECT_NAME.dir/scripts/ui/animation/animPlayer.cpp.obj: CXX_COMPILER__PROJECT_NAME_unscanned_Debug E$:/CLionProjects/RPG/scripts/ui/animation/animPlayer.cpp || cmake_object_order_depends_target_PROJECT_NAME
+  CONFIG = Debug
+  DEP_FILE = CMakeFiles\PROJECT_NAME.dir\scripts\ui\animation\animPlayer.cpp.obj.d
+  FLAGS = -static -static-libgcc -static-libstdc++ -g -std=gnu++20 -fdiagnostics-color=always
+  INCLUDES = -IE:/CLionProjects/RPG/SDL2/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_image/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_mixer/x86_64-w64-mingw32/include/SDL2 -IE:/CLionProjects/RPG/SDL2_ttf/x86_64-w64-mingw32/include/SDL2
+  OBJECT_DIR = CMakeFiles\PROJECT_NAME.dir
+  OBJECT_FILE_DIR = CMakeFiles\PROJECT_NAME.dir\scripts\ui\animation
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target PROJECT_NAME
@@ -185,7 +217,7 @@ build CMakeFiles/PROJECT_NAME.dir/scripts/online/client.cpp.obj: CXX_COMPILER__P
 #############################################
 # Link the executable PROJECT_NAME.exe
 
-build PROJECT_NAME.exe: CXX_EXECUTABLE_LINKER__PROJECT_NAME_Debug CMakeFiles/PROJECT_NAME.dir/scripts/main/main.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/gameLogic/quest.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/main/player.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/main/game.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/controllers/resourceManager.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/controllers/visualizer.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/controllers/inputManager.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/main/inputController.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/main/uiManager.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/gameLogic/battle.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/gameLogic/hero.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/gameLogic/enemy.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/gameLogic/notGamePerson.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/gameLogic/shopPerson.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/online/server.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/online/client.cpp.obj | E$:/CLionProjects/RPG/SDL2/x86_64-w64-mingw32/lib/libSDL2main.a E$:/CLionProjects/RPG/SDL2/x86_64-w64-mingw32/lib/libSDL2.dll.a E$:/CLionProjects/RPG/SDL2_image/x86_64-w64-mingw32/lib/libSDL2_image.dll.a E$:/CLionProjects/RPG/SDL2_mixer/x86_64-w64-mingw32/lib/libSDL2_mixer.dll.a E$:/CLionProjects/RPG/SDL2_ttf/x86_64-w64-mingw32/lib/libSDL2_ttf.dll.a
+build PROJECT_NAME.exe: CXX_EXECUTABLE_LINKER__PROJECT_NAME_Debug CMakeFiles/PROJECT_NAME.dir/scripts/main/main.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/gameLogic/quest.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/main/player.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/main/game.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/controllers/resourceManager.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/controllers/visualizer.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/controllers/inputManager.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/main/inputController.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/ui/uiManager.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/gameLogic/battle.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/gameLogic/hero.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/gameLogic/enemy.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/gameLogic/notGamePerson.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/gameLogic/shopPerson.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/online/server.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/online/client.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/ui/core/Panel.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/ui/core/Scene.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/controllers/audioManager.cpp.obj CMakeFiles/PROJECT_NAME.dir/scripts/ui/animation/animPlayer.cpp.obj | E$:/CLionProjects/RPG/SDL2/x86_64-w64-mingw32/lib/libSDL2main.a E$:/CLionProjects/RPG/SDL2/x86_64-w64-mingw32/lib/libSDL2.dll.a E$:/CLionProjects/RPG/SDL2_image/x86_64-w64-mingw32/lib/libSDL2_image.dll.a E$:/CLionProjects/RPG/SDL2_mixer/x86_64-w64-mingw32/lib/libSDL2_mixer.dll.a E$:/CLionProjects/RPG/SDL2_ttf/x86_64-w64-mingw32/lib/libSDL2_ttf.dll.a
   CONFIG = Debug
   FLAGS = -static -static-libgcc -static-libstdc++ -g
   LINK_FLAGS = -static

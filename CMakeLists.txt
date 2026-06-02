@@ -26,8 +26,8 @@ add_executable(${PROJECT_NAME} scripts/main/main.cpp
         scripts/main/inputController.h
         scripts/main/inputController.cpp
         scripts/main/utils.h
-        scripts/main/uiManager.cpp
-        scripts/main/uiManager.h
+        scripts/ui/uiManager.cpp
+        scripts/ui/uiManager.h
         scripts/gameLogic/battle.cpp
         scripts/gameLogic/battle.h
         scripts/gameLogic/hero.h
@@ -45,7 +45,20 @@ add_executable(${PROJECT_NAME} scripts/main/main.cpp
         scripts/online/client.cpp
         scripts/online/NetworkRole.h
         scripts/online/networkPackets.h
-        scripts/uiControlls/animPlayer.h
+        scripts/ui/animation/animPlayer.h
+        scripts/ui/core/UIObject.h
+        scripts/ui/core/UIObject.h
+        scripts/ui/widgets/Button.h
+        scripts/ui/widgets/Image.h
+        scripts/ui/core/Panel.h
+        scripts/ui/core/Scene.h
+        scripts/ui/audio/MusicPlayer.h
+        scripts/ui/core/Panel.cpp
+        scripts/ui/core/Scene.cpp
+        scripts/ui/uiManager.cpp
+        scripts/controllers/audioManager.h
+        scripts/controllers/audioManager.cpp
+        scripts/ui/animation/animPlayer.cpp
 )
 
 # --- SDL2 SETUP ---

@@ -16,7 +16,7 @@
 
 #include "player.h"
 #include "types.h"
-#include "uiManager.h"
+#include "../ui/uiManager.h"
 #include "inputController.h"
 
 #include "../online/client.h"
@@ -114,6 +114,7 @@ class Game {
         std::string pathToSave;
 
         std::unique_ptr<Battle> battle;
+        std::unique_ptr<AudioManager> audioManager;
         std::unique_ptr<ResourceManager> resourceManager;
         std::unique_ptr<Visualizer> visualizer;
         std::unique_ptr<UIManager> uiManager;

@@ -192,6 +192,29 @@ std::string ResourceManager::getName(const std::string &path)
     return std::filesystem::path(path).stem().string();
 }
 
+TextSize ResourceManager::measureText(const std::string& text, TTF_Font* font) {
+    TextSize size{0, 0};
+    if (!font || text.empty()) return size;
+    TTF_SizeUTF8(font, text.c_str(), &size.w, &size.h);
+    return size;
+}
+TextBlock ResourceManager::renderMultiline(SDL_Renderer* renderer, const std::string& text, TTF_Font* font, SDL_Color color, int maxWidth)   // 0 = без переноса
+{
+    // TTF_RenderUTF8_Blended_Wrapped делает это за нас
+    SDL_Surface* surface = TTF_RenderUTF8_Blended_Wrapped(
+        font, text.c_str(), color,
+        maxWidth > 0 ? maxWidth : 10000
+    );
+    if (!surface) return {};
+
+    TextBlock block;
+    block.w = surface->w;
+    block.h = surface->h;
+    block.texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+    return block;
+}
+
 void ResourceManager::initialize()
 {
     std::filesystem::path mainPath {std::filesystem::current_path().remove_filename()};

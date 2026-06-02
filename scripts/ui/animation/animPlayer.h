@@ -11,7 +11,7 @@
 #include <vector>
 #include <SDL_render.h>
 
-#include "../controllers/visualizer.h"
+#include "../../controllers/visualizer.h"
 
 enum class AnimPlayMode
 {
@@ -48,8 +48,8 @@ public:
     void play(const std::string& id, bool restart = false);
     void stopLoop();
     void update(float deltaTime);
-    void draw(Visualizer& v);
-    void draw(Visualizer& v, const SDL_Rect& screen);
+    void draw(Visualizer& v) const;
+    void draw(Visualizer& v, const SDL_Rect& screen) const;
 };
 
 

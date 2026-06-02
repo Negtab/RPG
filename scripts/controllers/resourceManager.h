@@ -9,6 +9,15 @@
 
 #include "../main/player.h"
 
+struct TextBlock {
+    SDL_Texture* texture = nullptr;
+    int w = 0, h = 0;
+};
+
+struct TextSize {
+    int w, h;
+};
+
 class ResourceManager
 {
 public:
@@ -37,6 +46,9 @@ public:
     bool addMusic(const std::string& path);
     bool addFont(const std::string& path);
     bool addAnimation(const std::string& path);
+
+    static TextSize measureText(const std::string& text, TTF_Font* font);
+    static TextBlock renderMultiline(SDL_Renderer* renderer, const std::string& text, TTF_Font* font, SDL_Color color, int maxWidth = 0);
 private:
     static std::unordered_map<std::string, SDL_Texture*> textCache;
     static std::unordered_map<std::string, SDL_Texture*> textures;

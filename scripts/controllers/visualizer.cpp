@@ -13,18 +13,7 @@ void Visualizer::drawTexture(SDL_Texture* texture, int dx, int dy, int dw, int d
         SDL_RenderCopy(renderer, texture, nullptr, &dst);
 }
 
-
-void Visualizer::playSound(int &chanel, Mix_Chunk *sound) const
-{
-    chanel = Mix_PlayChannel(-1, sound, 0);
+void Visualizer::drawRect(const SDL_Rect& rect, SDL_Color color) const {
+    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+    SDL_RenderFillRect(renderer, &rect);
 }
-
-void Visualizer::stopSound(int &chanel) const { Mix_Pause(chanel); }
-
-void Visualizer::playMusic(Mix_Music* music) const
-{
-    if (!music) return;
-    Mix_PlayMusic(music, -1);
-}
-
-void Visualizer::stopMusic() const { Mix_HaltMusic(); }

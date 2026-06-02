@@ -7,7 +7,7 @@
 #include "action.h"
 
 #include "../main/player.h"
-#include "../main/uiManager.h"
+#include "../ui/uiManager.h"
 
 class Game;
 class UIManager;
@@ -66,6 +66,8 @@ private:
 
     void checkBattleResult();
     void finishBattle(const bool &isWin);
+
+    void startNextHeroAnimation();
 
     Player *player;
     UIManager *ui;

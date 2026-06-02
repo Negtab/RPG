@@ -291,7 +291,7 @@ void Battle::updateEnemyTurn()
     Enemy& enemy = enemies[currentEnemyIndex];
 
     // мёртвый враг — пропускаем
-    if (enemy.getCurrentHp() < 0)
+    if (enemy.getCurrentHp() <= 0)
     {
         currentEnemyIndex++;
         return;
@@ -396,15 +396,21 @@ void Battle::onAnimationFinished()
     if (!ui->isAnimationFinished("Battle"))
         return;
 
+    // Восстанавливаем спрайт только если атаковал герой
+    if (currentTurn == TurnOwner::Player && !plannedActions.empty())
+    {
+        const auto& action = plannedActions[currentActionIndex - 1];
+        const std::string heroId = "Hero" + std::to_string(action.actorIndex + 1);
+        ui->setEnVI(heroId, "Battle", true);
+    }
+
     isAnimationsStarted = false;
-    plannedActions.clear();
 
     if (currentTurn == TurnOwner::Player)
         state = BattleState::ExecuteActions;
     else
         state = BattleState::EnemyTurn;
 }
-
 
 void Battle::checkBattleResult()
 {
@@ -455,20 +461,21 @@ void Battle::update()
         case BattleState::Animation:
             if (!isAnimationsStarted)
             {
-
-                for (const auto& plannedAction : plannedActions)
+                if (currentTurn == TurnOwner::Player)
                 {
-                    ui->playAnimation(
-                        "Hero" + std::to_string(plannedAction.actorIndex + 1) + "Animation",
-                        "Battle",
-                        false
-                    );
+                    // Анимация героя — берём из plannedActions
+                    const auto& action = plannedActions[currentActionIndex - 1];
+                    const std::string heroId = "Hero" + std::to_string(action.actorIndex + 1);
+                    ui->setEnVI(heroId, "Battle", false);
+                    ui->playAnimation(heroId + "Animation", "Battle", true);
                 }
+                // Для врагов — просто ждём, анимации героев не трогаем
+                // Здесь можно добавить анимацию врага когда она появится
 
                 isAnimationsStarted = true;
             }
 
-            onAnimationFinished(); // ← ТОЛЬКО ПРОВЕРКА
+            onAnimationFinished();
             break;
 
         case BattleState::Result:

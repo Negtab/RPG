@@ -12,7 +12,10 @@ enum class PacketType : uint8_t
     Connect = 0,
     PlayerMove = 1,
     PlayerJoined = 2,
-    Disconnect   = 3
+    Disconnect   = 3,
+    BattleStart  = 4,  // кто-то начал бой — рассылаем врагов
+    BattleAction = 5,  // игрок отправил действие
+    BattleSnapshot = 6 // сервер рассылает состояние боя
 };
 
 #pragma pack(push, 1)
@@ -52,6 +55,7 @@ struct PlayerMovePacket
 
     Direction direction;
 };
+
 
 #pragma pack(pop)
 

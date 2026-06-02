@@ -16,7 +16,10 @@ Game::Game(SDL_Window *window, SDL_Renderer* renderer) : window(window), rendere
     resourceManager = std::make_unique<ResourceManager>(*renderer);
 
     visualizer = std::make_unique<Visualizer>(renderer);
-    uiManager = std::make_unique<UIManager>(*visualizer, *resourceManager, *this, players.at(0));
+
+    audioManager = std::make_unique<AudioManager>();
+
+    uiManager = std::make_unique<UIanager>(*visualizer, *audioManager, *resourceManager, *this, players.at(0));
 
     inputManager = std::make_unique<InputManager>();
     inputController = std::make_unique<InputController>(*inputManager);
@@ -29,7 +32,7 @@ Game::Game(SDL_Window *window, SDL_Renderer* renderer) : window(window), rendere
     initItems();
     initSkills();
 
-    SDL_SetWindowIcon(window, resourceManager->getImage("Sword"));
+    SDL_SetWindowIcon(window, ResourceManager::getImage("Sword"));
 
     this->isRunning = true;
     this->setGameState(GameState::Menu);

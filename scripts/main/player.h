@@ -2,7 +2,7 @@
 #define PROJECT_NAME_PLAYER_H
 
 #include "types.h"
-#include "../uiControlls/animPlayer.h"
+#include "../ui/animation/animPlayer.h"
 #include "../gameLogic/hero.h"
 #include "../online/networkRole.h"
 #include "../online/server.h"
