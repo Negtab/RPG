@@ -11,6 +11,8 @@
 #include <future>
 #include <string>
 
+#include "networkPackets.h"
+
 class Server {
 public:
     Server();
@@ -18,6 +20,11 @@ public:
 
     bool start(uint16_t port = 54000);
     void stop();
+
+    [[nodiscard]] bool isRunning() const { return running; }
+
+    bool battleActive = false;
+    BattleStartPacket cachedBattleStart{};
 
 private:
     struct Client {

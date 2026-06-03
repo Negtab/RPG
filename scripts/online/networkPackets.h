@@ -15,7 +15,8 @@ enum class PacketType : uint8_t
     Disconnect   = 3,
     BattleStart  = 4,  // кто-то начал бой — рассылаем врагов
     BattleAction = 5,  // игрок отправил действие
-    BattleSnapshot = 6 // сервер рассылает состояние боя
+    BattleSnapshot = 6, // сервер рассылает состояние боя
+    BattleEnd = 7
 };
 
 #pragma pack(push, 1)
@@ -56,6 +57,57 @@ struct PlayerMovePacket
     Direction direction;
 };
 
+struct EnemyData
+{
+    uint8_t  enemyName;   // EnemyName as uint8
+    int32_t  currentHp;
+    int32_t  maxHp;
+};
+
+struct BattleStartPacket
+{
+    PacketHeader header;
+    uint8_t  enemyCount;
+    EnemyData enemies[4]; // максимум 4 врага
+};
+
+struct BattleActionPacket
+{
+    PacketHeader header;
+    uint32_t playerId;
+    uint8_t  actionType;   // ActionType as uint8
+    uint8_t  targetType;   // TargetType as uint8
+    int32_t  actorIndex;
+    int32_t  targetIndex;
+    int32_t  payloadId;    // skillId или itemId
+};
+
+// Состояние одного героя/врага после действия
+struct CharacterState
+{
+    int32_t currentHp;
+    int32_t currentMana;
+};
+
+struct BattleSnapshotPacket
+{
+    PacketHeader header;
+    uint8_t  heroCount;
+    uint8_t  enemyCount;
+    CharacterState heroes[8];
+    uint32_t heroOwner[8];  // ✅ ID владельца каждого героя
+    CharacterState enemies[4];
+    uint8_t  battleState;
+    uint8_t  currentHeroIndex;
+    uint8_t currentTurn;
+    uint8_t currentActionIndex;
+};
+
+struct BattleEndPacket
+{
+    PacketHeader header;
+    uint8_t isWin; // 1 = победа, 0 = побег/поражение
+};
 
 #pragma pack(pop)
 

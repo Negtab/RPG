@@ -1,6 +1,7 @@
 #ifndef PROJECT_NAME_BATTLE_H
 #define PROJECT_NAME_BATTLE_H
 
+#include <unordered_set>
 #include <vector>
 
 #include "enemy.h"
@@ -48,6 +49,17 @@ public:
 
     void onAnimationFinished();
 
+    void runFromNetwork(const BattleStartPacket& packet);
+    void confirmActionFromNetwork(const Action& action);
+    void applySnapshot(const BattleSnapshotPacket& packet);
+
+    void resetState();
+
+    TurnOwner getCurrentTurn() const;
+    int getCurrentActionIndex() const;
+
+
+
 private:
     void prepairUI();
     void spawnEnemies();
@@ -67,7 +79,7 @@ private:
     void checkBattleResult();
     void finishBattle(const bool &isWin);
 
-    void startNextHeroAnimation();
+    Hero* resolveActor(const Action& action);
 
     Player *player;
     UIManager *ui;
@@ -88,8 +100,13 @@ private:
     int currentEnemyIndex = 0;
     int currentActionIndex = 0;
 
+    int playersReady = 0;
+    int expectedPlayers = 1;
+
     std::vector<Enemy> enemies;
     std::vector<Item> rewards;
+
+    std::unordered_set<uint32_t> readyPlayers;
 };
 
 #endif // PROJECT_NAME_BATTLE_H

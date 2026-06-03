@@ -25,7 +25,7 @@ public:
     void setMaxHp(uint32_t hp) noexcept { maxHp = hp; }
 
     [[nodiscard]] uint32_t getCurrentHp() const noexcept { return currentHp; }
-    void setCurrentHp(uint32_t hp) noexcept { currentHp = (hp < maxHp) ? hp : maxHp; }
+    void setCurrentHp(uint32_t hp) noexcept { currentHp = (hp < maxHp) ? hp : maxHp;  isAlive = currentHp == 0;}
 
     [[nodiscard]] uint32_t getMaxMp() const noexcept { return maxMp; }
     void setMaxMp(uint32_t mp) noexcept { maxMp = mp; }

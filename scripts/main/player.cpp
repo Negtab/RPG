@@ -29,6 +29,17 @@ void Player::setRole(NetworkRole newRole) noexcept
     role = newRole;
 }
 
+int Player::getLiveHeroCount() const
+{
+    int count = 0;
+    for (const auto& hero : heroes)
+        if (hero.getIsAlive())
+            count++;
+    return count;
+
+}
+
+
 int Player::getAverageLevel() const
 {
     int total = 0, count = 0;

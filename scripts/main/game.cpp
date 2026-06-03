@@ -114,7 +114,7 @@ void Game::updateFPS()
 
 int Game::getCurrentFPS() const { return currentFPS; }
 
-std::string Game::getCurrentTime() const{
+std::string Game::getCurrentTime() {
     using namespace std::chrono;
 
     auto now = system_clock::now();
@@ -134,6 +134,7 @@ std::string Game::getCurrentTime() const{
 
 void Game::sendLocalPlayerState()
 {
+    if (!isConnected()) return;
     if (players.empty())
         return;
 
@@ -150,6 +151,18 @@ void Game::sendLocalPlayerState()
     packet.y = player.getPlayerCoords().y;
 
     packet.direction = player.getDirection();
+
+    client.send(reinterpret_cast<const char*>(&packet), sizeof(packet));
+}
+
+void Game::sendBattleEnd(bool isWin)
+{
+    if (!isConnected()) return;
+
+    BattleEndPacket packet{};
+    packet.header.type = PacketType::BattleEnd;
+    packet.header.size = sizeof(BattleEndPacket);
+    packet.isWin = isWin ? 1 : 0;
 
     client.send(reinterpret_cast<const char*>(&packet), sizeof(packet));
 }
@@ -179,66 +192,139 @@ void Game::processMovePacket(const PlayerMovePacket& packet)
     remote.setDirection(packet.direction);
 }
 
+void Game::processPacket(const char* data)
+{
+    auto* header = reinterpret_cast<const PacketHeader*>(data);
+
+    switch (header->type)
+    {
+        case PacketType::Connect:
+        {
+            auto* packet = reinterpret_cast<const ConnectPacket*>(data);
+            localPlayerId = packet->assignedId;
+            SDL_Log("Player connect");
+            break;
+        }
+
+        case PacketType::PlayerMove:
+        {
+            auto* packet = reinterpret_cast<const PlayerMovePacket*>(data);
+            processMovePacket(*packet);
+            break;
+        }
+
+        case PacketType::PlayerJoined:
+        {
+            auto* packet = reinterpret_cast<const PlayerJoinedPacket*>(data);
+            SDL_Log("Player joined: %d", packet->playerId);
+            break;
+        }
+
+        case PacketType::Disconnect:
+        {
+            auto* packet = reinterpret_cast<const DisconnectPacket*>(data);
+            remotePlayers.erase(packet->playerId);
+            SDL_Log("Player disconnected: %d", packet->playerId);
+            break;
+        }
+
+        case PacketType::BattleStart:
+        {
+            auto* packet = reinterpret_cast<const BattleStartPacket*>(data);
+
+            if (!battleStarted)
+            {
+                battleStarted = true;
+                battle->runFromNetwork(*packet);
+
+                setPreviousGameState(GameState::Map);
+                setGameState(GameState::Battle);
+
+                uiManager->addEnemys();
+                uiManager->addCharacters();
+            }
+            break;
+        }
+
+        case PacketType::BattleAction:
+        {
+            auto* packet = reinterpret_cast<const BattleActionPacket*>(data);
+
+            if (packet->playerId == localPlayerId)
+                break;
+
+            Action action{};
+            action.type        = static_cast<ActionType>(packet->actionType);
+            action.targetType  = static_cast<TargetType>(packet->targetType);
+            action.actorIndex  = packet->actorIndex;
+            action.targetIndex = packet->targetIndex;
+            action.payloadId   = packet->payloadId;
+            action.playerId    = packet->playerId;
+
+            battle->confirmActionFromNetwork(action);
+            break;
+        }
+
+        case PacketType::BattleSnapshot:
+        {
+            auto* packet = reinterpret_cast<const BattleSnapshotPacket*>(data);
+            battle->applySnapshot(*packet);
+            break;
+        }
+
+        case PacketType::BattleEnd:
+        {
+            auto* packet = reinterpret_cast<const BattleEndPacket*>(data);
+
+            battleStarted = false;
+            battle->resetState();
+            setGameState(getPrevGameState());
+            setPreviousGameState(GameState::Battle);
+
+            SDL_Log("BattleEnd received: isWin=%d", packet->isWin);
+            break;
+        }
+
+        default:
+            SDL_Log("Unknown packet type: %d", (int)header->type);
+            break;
+    }
+}
+
 void Game::updateNetwork()
 {
-    char buffer[512];
-    int received = client.receive(buffer, sizeof(buffer));
+    char chunk[2048];
+    int received = client.receive(chunk, sizeof(chunk));
 
-    if (received <= 0)
-        return;
+    if (received > 0)
+        netRecvBuffer.insert(netRecvBuffer.end(), chunk, chunk + received);
 
     int offset = 0;
+    const int total = (int)netRecvBuffer.size();
 
-    while (offset + (int)sizeof(PacketHeader) <= received)
+    while (offset + (int)sizeof(PacketHeader) <= total)
     {
-        PacketHeader* header = reinterpret_cast<PacketHeader*>(buffer + offset);
+        auto* header = reinterpret_cast<PacketHeader*>(netRecvBuffer.data() + offset);
 
-        // ✅ Защита от мусорных данных
-        if (header->size < sizeof(PacketHeader) || header->size > 512)
+        if (header->size < sizeof(PacketHeader) || header->size > 4096)
         {
-            SDL_Log("Invalid packet size: %d", header->size);
-            break;
+            SDL_Log("Invalid packet size: %d — clearing buffer", header->size);
+            netRecvBuffer.clear();
+            return;
         }
 
-        if (offset + (int)header->size > received)
+        // пакет ещё не пришёл целиком — ждём следующего кадра
+        if (offset + (int)header->size > total)
             break;
 
-        switch (header->type)
-        {
-            case PacketType::Connect:
-            {
-                auto* packet = reinterpret_cast<ConnectPacket*>(buffer + offset);
-                localPlayerId = packet->assignedId;
-                SDL_Log("Player connect");
-                break;
-            }
-            case PacketType::PlayerMove:
-            {
-                auto* packet = reinterpret_cast<PlayerMovePacket*>(buffer + offset);
-                processMovePacket(*packet);
-                SDL_Log("Player move");
-                break;
-            }
-            case PacketType::PlayerJoined:
-            {
-                auto* packet = reinterpret_cast<PlayerJoinedPacket*>(buffer + offset);
-                SDL_Log("Player joined: %d", packet->playerId);
-                // здесь можно создать удалённого игрока заранее
-                break;
-            }
-            case PacketType::Disconnect:
-            {
-                auto* packet = reinterpret_cast<DisconnectPacket*>(buffer + offset);
-                remotePlayers.erase(packet->playerId);
-                SDL_Log("Player disconnected: %d", packet->playerId);
-                break;
-            }
-            default:
-                break;
-        }
-
+        // обрабатываем пакет
+        processPacket(netRecvBuffer.data() + offset);
         offset += header->size;
     }
+
+    // убираем обработанные байты
+    if (offset > 0)
+        netRecvBuffer.erase(netRecvBuffer.begin(), netRecvBuffer.begin() + offset);
 }
 
 const std::unordered_map<uint32_t, Player>& Game::getRemotePlayers() const noexcept
@@ -296,24 +382,37 @@ void Game::render()
 
 void Game::startRandomBattle()
 {
-    int randomNumber = rand()%1000;
+    if (isConnected() && !isHost())
+        return;
+
+    int randomNumber = rand() % 1000;
     if (randomNumber == 1)
     {
-        this->setPreviousGameState(this->getGameState());
-        this->setGameState(GameState::Battle);
+        setPreviousGameState(getGameState());
+        setGameState(GameState::Battle);
         battle->run();
-        this->uiManager->addEnemys();
-        this->uiManager->addCharacters();
+        uiManager->addEnemys();
+        uiManager->addCharacters();
+
+        battleStarted = true;
+
+        // ✅ Уведомляем других игроков
+        if (localPlayerId != 0)
+            sendBattleStart();
     }
 }
 
 void Game::endRandomBattle()
 {
-    int randomNumber = rand()/100;
+    int randomNumber = rand() / 100;
     if (randomNumber > 30)
     {
+        if (isHost())
+            sendBattleEnd(false); // побег — не победа
+
         this->setGameState(this->getPrevGameState());
         this->setPreviousGameState(GameState::Battle);
+        battleStarted = false;
     }
 }
 
@@ -339,15 +438,42 @@ void Game::closeOnlineMenu() {
 
 void Game::connectToServer(const std::string &ip)
 {
-    client.connectTo(ip, 54000);
+    if (this->isConnected())
+    {
+        uiManager->setText("NotifyLabel", "Online", "You are already connected!");
+        return;
+    }
+    if (this->isHost())
+    {
+        uiManager->setText("NotifyLabel", "Online", "You are host");
+        return;
+    }
+
+    if (client.connectTo(ip, 54000))
+        uiManager->setText("NotifyLabel", "Online", "You are connected");
+    else
+        uiManager->setText("NotifyLabel", "Online", "You are not connected");
 }
 
 void Game::startServer() {
-    server.start();
-    client.connectTo("127.0.0.1", 54000);
+    if (this->isConnected())
+    {
+        uiManager->setText("NotifyLabel", "Online", "You are already connected!");
+        return;
+    }
+    if (this->isHost())
+    {
+        uiManager->setText("NotifyLabel", "Online", "You are already host");
+        return;
+    }
+
+    if (server.start() && client.connectTo("127.0.0.1", 54000))
+        uiManager->setText("NotifyLabel","Online", "Server started");
+    else
+        uiManager->setText("NotifyLabel","Online", "Server not started. Something happend");
 }
 
-std::string Game::getIP() const
+std::string Game::getIP()
 {
     WSADATA wsaData;
 
@@ -382,7 +508,7 @@ std::string Game::getIP() const
     // Проходим по найденным адресам
     for (addrinfo* ptr = result; ptr != nullptr; ptr = ptr->ai_next)
     {
-        sockaddr_in* ipv4 = reinterpret_cast<sockaddr_in*>(ptr->ai_addr);
+        auto* ipv4 = reinterpret_cast<sockaddr_in*>(ptr->ai_addr);
 
         char ipBuffer[INET_ADDRSTRLEN];
 
@@ -403,6 +529,93 @@ std::string Game::getIP() const
 
     return ipStr;
 }
+
+void Game::sendBattleStart()
+{
+    if (!isConnected()) return;
+    const auto& enemies = battle->getEnemies();
+
+    BattleStartPacket packet{};
+    packet.header.type = PacketType::BattleStart;
+    packet.header.size = sizeof(BattleStartPacket);
+    packet.enemyCount = static_cast<uint8_t>(enemies.size());
+
+    for (int i = 0; i < (int)enemies.size() && i < 4; i++)
+    {
+        packet.enemies[i].enemyName  = static_cast<uint8_t>(enemies[i].getEnemyName());
+        packet.enemies[i].currentHp  = enemies[i].getCurrentHp();
+        packet.enemies[i].maxHp      = enemies[i].getMaxHp();
+    }
+
+    client.send(reinterpret_cast<const char*>(&packet), sizeof(packet));
+}
+
+void Game::sendBattleAction(const Action& action)
+{
+    if (!isConnected()) return;
+    SDL_Log("sendBattleAction: localPlayerId=%d", localPlayerId);
+    BattleActionPacket packet{};
+    packet.header.type = PacketType::BattleAction;
+    packet.header.size = sizeof(BattleActionPacket);
+    packet.playerId    = localPlayerId;
+    packet.actionType  = static_cast<uint8_t>(action.type);
+    packet.targetType  = static_cast<uint8_t>(action.targetType);
+    packet.actorIndex  = action.actorIndex;
+    packet.targetIndex = action.targetIndex;
+    packet.payloadId   = action.payloadId;
+
+    client.send(reinterpret_cast<const char*>(&packet), sizeof(packet));
+}
+
+void Game::sendBattleSnapshot()
+{
+    if (!isConnected()) return;
+    BattleSnapshotPacket packet{};
+    packet.header.type = PacketType::BattleSnapshot;
+    packet.header.size = sizeof(BattleSnapshotPacket);
+
+    const auto& heroes  = players.at(0).getHeroes();
+    const auto& enemies = battle->getEnemies();
+
+    packet.enemyCount = static_cast<uint8_t>(enemies.size());
+
+    // ✅ Сначала герои хоста
+    int heroIndex = 0;
+    for (int i = 0; i < (int)heroes.size() && heroIndex < 8; i++, heroIndex++)
+    {
+        packet.heroes[heroIndex].currentHp   = heroes[i].getCurrentHp();
+        packet.heroes[heroIndex].currentMana = heroes[i].getCurrentMp();
+        packet.heroOwner[heroIndex] = localPlayerId; // ← чьи герои
+    }
+
+    // ✅ Потом герои удалённых игроков
+    for (auto& [id, remote] : remotePlayers)
+    {
+        for (int i = 0; i < (int)remote.getHeroes().size() && heroIndex < 8; i++, heroIndex++)
+        {
+            packet.heroes[heroIndex].currentHp   = remote.getHeroes()[i].getCurrentHp();
+            packet.heroes[heroIndex].currentMana = remote.getHeroes()[i].getCurrentMp();
+            packet.heroOwner[heroIndex] = id; // ← чьи герои
+        }
+    }
+
+    packet.heroCount = static_cast<uint8_t>(heroIndex);
+
+    for (int i = 0; i < (int)enemies.size() && i < 4; i++)
+    {
+        packet.enemies[i].currentHp   = enemies[i].getCurrentHp();
+        packet.enemies[i].currentMana = 0;
+    }
+
+    packet.battleState      = static_cast<uint8_t>(battle->getState());
+    packet.currentHeroIndex = static_cast<uint8_t>(battle->getCurrentHeroIndex());
+
+    packet.currentActionIndex = battle->getCurrentActionIndex();
+    packet.currentTurn        = static_cast<uint8_t>(battle->getCurrentTurn());
+
+    client.send(reinterpret_cast<const char*>(&packet), sizeof(packet));
+}
+
 
 void Game::addPlayer(Player&& player) { players.push_back(std::move(player)); }
 void Game::addQuest(const Quest& quest) { quests.push_back(quest); }

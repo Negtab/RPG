@@ -68,15 +68,30 @@ class Game {
         float getDeltaTime();
         void updateFPS();
         [[nodiscard]] int getCurrentFPS() const;
-        [[nodiscard]] std::string getCurrentTime() const;
+        static std::string getCurrentTime() ;
 
-        [[nodiscard]] std::string getIP() const;
+        static std::string getIP() ;
         void connectToServer(const std::string &ip);
         void startServer();
 
         void sendLocalPlayerState();
 
         [[nodiscard]] const std::unordered_map<uint32_t, Player>& getRemotePlayers() const noexcept;
+
+        void sendBattleAction(const Action& action);
+        void sendBattleStart();
+        void sendBattleSnapshot();
+
+        bool isHost() const { return server.isRunning(); }
+        bool isConnected() const { return client.isConnected(); }
+        int getPlayerCount() const { return 1 + remotePlayers.size(); }
+
+        std::unordered_map<uint32_t, Player>& getRemotePlayersMutable() { return remotePlayers; }
+
+
+        bool battleStarted = false;
+        uint32_t localPlayerId {0};
+
     private:
 
         void handleInput(const SDL_Event &event);
@@ -89,6 +104,10 @@ class Game {
         void updateNetwork();
 
         void processMovePacket(const PlayerMovePacket& packet);
+        void processPacket(const char* data);
+
+        void sendBattleEnd(bool isWin);
+
 
         bool isRunning = false;
 
@@ -103,7 +122,9 @@ class Game {
         GameState prevState{GameState::CreatePlayer};
 
         std::unordered_map<uint32_t, Player> remotePlayers;
-        uint32_t localPlayerId {1};
+
+        std::vector<char> netRecvBuffer;
+
 
         std::map<int, Item> items;
         std::map<int, Skill> skills;

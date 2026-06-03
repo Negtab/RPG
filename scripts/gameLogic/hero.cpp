@@ -2,7 +2,6 @@
 
 Hero::Hero(Specialization spec) : spec(spec)
 {
-    name = "Hero";
     level = 1;
     experience = 0;
     xpToNextLevel = 100;
@@ -15,6 +14,8 @@ Hero::Hero(Specialization spec) : spec(spec)
         case SpecializationNames::Thief:    makeBasicThief();    break;
         default: break;
     }
+
+    name = specializationNamesString.at(spec.name);
 
     currentHp = maxHp;
     currentMp = maxMp;

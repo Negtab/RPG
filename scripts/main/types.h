@@ -11,7 +11,7 @@ constexpr int MAX_HERO_COUNT = 4;
 
 enum class BattleAction { Attack, Magic, Item, Run };
 enum class BattlePhase { PlayerTurn, EnemyTurn, EndBattle };
-enum class BattleState { Start, EnemyTurn, PlayerChoose, ExecuteActions, Animation, EscapeResult, Result };
+enum class BattleState { Start, EnemyTurn, PlayerChoose, ExecuteActions, Animation, EscapeResult, Result, WaitingForHost };
 enum class TurnOwner { Player, Enemy };
 
 
@@ -19,6 +19,12 @@ enum class UIChooseState { ChooseAction, ChooseSkill, ChooseItem, ChooseTarget }
 
 enum class Elemental { Fire, Water, Earth, Air, Ice, Lava, Dark, Light, None, Physical, Poison, Lightning };
 enum class SpecializationNames { Archer, Magician, Warrior, Thief, None };
+const std::unordered_map<SpecializationNames, std::string> specializationNamesString = {
+    {SpecializationNames::Archer, "Archer"},
+    {SpecializationNames::Magician, "Magician"},
+    {SpecializationNames::Warrior, "Warrior"},
+    {SpecializationNames::Thief, "Thief"}
+};
 
 struct Point { int32_t x{0}, y{0}; };
 struct Location { Point coord{}; std::string name; int32_t h{0}, w{0}; bool isSafe{false}; };

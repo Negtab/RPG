@@ -25,6 +25,7 @@ enum class TargetType
 struct Action
 {
     int actorIndex {-1};     // индекс героя
+    uint32_t playerId = 0;
     ActionType type {ActionType::Skip};
     TargetType targetType {TargetType::Enemy};
     int targetIndex {-1};    // -1 если Self / AoE

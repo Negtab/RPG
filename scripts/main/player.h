@@ -26,6 +26,8 @@ public:
     ~Player() = default;
 
 
+    [[nodiscard]] int getLiveHeroCount() const;
+
     [[nodiscard]] int getAverageLevel() const;
     [[nodiscard]] uint32_t getPlayerGold() const noexcept;
     void setPlayerGold(uint32_t g) noexcept;

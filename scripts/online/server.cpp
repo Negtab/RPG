@@ -7,7 +7,7 @@
 #include "networkPackets.h"
 #include "SDL_log.h"
 
-Server::Server() {}
+Server::Server() = default;
 
 Server::~Server() {
     stop();
@@ -121,25 +121,29 @@ void Server::clientLoop(Client client) {
     char buffer[1024];
 
     while (running) {
-        // Сначала читаем заголовок
         int received = recv(client.socket, buffer, sizeof(PacketHeader), MSG_WAITALL);
-        if (received <= 0)
-            break;
+        if (received <= 0) break;
 
-        PacketHeader* header = reinterpret_cast<PacketHeader*>(buffer);
-
-        // Читаем остаток пакета
+        auto* header = reinterpret_cast<PacketHeader*>(buffer);
         int remaining = header->size - sizeof(PacketHeader);
-        if (remaining > 0 && remaining < (int)sizeof(buffer) - (int)sizeof(PacketHeader)) {
+        if (remaining > 0 && remaining < (int)sizeof(buffer) - (int)sizeof(PacketHeader))
             recv(client.socket, buffer + sizeof(PacketHeader), remaining, MSG_WAITALL);
+
+        // BattleStart — запоминаем и рассылаем
+        if (header->type == PacketType::BattleStart)
+        {
+            auto* pkt = reinterpret_cast<BattleStartPacket*>(buffer);
+            cachedBattleStart = *pkt;
+            battleActive = true;
+            broadcastBinary(client.socket, buffer, header->size);
         }
-
-        // Ретранслируем всем остальным бинарно
-        broadcastBinary(client.socket, buffer, header->size);
+        else
+        {
+            broadcastBinary(client.socket, buffer, header->size);
+        }
     }
-
     {
-        std::lock_guard<std::mutex> lock(clientsMutex);
+        std::lock_guard lock(clientsMutex);
         clients.erase(
             std::remove_if(
                 clients.begin(),

@@ -12,6 +12,14 @@ class Image : public UIObject {
 public:
     SDL_Rect srect{0,0,0,0};
 
+    void setSrcRect(const SDL_Rect &r) override
+    {
+        srect.x = r.x;
+        srect.y = r.y;
+        srect.w = r.w;
+        srect.h = r.h;
+    }
+
     void draw(Visualizer& v) const override {
         if (!isVisible || !texture) return;
         if (srect.w == 0 || srect.h == 0)
