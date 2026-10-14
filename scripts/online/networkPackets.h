@@ -5,7 +5,7 @@
 #ifndef PROJECT_NAME_NETWORKPACKETS_H
 #define PROJECT_NAME_NETWORKPACKETS_H
 
-#include "../main/types.h"
+#include <cstdint>
 
 enum class PacketType : uint8_t
 {
@@ -16,7 +16,8 @@ enum class PacketType : uint8_t
     BattleStart  = 4,  // кто-то начал бой — рассылаем врагов
     BattleAction = 5,  // игрок отправил действие
     BattleSnapshot = 6, // сервер рассылает состояние боя
-    BattleEnd = 7
+    BattleEnd = 7,
+    MapChange = 8
 };
 
 #pragma pack(push, 1)
@@ -45,21 +46,18 @@ struct DisconnectPacket
     uint32_t playerId;
 };
 
-struct PlayerMovePacket
-{
+struct PlayerMovePacket {
     PacketHeader header;
-
     uint32_t playerId;
-
-    int32_t x;
-    int32_t y;
-
-    Direction direction;
+    uint16_t mapId;
+    int16_t  cellX, cellY, targetX, targetY;
+    uint8_t  direction;
+    uint8_t  moving;
 };
 
 struct EnemyData
 {
-    uint8_t  enemyName;   // EnemyName as uint8
+    uint8_t  enemyId;
     int32_t  currentHp;
     int32_t  maxHp;
 };
@@ -89,6 +87,13 @@ struct CharacterState
     int32_t currentMana;
 };
 
+struct MapChangePacket
+{
+    PacketHeader header;
+    uint16_t mapId;
+    int16_t  cellX, cellY;
+};
+
 struct BattleSnapshotPacket
 {
     PacketHeader header;
@@ -110,5 +115,33 @@ struct BattleEndPacket
 };
 
 #pragma pack(pop)
+
+
+constexpr uint32_t kMaxPacket = 512;
+
+inline uint32_t expectedSize(PacketType t) {
+    switch (t) {
+    case PacketType::Connect:        return sizeof(ConnectPacket);
+    case PacketType::PlayerMove:     return sizeof(PlayerMovePacket);
+    case PacketType::PlayerJoined:   return sizeof(PlayerJoinedPacket);
+    case PacketType::Disconnect:     return sizeof(DisconnectPacket);
+    case PacketType::BattleStart:    return sizeof(BattleStartPacket);
+    case PacketType::BattleAction:   return sizeof(BattleActionPacket);
+    case PacketType::BattleSnapshot: return sizeof(BattleSnapshotPacket);
+    case PacketType::BattleEnd:      return sizeof(BattleEndPacket);
+    case PacketType::MapChange:      return sizeof(MapChangePacket);
+    }
+    return 0;   // неизвестный тип
+}
+static_assert(sizeof(PacketHeader) == 5, "pack(1) сломан");
+static_assert(sizeof(ConnectPacket)        <= kMaxPacket);
+static_assert(sizeof(PlayerMovePacket)     <= kMaxPacket);
+static_assert(sizeof(PlayerJoinedPacket)   <= kMaxPacket);
+static_assert(sizeof(DisconnectPacket)     <= kMaxPacket);
+static_assert(sizeof(BattleStartPacket)    <= kMaxPacket);
+static_assert(sizeof(BattleActionPacket)   <= kMaxPacket);
+static_assert(sizeof(BattleSnapshotPacket) <= kMaxPacket);
+static_assert(sizeof(BattleEndPacket)      <= kMaxPacket);
+static_assert(sizeof(MapChangePacket)      <= kMaxPacket);
 
 #endif //PROJECT_NAME_NETWORKPACKETS_H

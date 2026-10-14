@@ -1,0 +1,6 @@
+[
+  { "id": "plains",
+    "formations": [
+      { "weight": 1, "enemies": [30] }
+    ] }
+]

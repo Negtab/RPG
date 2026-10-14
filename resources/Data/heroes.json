@@ -1,0 +1,22 @@
+[
+  { "class": "Warrior",
+    "base":     { "hp": 180, "mp": 30,  "attack": 12, "defence": 18, "agility": 6 },
+    "perLevel": { "hp": 45,  "mp": 2,   "attack": 10, "defence": 9,  "agility": 1 },
+    "resists": ["Physical"], "vulnerabilities": [], "skills": [1, 5],
+    "xpToFirstLevel": 100, "xpGrowth": 1.3 },
+  { "class": "Magician",
+    "base":     { "hp": 85,  "mp": 180, "attack": 8,  "defence": 6,  "agility": 8 },
+    "perLevel": { "hp": 10,  "mp": 55,  "attack": 4,  "defence": 5,  "agility": 1 },
+    "resists": ["Fire"], "vulnerabilities": ["Physical"], "skills": [2, 4],
+    "xpToFirstLevel": 100, "xpGrowth": 1.3 },
+  { "class": "Archer",
+    "base":     { "hp": 120, "mp": 70,  "attack": 16, "defence": 9,  "agility": 16 },
+    "perLevel": { "hp": 20,  "mp": 16,  "attack": 8,  "defence": 7,  "agility": 3 },
+    "resists": ["Air"], "vulnerabilities": [], "skills": [3],
+    "xpToFirstLevel": 100, "xpGrowth": 1.3 },
+  { "class": "Thief",
+    "base":     { "hp": 100, "mp": 55,  "attack": 15, "defence": 7,  "agility": 20 },
+    "perLevel": { "hp": 13,  "mp": 9,   "attack": 6,  "defence": 5,  "agility": 4 },
+    "resists": ["Poison"], "vulnerabilities": ["Fire"], "skills": [6],
+    "xpToFirstLevel": 100, "xpGrowth": 1.3 }
+]

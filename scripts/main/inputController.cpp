@@ -16,38 +16,31 @@ void InputController::chooseInput(SDL_Event event, Game& game, Battle& battle, P
         default: ;
     }
 }
-
-void InputController::mapMove(Game &game, Player& player)
-{
-    Point point = player.getPlayerCoords();
-    const int speed = player.getPlayerSpeed();
-    bool moved = false;
-
-    if (input.isKeyHeld(SDL_SCANCODE_W) || input.isKeyHeld(SDL_SCANCODE_UP)) {
-        moved = true;
-        point.y += speed;
-        player.setDirection(Direction::Up);
+static bool dirHeld(const InputManager& in, Direction d) {
+    switch (d) {
+    case Direction::Up:    return in.isKeyHeld(SDL_SCANCODE_W) || in.isKeyHeld(SDL_SCANCODE_UP);
+    case Direction::Down:  return in.isKeyHeld(SDL_SCANCODE_S) || in.isKeyHeld(SDL_SCANCODE_DOWN);
+    case Direction::Left:  return in.isKeyHeld(SDL_SCANCODE_A) || in.isKeyHeld(SDL_SCANCODE_LEFT);
+    case Direction::Right: return in.isKeyHeld(SDL_SCANCODE_D) || in.isKeyHeld(SDL_SCANCODE_RIGHT);
+    default: return false;
     }
-    if (input.isKeyHeld(SDL_SCANCODE_S) || input.isKeyHeld(SDL_SCANCODE_DOWN)) {
-        moved = true;
-        point.y -= speed;
-        player.setDirection(Direction::Down);
+}
+static bool dirPressed(const InputManager& in, Direction d) {
+    switch (d) {
+    case Direction::Up:    return in.isKeyPressed(SDL_SCANCODE_W) || in.isKeyPressed(SDL_SCANCODE_UP);
+    case Direction::Down:  return in.isKeyPressed(SDL_SCANCODE_S) || in.isKeyPressed(SDL_SCANCODE_DOWN);
+    case Direction::Left:  return in.isKeyPressed(SDL_SCANCODE_A) || in.isKeyPressed(SDL_SCANCODE_LEFT);
+    case Direction::Right: return in.isKeyPressed(SDL_SCANCODE_D) || in.isKeyPressed(SDL_SCANCODE_RIGHT);
+    default: return false;
     }
-    if (input.isKeyHeld(SDL_SCANCODE_A) || input.isKeyHeld(SDL_SCANCODE_LEFT)) {
-        moved = true;
-        point.x += speed;
-        player.setDirection(Direction::Left);
-    }
-    if (input.isKeyHeld(SDL_SCANCODE_D) || input.isKeyHeld(SDL_SCANCODE_RIGHT)) {
-        moved = true;
-        point.x -= speed;
-        player.setDirection(Direction::Right);
-    }
+}
 
-    if (!moved)
-        player.setDirection(Direction::Idle);
-
-    player.setPlayerCoords(point);
+Direction InputController::readMoveDirection() {       // последняя нажатая клавиша, без диагоналей
+    static constexpr Direction all[] = {Direction::Up, Direction::Down, Direction::Left, Direction::Right};
+    for (Direction d : all) if (dirPressed(input, d)) lastMoveDir = d;
+    if (lastMoveDir != Direction::Idle && dirHeld(input, lastMoveDir)) return lastMoveDir;
+    for (Direction d : all) if (dirHeld(input, d)) return lastMoveDir = d;
+    return lastMoveDir = Direction::Idle;
 }
 
 void InputController::mapInput(Game& game)

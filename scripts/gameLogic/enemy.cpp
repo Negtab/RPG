@@ -1,93 +1,40 @@
 #include "enemy.h"
 
-Enemy::Enemy(const EnemyName name, Player *player) : player(player), enemyName(name)
+#include <algorithm>
+#include <stdexcept>
+#include "gameData.h"
+
+Enemy::Enemy(int id, int lvl) : enemyId(id)
 {
-    switch (name)
-    {
-        case EnemyName::Gargoyle: makeGargoyle(); break;
-        case EnemyName::Knight:   makeKnight(); break;
-        case EnemyName::Ogr:      makeOgr(); break;
-        case EnemyName::Ghost:    makeGhost(); break;
-    }
-    this->name = enemyNameString.at(name);
+    const EnemyDef* def = GameData::instance().enemy(id);
+    if (!def) throw std::runtime_error("Unknown enemy id " + std::to_string(id));
+
+    const int L = std::max(1, lvl);
+    level = static_cast<uint8_t>(std::min(L, 255));
+
+    name        = def->name;
+    textureName = def->texture;
+    maxHp       = static_cast<uint32_t>(std::max(1, def->hp.at(L)));
+    currentHp   = maxHp;
+    attack      = static_cast<uint32_t>(std::max(0, def->attack.at(L)));
+    defence     = static_cast<uint32_t>(std::max(0, def->defence.at(L)));
+    agility     = static_cast<uint32_t>(std::max(0, def->agility.at(L)));
+    experience  = static_cast<uint32_t>(std::max(0, def->exp.at(L)));
+    gold        = static_cast<uint32_t>(std::max(0, def->gold.at(L)));
+
+    resists       = def->resists;
+    immunities    = def->immunities;
+    vulnerability = def->vulnerabilities;
+
+    for (const auto& a : def->abilities)                       // кулдауны ведутся по умениям из списка способностей
+        if (a.skillId >= 0 &&
+            std::none_of(skills.begin(), skills.end(), [&](const SkillInstance& s) { return s.skillId == a.skillId; }))
+            skills.push_back(SkillInstance{a.skillId, 0});
+
     isAlive = true;
 }
-
-
-void Enemy::makeGargoyle()
-{
-    const int lvl = player->getAverageLevel();
-    level = lvl;
-
-    maxHp = 40 + lvl * 12;
-    currentHp = maxHp;
-
-    attack   = 10 + lvl * 3;
-    defence  = 6 + lvl * 2;
-    agility  = 4 + lvl * 1;
-
-    experience = 15 + lvl * 5;
-    gold       = 5 + lvl * 2;
-
-    //skills.at(0). = {0}; // базовый удар
-}
-
-void Enemy::makeGhost()
-{
-    const int lvl = player->getAverageLevel();
-    level = lvl;
-
-    maxHp = 25 + lvl * 8;
-    currentHp = maxHp;
-
-    attack   = 8 + lvl * 2;
-    defence  = 4 + lvl * 1;
-    agility  = 10 + lvl * 3;
-
-    experience = 12 + lvl * 5;
-    gold = 3 + lvl * 2;
-
-    //skills = {1}; // яд/магия
-}
-
-
-void Enemy::makeKnight() {
-    const int lvl = player->getAverageLevel();
-    level = lvl;
-
-    maxHp = 25 + lvl * 8;
-    currentHp = maxHp;
-
-    attack   = 8 + lvl * 2;
-    defence  = 4 + lvl * 1;
-    agility  = 10 + lvl * 3;
-
-    experience = 12 + lvl * 5;
-    gold = 3 + lvl * 2;
-}
-
-void Enemy::makeOgr() {
-    const int lvl = player->getAverageLevel();
-    level = lvl;
-
-    maxHp = 25 + lvl * 8;
-    currentHp = maxHp;
-
-    attack   = 8 + lvl * 2;
-    defence  = 4 + lvl * 1;
-    agility  = 10 + lvl * 3;
-
-    experience = 12 + lvl * 5;
-    gold = 3 + lvl * 2;
-}
-
-EnemyName Enemy::getEnemyName() const {
-    return enemyName;
-}
-
 
 uint32_t Enemy::getAttackPower(const Skill* skill) const
 {
     return skill ? attack + skill->power : attack;
 }
-

@@ -16,11 +16,12 @@ class InputController
 public:
     explicit InputController(InputManager& input) : input(input) {}
 
-    void mapMove(Game &game, Player& player);
+    Direction readMoveDirection();
     void chooseInput(SDL_Event even, Game& game, Battle &battle, Player& player,  UIManager& uiManager);
 private:
     InputManager& input;
 
+    Direction lastMoveDir{Direction::Idle};
     void onlineInput(SDL_Event event, Game &game, UIManager& manager);
     void mapInput(Game& game);
     void menuInput(SDL_Event event, Game& game, UIManager& manager);

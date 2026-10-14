@@ -4,6 +4,8 @@
 #include "SDL_render.h"
 #include "SDL_mixer.h"
 
+constexpr int PIXEL_SCALE = 3;
+
 class Visualizer {
 public:
     explicit Visualizer(SDL_Renderer* renderer) : renderer(renderer) {}
@@ -12,6 +14,8 @@ public:
 
     void drawTexture(SDL_Texture* texture, int dx, int dy, int dw, int dh, int sx = -1, int sy = -1, int sw = -1, int sh = -1) const;
     void drawRect(const SDL_Rect& rect, SDL_Color color) const;
+    void drawSprite(SDL_Texture* texture, int footX, int footY, int scale, const SDL_Rect* src = nullptr) const;
+    void drawNinePatch(SDL_Texture* skin, const SDL_Rect& dst, int slice, int scale = 1) const;
 
     void playMusic(Mix_Music* music) const;
     void stopMusic() const;

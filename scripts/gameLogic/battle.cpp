@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <chrono>
 
+#include "gameData.h"
 #include "../main/game.h"
 
 const std::vector<Enemy> &Battle::getEnemies() const {
@@ -71,14 +72,19 @@ void Battle::runFromNetwork(const BattleStartPacket& packet)
 
     for (int i = 0; i < packet.enemyCount && i < 4; i++)
     {
-        auto name = static_cast<EnemyName>(packet.enemies[i].enemyName);
-        enemies.emplace_back(name, player);
+        const int id = packet.enemies[i].enemyId;           // теперь это id из enemies.json
+        const int32_t maxHp = packet.enemies[i].maxHp;
+        if (!GameData::instance().enemy(id) || maxHp <= 0 || maxHp > 10000000)
+            continue;                                         // неизвестный id или мусор из сети
+
+        enemies.emplace_back(id, player->getAverageLevel());
+        enemies.back().setMaxHp(static_cast<uint32_t>(maxHp));
+        enemies.back().setCurrentHp(static_cast<uint32_t>(std::max<int32_t>(0, packet.enemies[i].currentHp)));
     }
 
     prepairUI();
 
-    expectedPlayers = game->getPlayerCount();
-    playersReady = 0;
+    beginParticipants();
 
     currentTurn = TurnOwner::Player;
     state = BattleState::PlayerChoose;
@@ -91,11 +97,15 @@ void Battle::confirmActionFromNetwork(const Action& action)
         return;
 
     const auto& remotePlayers = game->getRemotePlayers();
-    if (!remotePlayers.contains(action.playerId))
+    if (!remotePlayers.contains(action.playerId) || !participants.contains(action.playerId))
     {
-        SDL_Log("Unknown playerId=%d, skipping", action.playerId);
+        SDL_Log("Action from unknown or non-participant playerId=%u, skipping", action.playerId);
         return;
     }
+
+    // payloadId пришёл по сети: не доверяем
+    if (action.type == ActionType::Magic && !game->findSkill(action.payloadId)) return;
+    if (action.type == ActionType::Item  && !game->findItem(action.payloadId))  return;
 
     // защита от дублирования — игрок уже засчитан
     if (readyPlayers.contains(action.playerId))
@@ -130,44 +140,41 @@ void Battle::confirmActionFromNetwork(const Action& action)
 
 void Battle::applySnapshot(const BattleSnapshotPacket& packet)
 {
-    for (int i = 0; i < packet.heroCount; i++)
-    {
-        if (packet.heroOwner[i] == game->localPlayerId)
-        {
-            int localIndex = 0;
-            for (int j = 0; j < i; j++)
-                if (packet.heroOwner[j] == game->localPlayerId)
-                    localIndex++;
+    if (packet.battleState > static_cast<uint8_t>(BattleState::WaitingForHost) ||
+    packet.currentTurn > static_cast<uint8_t>(TurnOwner::Enemy))
+        return;                                                    // мусор
 
-            if (localIndex < (int)player->getHeroes().size())
-            {
-                player->getLinkTOHeroes()[localIndex].setCurrentHp(packet.heroes[i].currentHp);
-                player->getLinkTOHeroes()[localIndex].setCurrentMp(packet.heroes[i].currentMana);
-            }
-        }
+    const int heroCount  = std::min<int>(packet.heroCount, 8);
+    const int enemyCount = std::min<int>({packet.enemyCount, 4, static_cast<int>(enemies.size())});
+
+    for (int i = 0; i < heroCount; i++)
+    {
+        const uint32_t owner = packet.heroOwner[i];
+
+        int index = 0;                                   // какой по счёту герой этого владельца
+        for (int j = 0; j < i; j++)
+            if (packet.heroOwner[j] == owner)
+                index++;
+
+        std::vector<Hero>* party = nullptr;
+        if (owner == game->localPlayerId)
+            party = &player->getLinkTOHeroes();
         else
         {
-            // ← был const ref, теперь mutable
-            auto& remotePlayers = game->getRemotePlayersMutable();
-            if (!remotePlayers.contains(packet.heroOwner[i]))
-                continue;
+            auto& remotes = game->getRemotePlayersMutable();
+            auto it = remotes.find(owner);
+            if (it != remotes.end())
+                party = &it->second.getLinkTOHeroes();
+        }
 
-            int remoteIndex = 0;
-            for (int j = 0; j < i; j++)
-                if (packet.heroOwner[j] == packet.heroOwner[i])
-                    remoteIndex++;
-
-            auto& remote = remotePlayers.at(packet.heroOwner[i]);
-            if (remoteIndex < (int)remote.getHeroes().size())
-            {
-                remote.getLinkTOHeroes()[remoteIndex].setCurrentHp(packet.heroes[i].currentHp);
-                remote.getLinkTOHeroes()[remoteIndex].setCurrentMp(packet.heroes[i].currentMana);
-            }
+        if (party && index < static_cast<int>(party->size()))
+        {
+            (*party)[index].setCurrentHp(packet.heroes[i].currentHp);
+            (*party)[index].setCurrentMp(packet.heroes[i].currentMana);
         }
     }
 
-    // остаток функции без изменений
-    for (int i = 0; i < packet.enemyCount && i < (int)enemies.size(); i++)
+    for (int i = 0; i < enemyCount; i++)         // было: i < packet.enemyCount && i < enemies.size()
         enemies[i].setCurrentHp(packet.enemies[i].currentHp);
 
     auto newState = static_cast<BattleState>(packet.battleState);
@@ -214,25 +221,10 @@ void Battle::startPlayerChoose()
 
 Hero* Battle::resolveActor(const Action& action)
 {
-    // локальный игрок (или офлайн)
-    if (!game->isConnected() || action.playerId == game->localPlayerId)
-    {
-        auto& heroes = player->getLinkTOHeroes();
-        if (action.actorIndex >= 0 && action.actorIndex < (int)heroes.size())
-            return &heroes[action.actorIndex];
+    auto* party = partyOf(action.playerId);
+    if (!party || action.actorIndex < 0 || action.actorIndex >= static_cast<int>(party->size()))
         return nullptr;
-    }
-
-    // удалённый игрок
-    auto& remotePlayers = game->getRemotePlayersMutable();
-    if (!remotePlayers.contains(action.playerId))
-        return nullptr;
-
-    auto& heroes = remotePlayers.at(action.playerId).getLinkTOHeroes();
-    if (action.actorIndex >= 0 && action.actorIndex < (int)heroes.size())
-        return &heroes[action.actorIndex];
-
-    return nullptr;
+    return &(*party)[action.actorIndex];
 }
 
 void Battle::confirmAction(const Action& action)
@@ -243,6 +235,10 @@ void Battle::confirmAction(const Action& action)
     Action actionWithId = action;
     actionWithId.playerId = game->localPlayerId;
     plannedActions.push_back(actionWithId);
+
+    // хост не знает инвентарь клиента, поэтому клиент списывает свой предмет сам
+    if (action.type == ActionType::Item && game->isConnected() && !game->isHost())
+        player->consumeItem(action.payloadId);
 
     if (game->isConnected())
         game->sendBattleAction(actionWithId);
@@ -313,74 +309,6 @@ void Battle::updateExecuteActions()
     if (game->isConnected()) game->sendBattleSnapshot();
 }
 
-void Battle::executeItem(Hero& user, const std::vector<int>& targets, int itemId)
-{
-    if (!player->hasItem(itemId))
-        return;
-
-    Item& item = game->getItem(itemId);
-
-    for (int idx : targets)
-    {
-        switch (item.effectType)
-        {
-            case ItemEffectType::Heal:
-                player->getLinkTOHeroes()[idx].heal(item.power);
-                break;
-
-            case ItemEffectType::Damage:
-                enemies[idx].takeDamage(item.power);
-                break;
-
-            case ItemEffectType::RestoreMana:
-                player->getLinkTOHeroes()[idx].restoreMana(item.power);
-                break;
-
-            default:
-                break;
-        }
-    }
-
-    if (item.consumable)
-        player->consumeItem(itemId);
-}
-
-void Battle::executeSkill(GamePerson& caster, int skillId, const std::vector<int>& targets, bool casterIsHero)
-{
-    const Skill& skill = game->getSkill(skillId);
-
-    if (!caster.canCast(skill))
-        return;
-
-    caster.spendMana(skill.manaCost);
-
-    for (int idx : targets)
-    {
-        switch (skill.effectType)
-        {
-            case SkillEffectType::Damage:
-                if (casterIsHero)
-                    enemies[idx].takeDamage(skill.power, skill.element);
-                else
-                    player->getLinkTOHeroes()[idx].takeDamage(skill.power, skill.element);
-                break;
-
-            case SkillEffectType::Heal:
-                if (casterIsHero)
-                    player->getLinkTOHeroes()[idx].heal(skill.power);
-                else
-                    enemies[idx].heal(skill.power);
-                break;
-
-            default:
-                break;
-        }
-    }
-
-    caster.setCooldown(skill.id, skill.maxCooldown);
-}
-
-
 void Battle::executeAttack(Hero& attacker, const std::vector<int>& targets)
 {
     for (int idx : targets)
@@ -409,10 +337,10 @@ void Battle::executeAction(const Action& action)
             executeAttack(*actor, targets);
             break;
         case ActionType::Magic:
-            executeSkill(*actor, action.payloadId, targets, true);
+            executeSkill(*actor, action.payloadId, targets, true, action.playerId);
             break;
         case ActionType::Item:
-            executeItem(*actor, targets, action.payloadId);
+            executeItem(*actor, targets, action.payloadId, action.playerId);
             break;
         case ActionType::Skip:
             break;
@@ -420,6 +348,74 @@ void Battle::executeAction(const Action& action)
 
     currentTurn = TurnOwner::Player;
     state = BattleState::Animation;
+}
+
+void Battle::executeSkill(GamePerson& caster, int skillId, const std::vector<int>& targets,
+                          bool casterIsHero, uint32_t owner)
+{
+    const Skill* skill = game->findSkill(skillId);
+    auto* party = partyOf(owner);
+    if (!skill || !party || !caster.canCast(*skill))
+        return;
+
+    caster.spendMana(skill->manaCost);
+
+    const auto validEnemy = [&](int i) { return i >= 0 && i < static_cast<int>(enemies.size()); };
+    const auto validHero  = [&](int i) { return i >= 0 && i < static_cast<int>(party->size()); };
+
+    for (int idx : targets)
+    {
+        switch (skill->effectType)
+        {
+            case SkillEffectType::Damage:
+                if (casterIsHero) { if (validEnemy(idx)) enemies[idx].takeDamage(skill->power, skill->element); }
+                else              { if (validHero(idx))  (*party)[idx].takeDamage(skill->power, skill->element); }
+                break;
+
+            case SkillEffectType::Heal:
+                if (casterIsHero) { if (validHero(idx))  (*party)[idx].heal(skill->power); }
+                else              { if (validEnemy(idx)) enemies[idx].heal(skill->power); }
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    caster.setCooldown(skill->id, skill->maxCooldown);
+}
+
+void Battle::executeItem(Hero& /*user*/, const std::vector<int>& targets, int itemId, uint32_t owner)
+{
+    const Item* item = game->findItem(itemId);
+    auto* party = partyOf(owner);
+    if (!item || !party) return;
+
+    // Инвентарь удалённого игрока хост не видит: свой предмет проверяется и списывается здесь,
+    // а чужой списывает сам владелец в confirmAction.
+    const bool mine = !game->isConnected() || owner == game->localPlayerId;
+    if (mine && !player->hasItem(itemId)) return;
+
+    for (int idx : targets)
+    {
+        switch (item->effectType)
+        {
+            case ItemEffectType::Heal:
+                if (idx >= 0 && idx < static_cast<int>(party->size())) (*party)[idx].heal(item->power);
+                break;
+            case ItemEffectType::Damage:
+                if (idx >= 0 && idx < static_cast<int>(enemies.size())) enemies[idx].takeDamage(item->power);
+                break;
+            case ItemEffectType::RestoreMana:
+                if (idx >= 0 && idx < static_cast<int>(party->size())) (*party)[idx].restoreMana(item->power);
+                break;
+            default:
+                break;
+        }
+    }
+
+    if (mine && item->consumable)
+        player->consumeItem(itemId);
 }
 
 
@@ -458,111 +454,133 @@ void Battle::startEnemyTurn()
 
 void Battle::updateEnemyTurn()
 {
-    if (state != BattleState::EnemyTurn)
-        return;
+    if (state != BattleState::EnemyTurn) return;
+    if (game->isConnected() && !game->isHost()) return;     // клиент ждёт снапшот от хоста
 
-    // ✅ Клиент не считает — ждёт снапшот от хоста
-    if (game->isConnected() && !game->isHost())
-        return;
-
-    if (currentEnemyIndex >= enemies.size())
+    if (currentEnemyIndex >= static_cast<int>(enemies.size()))
     {
-        state = BattleState::PlayerChoose;
         endRound();
+        if (aliveHeroes().empty())                          // герои погибли в конце хода врагов
+        {
+            state = BattleState::Result;
+            game->sendBattleSnapshot();
+            return;
+        }
         startPlayerChoose();
-        game->sendBattleSnapshot(); // ✅ рассылаем после хода всех врагов
+        game->sendBattleSnapshot();
         return;
     }
 
-    Enemy& enemy = enemies[currentEnemyIndex];
+    if (enemies[currentEnemyIndex].getCurrentHp() <= 0) { currentEnemyIndex++; return; }
 
-    if (enemy.getCurrentHp() <= 0)
+    if (!performEnemyAction(currentEnemyIndex))
     {
-        currentEnemyIndex++;
+        state = BattleState::Result;                        // целей нет
+        game->sendBattleSnapshot();
         return;
-    }
-
-    int targetIndex = selectHeroTarget();
-    if (targetIndex == -1)
-    {
-        state = BattleState::Result;
-        return;
-    }
-
-    uint32_t damage = enemy.getAttackPower(nullptr);
-
-    if (targetIndex >= 0)
-    {
-        // ✅ Локальный герой
-        Hero& target = player->getLinkTOHeroes()[targetIndex];
-        target.takeDamage(damage);
-    }
-    else
-    {
-        // ✅ Удалённый герой — декодируем индекс
-        int encoded = -targetIndex - 1;
-        uint32_t playerId = encoded / 100;
-        int heroIndex = encoded % 100;
-
-        auto& remotePlayers = game->getRemotePlayersMutable();
-        if (remotePlayers.contains(playerId))
-            remotePlayers.at(playerId).getLinkTOHeroes()[heroIndex].takeDamage(damage);
     }
 
     currentEnemyIndex++;
     currentTurn = TurnOwner::Enemy;
     state = BattleState::Animation;
-
     game->sendBattleSnapshot();
 }
 
-int Battle::selectHeroTarget() const
+bool Battle::performEnemyAction(int idx)
 {
-    // Собираем всех живых героев — локальных и удалённых
-    int totalHeroes = 0;
+    Enemy& enemy = enemies[idx];
+    const EnemyDef* def = GameData::instance().enemy(enemy.getEnemyId());
+    if (!def) return !aliveHeroes().empty();
 
-    for (int i = 0; i < (int)player->getHeroes().size(); i++)
-        if (player->getHeroes()[i].getCurrentHp() > 0)
-            totalHeroes++;
-
-    for (auto& [id, remote] : game->getRemotePlayers())
-        for (int i = 0; i < (int)remote.getHeroes().size(); i++)
-            if (remote.getHeroes()[i].getCurrentHp() > 0)
-                totalHeroes++;
-
-    if (totalHeroes == 0)
-        return -1;
-
-    // Случайная цель среди всех живых
-    int roll = rand() % totalHeroes;
-    int count = 0;
-
-    for (int i = 0; i < (int)player->getHeroes().size(); i++)
-    {
-        if (player->getHeroes()[i].getCurrentHp() > 0)
+    std::vector<const EnemyAbility*> usable;                // обычный удар доступен всегда, умения только без кулдауна
+    int total = 0;
+    for (const auto& a : def->abilities)
+        if (a.skillId < 0 || enemy.isSkillReady(a.skillId))
         {
-            if (count == roll)
-                return i; // локальный герой
-            count++;
+            usable.push_back(&a);
+            total += a.weight;
         }
+    if (total <= 0) return enemyBasicAttack(enemy, def->hits);
+
+    int roll = rand() % total;
+    for (const EnemyAbility* a : usable)
+    {
+        if (roll < a->weight)
+            return a->skillId < 0 ? enemyBasicAttack(enemy, def->hits) : enemyUseSkill(idx, a->skillId);
+        roll -= a->weight;
+    }
+    return enemyBasicAttack(enemy, def->hits);
+}
+
+bool Battle::enemyBasicAttack(Enemy& enemy, int hits)
+{
+    for (int i = 0; i < std::max(1, hits); ++i)
+    {
+        const auto target = selectHeroTarget();
+        if (!target) return i > 0;                          // героев нет вообще: false; погибли за время ударов: true
+        if (Hero* hero = heroByRef(*target))
+            hero->takeDamage(enemy.getAttackPower(nullptr));
+    }
+    return true;
+}
+
+bool Battle::enemyUseSkill(int idx, int skillId)
+{
+    const Skill* skill = game->findSkill(skillId);
+    const auto heroes = aliveHeroes();
+    if (!skill) return !heroes.empty();
+
+    std::vector<int> aliveEnemies;
+    for (int i = 0; i < static_cast<int>(enemies.size()); ++i)
+        if (enemies[i].getCurrentHp() > 0) aliveEnemies.push_back(i);
+
+    std::vector<HeroRef> heroTargets;
+    std::vector<int> enemyTargets;
+
+    switch (skill->targetType)                              // для врага «Enemy» значит «герои», «Ally» значит «другие враги»
+    {
+    case TargetType::Enemy:
+        if (heroes.empty()) return false;
+        heroTargets.push_back(heroes[rand() % heroes.size()]);
+        break;
+    case TargetType::AllEnemies:
+        if (heroes.empty()) return false;
+        heroTargets = heroes;
+        break;
+    case TargetType::Ally:
+        if (!aliveEnemies.empty()) enemyTargets.push_back(aliveEnemies[rand() % aliveEnemies.size()]);
+        break;
+    case TargetType::AllAllies:
+        enemyTargets = aliveEnemies;
+        break;
+    case TargetType::Self:
+        enemyTargets.push_back(idx);
+        break;
     }
 
-    // Если цель — удалённый игрок, возвращаем отрицательный индекс
-    // -1000 - playerId * 100 - heroIndex
-    for (auto& [id, remote] : game->getRemotePlayers())
+    const uint32_t power = static_cast<uint32_t>(std::max(0, skill->power));
+    switch (skill->effectType)
     {
-        for (int i = 0; i < (int)remote.getHeroes().size(); i++)
-        {
-            if (remote.getHeroes()[i].getCurrentHp() > 0)
-            {
-                if (count == roll)
-                    return -(int)(id * 100 + i); // закодированный индекс
-                count++;
-            }
-        }
+    case SkillEffectType::Damage:
+        for (const HeroRef& ref : heroTargets)
+            if (Hero* hero = heroByRef(ref)) hero->takeDamage(power, skill->element);
+        break;
+    case SkillEffectType::Heal:
+        for (int i : enemyTargets) enemies[i].heal(power);
+        break;
+    default:                                            // Buff и Debuff пока без эффекта
+        break;
     }
 
-    return -1;
+    enemies[idx].setCooldown(skill->id, skill->maxCooldown);
+    return true;
+}
+
+std::optional<HeroRef> Battle::selectHeroTarget() const
+{
+    const auto alive = aliveHeroes();
+    if (alive.empty()) return std::nullopt;
+    return alive[rand() % alive.size()];
 }
 
 std::vector<int> Battle::resolveTargets(const Action& action)
@@ -592,13 +610,20 @@ std::vector<int> Battle::resolveTargets(const Action& action)
 
         case TargetType::Ally:
         {
-            // один конкретный союзник
-            if (action.targetIndex >= 0 &&
-                action.targetIndex < static_cast<int>(player->getHeroes().size()) &&
-                player->getHeroes()[action.targetIndex].getCurrentHp() > 0)
-            {
+            auto* party = partyOf(action.playerId);
+            if (party && action.targetIndex >= 0 &&
+                action.targetIndex < static_cast<int>(party->size()) &&
+                (*party)[action.targetIndex].getCurrentHp() > 0)
                 result.push_back(action.targetIndex);
-            }
+            break;
+        }
+
+        case TargetType::AllAllies:
+        {
+            if (auto* party = partyOf(action.playerId))
+                for (int i = 0; i < static_cast<int>(party->size()); ++i)
+                    if ((*party)[i].getCurrentHp() > 0)
+                        result.push_back(i);
             break;
         }
 
@@ -607,16 +632,6 @@ std::vector<int> Battle::resolveTargets(const Action& action)
             for (int i = 0; i < static_cast<int>(enemies.size()); ++i)
             {
                 if (enemies[i].getCurrentHp() > 0)
-                    result.push_back(i);
-            }
-            break;
-        }
-
-        case TargetType::AllAllies:
-        {
-            for (int i = 0; i < static_cast<int>(player->getHeroes().size()); ++i)
-            {
-                if (player->getHeroes()[i].getCurrentHp() > 0)
                     result.push_back(i);
             }
             break;
@@ -655,11 +670,11 @@ void Battle::onAnimationFinished()
 
 void Battle::checkBattleResult()
 {
-    bool heroesAlive = false;
+    const bool heroesAlive = !aliveHeroes().empty();
     bool enemiesAlive = false;
 
-    for (auto& h : player->getHeroes())
-        if (h.getCurrentHp() > 0) { heroesAlive = true; break;}
+    for (const auto& e : enemies)
+        if (e.getCurrentHp() > 0) { enemiesAlive = true; break; }
 
     for (auto& e : enemies)
         if (e.getCurrentHp() > 0) { enemiesAlive = true; break;}
@@ -760,18 +775,48 @@ void Battle::finishBattle(const bool &isWin)
     game->setGameState(GameState::Map);
 }
 
-void Battle::spawnEnemies() {
-    int avgLvl = player->getAverageLevel();
+void Battle::spawnEnemies()
+{
+    const auto& data = GameData::instance();
+    const int avgLvl = player->getAverageLevel();
 
-    int enemyCount = 1 + rand() % std::min(3, avgLvl + 1);
+    for (int id : enemyFormation)                            // 1) готовая формация из encounters.json
+    {
+        if (static_cast<int>(enemies.size()) >= 4) break;    // в интерфейсе четыре слота
+        if (data.enemy(id)) enemies.emplace_back(id, avgLvl);
+    }
+    if (!enemies.empty()) return;
 
+    const auto& all = data.enemyIds();                       // 2) запасной вариант: случайные
+    const int enemyCount = 1 + rand() % std::min(3, avgLvl + 1);
     for (int i = 0; i < enemyCount; i++)
     {
-        int t = rand() % 4;
-        auto name = static_cast<EnemyName>(t);
-        enemies.emplace_back(name, player);
+        int id = enemyPool.empty() ? all[rand() % all.size()] : enemyPool[rand() % enemyPool.size()];
+        if (!data.enemy(id)) id = all[rand() % all.size()];
+        enemies.emplace_back(id, avgLvl);
     }
 }
+
+std::vector<HeroRef> Battle::aliveHeroes() const
+{
+    std::vector<HeroRef> alive;
+
+    const auto& mine = player->getHeroes();
+    for (int i = 0; i < static_cast<int>(mine.size()); ++i)
+        if (mine[i].getCurrentHp() > 0)
+            alive.push_back({game->localPlayerId, i});
+
+    for (const auto& [id, remote] : game->getRemotePlayers())
+    {
+        if (!participants.contains(id)) continue;
+        const auto& heroes = remote.getHeroes();
+        for (int i = 0; i < static_cast<int>(heroes.size()); ++i)
+            if (heroes[i].getCurrentHp() > 0)
+                alive.push_back({id, i});
+    }
+    return alive;
+}
+
 
 void Battle::determineFirstTurn()
 {
@@ -780,20 +825,20 @@ void Battle::determineFirstTurn()
 
 void Battle::prepairUI()
 {
-    for (int i = 0; i < enemies.size(); i++)
-    {
-        SDL_Rect enemyRect = enemiesSize.at(enemies.at(i).getEnemyName());
-        ui->setSrcRect("Enemy" + std::to_string(i + 1), "Battle", enemyRect);
-    }
+    for (int i = 0; i < static_cast<int>(enemies.size()); i++)
+        if (const EnemyDef* def = GameData::instance().enemy(enemies[i].getEnemyId()))
+            ui->setSrcRect("Enemy" + std::to_string(i + 1), "Battle", def->srcRect);
 }
 
-void Battle::run()
+void Battle::run(const std::vector<int>& formation, const std::vector<int>& pool)
 {
     enemies.clear();
     rewards.clear();
     isWin = false;
     escapeChance = 10;
 
+    enemyFormation = formation;
+    enemyPool = pool;
     spawnEnemies();
     prepairUI();
     determineFirstTurn();
@@ -820,4 +865,54 @@ void Battle::resetState()
     currentActionIndex = 0;
     currentEnemyIndex = 0;
     state = BattleState::PlayerChoose;
+}
+
+void Battle::beginParticipants()
+{
+    participants.clear();
+    participants.insert(game->localPlayerId);
+    for (const auto& entry : game->getRemotePlayers())
+        participants.insert(entry.first);
+    expectedPlayers = static_cast<int>(participants.size());
+    playersReady = 0;
+}
+
+std::vector<Hero>* Battle::partyOf(uint32_t owner)
+{
+    if (!game->isConnected() || owner == game->localPlayerId)
+        return &player->getLinkTOHeroes();
+
+    auto& remotes = game->getRemotePlayersMutable();
+    auto it = remotes.find(owner);
+    return it != remotes.end() ? &it->second.getLinkTOHeroes() : nullptr;
+}
+
+Hero* Battle::heroByRef(const HeroRef& ref)
+{
+    auto* party = partyOf(ref.owner);
+    if (!party || ref.index < 0 || ref.index >= static_cast<int>(party->size()))
+        return nullptr;
+    return &(*party)[ref.index];
+}
+
+void Battle::onPlayerLeft(uint32_t id)
+{
+    participants.erase(id);
+    expectedPlayers = std::max(1, static_cast<int>(participants.size()));
+
+    if (readyPlayers.erase(id) > 0 && playersReady > 0)
+        --playersReady;
+
+    // Пока выбирают действия, его выбор не нужен. Во время выполнения plannedActions не трогаем
+    // (currentActionIndex), его действия пропустит resolveActor.
+    if (state == BattleState::PlayerChoose || state == BattleState::WaitingForHost)
+        std::erase_if(plannedActions, [&](const Action& a) { return a.playerId == id; });
+
+    // Все оставшиеся уже готовы: хост запускает выполнение
+    if (game->isHost() && state == BattleState::WaitingForHost && playersReady >= expectedPlayers)
+    {
+        playersReady = 0;
+        readyPlayers.clear();
+        startExecuteActions();
+    }
 }

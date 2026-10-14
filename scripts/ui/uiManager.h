@@ -15,6 +15,9 @@
 #include "../controllers/resourceManager.h"
 #include "core/Scene.h"
 #include "animation/animPlayer.h"
+#include "../main/mapRenderer.h"
+
+
 
 class Game;
 class Player;
@@ -57,6 +60,8 @@ public:
                   SDL_Color color = {0,0,0,255},
                   int paddingX = 8, int paddingY = 4,
                   const std::string& panelId = "");
+    void addWindow(const std::string& id, const std::string& sceneId,
+                   const SDL_Rect& rect, const std::string& panelId = "");
 
     // ── Аудио ──────────────────────────────────────────
     void addMusic(const std::string& musicId, const std::string& sceneId);
@@ -76,7 +81,6 @@ public:
                        bool restart);
     [[nodiscard]] bool isAnimationFinished(const std::string& sceneId) const;
 
-    void updatePlayerAnimation(AnimPlayer& animPlayer, const Player& player);
     void updateRemoteAnimation(AnimPlayer& animPlayer, const Player& player);
 
     // ── Setters ────────────────────────────────────────
@@ -117,12 +121,14 @@ private:
     UIObject*  findUIObject (const std::string& id, const std::string& sceneId);
 
     // ── Отрисовка ──────────────────────────────────────
-    void drawRemotePlayers(Scene& scene);
+    void drawMapWorld();
+    void drawActor(const Player& p, int cellScreenX, int cellScreenY);
+    MapRenderer* rendererFor(const MapData& map);
+    std::unordered_map<int, std::unique_ptr<MapRenderer>> mapRenderers;
 
     // ── Обновление данных ──────────────────────────────
-    void updateSceneData (const std::string& sceneId, Scene& scene);
-    void updateMapData   (Scene& scene);
     void updateBattleData(Scene& scene);
+    void updateSceneData(const std::string &sceneId, Scene &scene);
 
     // ── Инициализация сцен ─────────────────────────────
     void initMapScene    ();
@@ -141,8 +147,6 @@ private:
     void snapSelectorToTarget();
     [[nodiscard]] int getTargetCount(TargetType type) const;
 
-    // ── Состояние ──────────────────────────────────────
-    std::string   currentPlayerAnim;
     Action        pendingAction;
     UIChooseState uiState    { UIChooseState::ChooseAction };
     UIChooseState prevUIState{ UIChooseState::ChooseAction };

@@ -1,15 +1,14 @@
-
 #ifndef PROJECT_NAME_SERVER_H
 #define PROJECT_NAME_SERVER_H
 
 #include <winsock2.h>
 
-#include <thread>
-#include <vector>
-#include <mutex>
 #include <atomic>
-#include <future>
-#include <string>
+#include <cstdint>
+#include <mutex>
+#include <thread>
+#include <unordered_map>
+#include <vector>
 
 #include "networkPackets.h"
 
@@ -23,9 +22,6 @@ public:
 
     [[nodiscard]] bool isRunning() const { return running; }
 
-    bool battleActive = false;
-    BattleStartPacket cachedBattleStart{};
-
 private:
     struct Client {
         SOCKET socket;
@@ -34,22 +30,20 @@ private:
 
     void acceptLoop();
     void clientLoop(Client client);
-    void processCommand(uint32_t clientId, const std::string& cmd);
-    void broadcast(const std::string& msg);
-    void handlePacket(SOCKET sender, const char* data, int size);
     void broadcastBinary(SOCKET sender, const char* data, int size);
-
-    std::promise<void> readyPromise;
 
     SOCKET listenSocket = INVALID_SOCKET;
 
-    std::vector<Client> clients;
+    std::vector<Client> clients;                              // всё ниже, где не сказано иное, под clientsMutex
+    std::unordered_map<uint32_t, PlayerMovePacket> lastMove;  // последняя позиция каждого игрока, для новичков
     std::mutex clientsMutex;
 
     std::atomic<bool> running{false};
-    std::thread acceptThread;
+    std::atomic<uint32_t> nextClientId{1};   // 0 в Game значит «id не выдан», поэтому с 1
+    std::atomic<uint32_t> hostId{0};         // первый подключившийся клиент
 
-    uint32_t nextClientId = 1;
+    std::thread acceptThread;
+    std::vector<std::thread> workers;        // трогают только acceptLoop и stop() (после join accept-потока)
 };
 
 #endif //PROJECT_NAME_SERVER_H

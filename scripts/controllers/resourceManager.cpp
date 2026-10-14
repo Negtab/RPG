@@ -150,6 +150,13 @@ bool ResourceManager::addAnimation(const std::string& path)
     return true;
 }
 
+void ResourceManager::addTexturesFromDirectory(const std::string& dir)
+{
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(dir, ec))
+        if (entry.is_regular_file() && isFilePNG(entry.path().string()))
+            addTexture(entry.path().string());          // имя в таблице = имя файла без расширения
+}
 
 bool ResourceManager::isFileTTF(const std::string &path)
 {
@@ -215,6 +222,14 @@ TextBlock ResourceManager::renderMultiline(SDL_Renderer* renderer, const std::st
     return block;
 }
 
+void ResourceManager::releaseImage(const std::string& name)
+{
+    auto it = images.find(name);
+    if (it == images.end()) return;
+    SDL_FreeSurface(it->second);
+    images.erase(it);
+}
+
 void ResourceManager::initialize()
 {
     std::filesystem::path mainPath {std::filesystem::current_path().remove_filename()};
@@ -249,20 +264,9 @@ void ResourceManager::initialize()
     addTexture(pathToCharacters.string() + "Image3Dead.png");
     addTexture(pathToCharacters.string() + "Image4Dead.png");
 
-    addTexture(pathToEnemies.string() + "EvilMagician.png");
-    addTexture(pathToEnemies.string() + "EvilWarrior.png");
-    addTexture(pathToEnemies.string() + "Gargoyle.png");
-    addTexture(pathToEnemies.string() + "Gargoyle(Strong).png");
-    addTexture(pathToEnemies.string() + "Ghost.png");
-    addTexture(pathToEnemies.string() + "Ghost(Strong).png");
-    addTexture(pathToEnemies.string() + "Golem.png");
-    addTexture(pathToEnemies.string() + "Knight.png");
-    addTexture(pathToEnemies.string() + "Knight(Royle).png");
-    addTexture(pathToEnemies.string() + "Ogr.png");
-    addTexture(pathToEnemies.string() + "Lich.png");
+    addTexturesFromDirectory(pathToEnemies.string());
 
     addTexture(pathToBackgrounds.string() + "WhiteBox.jpg");
-    addTexture(pathToBackgrounds.string() + "MapBackground.png");
     addTexture(pathToBackgrounds.string() + "MenuBackground.png");
     addTexture(pathToBackgrounds.string() + "OptionsBackground.png");
     addTexture(pathToBackgrounds.string() + "BattleImage0.png");
@@ -285,121 +289,168 @@ void ResourceManager::initialize()
     addAnimation(pathToAnimations.string() + "MoveRightAnimation");
 }
 
-static void writeString(std::ofstream& out, const std::string& str)
+constexpr uint32_t kSaveMagic   = 0x504C5952;   // 'PLYR'
+constexpr uint32_t kSaveVersion = 2;            // 2: координаты в клетках + mapId
+constexpr uint64_t kMaxString   = 1024;
+constexpr uint64_t kMaxCount    = 100000;
+
+template <class T>
+void writePod(std::ostream& out, const T& v) { out.write(reinterpret_cast<const char*>(&v), sizeof(T)); }
+
+template <class T>
+void readPod(std::istream& in, T& v)
 {
-    uint64_t size = str.size();
-    out.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    out.write(str.data(), size);
+    in.read(reinterpret_cast<char*>(&v), sizeof(T));
+    if (!in) throw std::runtime_error("save file is truncated");
 }
 
-static std::string readString(std::ifstream& in)
+void writeString(std::ostream& out, const std::string& s)
 {
-    uint64_t size;
-    in.read(reinterpret_cast<char*>(&size), sizeof(size));
-
-    std::string str(size, '\0');
-    in.read(str.data(), size);
-    return str;
+    writePod<uint64_t>(out, s.size());
+    out.write(s.data(), static_cast<std::streamsize>(s.size()));
 }
 
-bool ResourceManager::isPlayerNew(const std::string& path) const {
-    std::ifstream in(path);
-    if (!in || !in.is_open())
-        return true;
-    return false;
+std::string readString(std::istream& in)
+{
+    uint64_t size = 0;
+    readPod(in, size);
+    if (size > kMaxString) throw std::runtime_error("save file is corrupted (string size)");
+
+    std::string s(static_cast<size_t>(size), '\0');
+    in.read(s.data(), static_cast<std::streamsize>(size));
+    if (!in) throw std::runtime_error("save file is truncated");
+    return s;
 }
 
 
-void ResourceManager::savePlayer(const std::string& path, const Player& player)
+bool ResourceManager::isPlayerNew(const std::string& path) const
 {
-    std::ofstream out(path, std::ios::binary);
-    if (!out)
-        throw std::runtime_error("Cannot open file for saving player: " + path);
+    std::error_code ec;
+    return !std::filesystem::is_regular_file(path, ec) || std::filesystem::file_size(path, ec) == 0;
+}
 
-    // --- Header ---
-    uint32_t magic = 0x504C5952; // 'PLYR'
-    uint32_t version = 1;
-    out.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
-    out.write(reinterpret_cast<const char*>(&version), sizeof(version));
-
-    // --- Base data ---
-    writeString(out, player.getPlayerName());
-
-    uint32_t gold = player.getPlayerGold();
-    out.write(reinterpret_cast<const char*>(&gold), sizeof(gold));
-
-    int32_t speed = player.getPlayerSpeed();
-    out.write(reinterpret_cast<const char*>(&speed), sizeof(speed));
-
-    Point coords = player.getPlayerCoords();
-    out.write(reinterpret_cast<const char*>(&coords), sizeof(coords));
-
-    // --- Enemies ---
-    const auto enemies = player.getDiscoveredEnemies();
-    uint64_t enemyCount = enemies.size();
-    out.write(reinterpret_cast<const char*>(&enemyCount), sizeof(enemyCount));
-    for (const auto& e : enemies)
-        writeString(out, e);
-
-    // --- Items ---
-    const auto items = player.getAvailableItems(); // vector<int>
-    uint64_t itemCount = items.size();
-    out.write(reinterpret_cast<const char*>(&itemCount), sizeof(itemCount));
-    for (int id : items)
+bool ResourceManager::savePlayer(const std::string& path, const Player& player)
+{
+    const std::string tmpPath = path + ".tmp";   // пишем во временный файл: сбой посреди записи не убьёт старое сохранение
     {
-        uint8_t count = 1; // если нет доступа к map — минимум
-        out.write(reinterpret_cast<const char*>(&id), sizeof(id));
-        out.write(reinterpret_cast<const char*>(&count), sizeof(count));
+        std::ofstream out(tmpPath, std::ios::binary | std::ios::trunc);
+        if (!out)
+        {
+            SDL_Log("Cannot open %s for saving", tmpPath.c_str());
+            return false;
+        }
+
+        writePod(out, kSaveMagic);
+        writePod(out, kSaveVersion);
+
+        writeString(out, player.getPlayerName());
+        writePod<uint32_t>(out, player.getPlayerGold());
+
+        const MoveState& m = player.getMove();
+        writePod<int32_t>(out, m.cell.x);
+        writePod<int32_t>(out, m.cell.y);
+        writePod<uint16_t>(out, m.mapId);
+
+        const auto enemies = player.getDiscoveredEnemies();
+        writePod<uint64_t>(out, enemies.size());
+        for (const auto& e : enemies)
+            writeString(out, e);
+
+        const auto& items = player.getItemCounts();   // реальные количества, а не «1 на всё»
+        writePod<uint64_t>(out, items.size());
+        for (const auto& [id, count] : items)
+        {
+            writePod<int32_t>(out, id);
+            writePod<uint8_t>(out, count);
+        }
+
+        out.flush();
+        if (!out)
+        {
+            SDL_Log("Failed to write save file");
+            return false;
+        }
+    }   // файл закрыт
+
+    std::error_code ec;
+    std::filesystem::rename(tmpPath, path, ec);
+    if (ec)                                           // на некоторых тулчейнах rename не заменяет существующий файл
+    {
+        std::filesystem::remove(path, ec);
+        std::filesystem::rename(tmpPath, path, ec);
     }
+    if (ec)
+    {
+        SDL_Log("Cannot replace save file: %s", ec.message().c_str());
+        return false;
+    }
+    return true;
 }
 
-
-void ResourceManager::loadPlayer(const std::string& path, Player& player)
+// Возвращает true, если из файла восстановлена позиция (в версии 1 она была в пикселях старого движка)
+// При ошибке бросает std::runtime_error; игрок при этом остаётся нетронутым
+bool ResourceManager::loadPlayer(const std::string& path, Player& player)
 {
     std::ifstream in(path, std::ios::binary);
     if (!in)
-        throw std::runtime_error("Cannot open file for loading player: " + path);
+        throw std::runtime_error("cannot open save file: " + path);
 
-    uint32_t magic, version;
-    in.read(reinterpret_cast<char*>(&magic), sizeof(magic));
-    in.read(reinterpret_cast<char*>(&version), sizeof(version));
+    uint32_t magic = 0, version = 0;
+    readPod(in, magic);
+    readPod(in, version);
+    if (magic != kSaveMagic)
+        throw std::runtime_error("not a save file");
+    if (version < 1 || version > kSaveVersion)
+        throw std::runtime_error("unsupported save version " + std::to_string(version));
 
-    if (magic != 0x504C5952)
-        throw std::runtime_error("Invalid save file");
+    // 1) читаем всё во временные переменные
+    const std::string name = readString(in);
 
-    if (version != 1)
-        throw std::runtime_error("Unsupported save version");
+    uint32_t gold = 0;
+    readPod(in, gold);
 
-    // --- Base data ---
-    player.setPlayerName(readString(in));
+    int32_t cx = 0, cy = 0;
+    uint16_t mapId = 0;
+    readPod(in, cx);
+    readPod(in, cy);
+    if (version >= 2)
+        readPod(in, mapId);
+    const bool hasPosition = version >= 2;
 
-    uint32_t gold;
-    in.read(reinterpret_cast<char*>(&gold), sizeof(gold));
-    player.setPlayerGold(gold);
-
-    int32_t speed;
-    in.read(reinterpret_cast<char*>(&speed), sizeof(speed));
-    player.setPlayerSpeed(speed);
-
-    Point coords;
-    in.read(reinterpret_cast<char*>(&coords), sizeof(coords));
-    player.setPlayerCoords(coords);
-
-    // --- Enemies ---
-    uint64_t enemyCount;
-    in.read(reinterpret_cast<char*>(&enemyCount), sizeof(enemyCount));
+    uint64_t enemyCount = 0;
+    readPod(in, enemyCount);
+    if (enemyCount > kMaxCount)
+        throw std::runtime_error("save file is corrupted (enemy count)");
+    std::vector<std::string> enemies;
     for (uint64_t i = 0; i < enemyCount; ++i)
-        player.addDiscoveredEnemy(readString(in));
+        enemies.push_back(readString(in));
 
-    // --- Items ---
-    uint64_t itemCount;
-    in.read(reinterpret_cast<char*>(&itemCount), sizeof(itemCount));
+    uint64_t itemCount = 0;
+    readPod(in, itemCount);
+    if (itemCount > kMaxCount)
+        throw std::runtime_error("save file is corrupted (item count)");
+    std::vector<std::pair<int, uint8_t>> items;
     for (uint64_t i = 0; i < itemCount; ++i)
     {
-        int id;
-        uint8_t count;
-        in.read(reinterpret_cast<char*>(&id), sizeof(id));
-        in.read(reinterpret_cast<char*>(&count), sizeof(count));
-        player.addItem(id, count);
+        int32_t id = 0;
+        uint8_t count = 0;
+        readPod(in, id);
+        readPod(in, count);
+        items.emplace_back(id, count);
     }
+
+    // 2) всё прочитано без ошибок: применяем
+    player.setPlayerName(name);
+    player.setPlayerGold(gold);
+    if (hasPosition)
+    {
+        player.setPlayerCoords({cx, cy});
+        player.getMove().mapId = mapId;
+    }
+    for (const auto& e : enemies)
+        player.addDiscoveredEnemy(e);
+    for (const auto& [id, count] : items)
+        player.addItem(id, count);
+
+    return hasPosition;
 }

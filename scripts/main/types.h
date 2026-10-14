@@ -17,7 +17,7 @@ enum class TurnOwner { Player, Enemy };
 
 enum class UIChooseState { ChooseAction, ChooseSkill, ChooseItem, ChooseTarget };
 
-enum class Elemental { Fire, Water, Earth, Air, Ice, Lava, Dark, Light, None, Physical, Poison, Lightning };
+enum class Elemental { Fire, Water, Earth, Air, Ice, Lava, Dark, Light, Physical, Poison, Lightning };
 enum class SpecializationNames { Archer, Magician, Warrior, Thief, None };
 const std::unordered_map<SpecializationNames, std::string> specializationNamesString = {
     {SpecializationNames::Archer, "Archer"},
@@ -27,7 +27,6 @@ const std::unordered_map<SpecializationNames, std::string> specializationNamesSt
 };
 
 struct Point { int32_t x{0}, y{0}; };
-struct Location { Point coord{}; std::string name; int32_t h{0}, w{0}; bool isSafe{false}; };
 
 enum class Direction
 {
@@ -66,7 +65,7 @@ struct Skill
     TargetType targetType{TargetType::Enemy};
 
     SkillEffectType effectType{SkillEffectType::Damage};
-    Elemental element{Elemental::None};
+    Elemental element{Elemental::Physical};
 
     int32_t power{0};
 };
@@ -84,7 +83,7 @@ enum class ItemEffectType
 struct Item
 {
     int id{0};
-    int8_t cost{0}, power{0};
+    int32_t cost{0}, power{0};
     std::string name;
 
     bool consumable{true};
@@ -97,21 +96,6 @@ struct Specialization {
     uint32_t buffHp{0}, buffMp{0};
     explicit Specialization(const SpecializationNames name) : name(name) {}
 };
-
-enum class EnemyName {Ghost, Knight, Ogr, Gargoyle};
-const std::unordered_map<EnemyName, SDL_Rect> enemiesSize = {
-    {EnemyName::Ghost, {0,0,84,94},},
-    {EnemyName::Gargoyle, {0,0,108,144}},
-    {EnemyName::Knight, {0,0,108,123},},
-    {EnemyName::Ogr, {0,0,165,174},}
-};
-const std::unordered_map<EnemyName, std::string> enemyNameString = {
-    {EnemyName::Ghost, "Ghost"},
-    {EnemyName::Knight, "Knight"},
-    {EnemyName::Ogr, "Ogr"},
-    {EnemyName::Gargoyle, "Gargoyle"}
-};
-
 
 enum class GameState { CreatePlayer, Menu, Battle, Inventory, Options, Map, Online};
 const std::unordered_map<GameState, std::string> gameStateString =  {{GameState::CreatePlayer, "CreatePlayer"}, {GameState::Menu, "Menu"}, {GameState::Battle, "Battle"}, {GameState::Inventory, "Inventory"}, {GameState::Map, "Map"}, {GameState::Options, "Options"}, {GameState::Online, "Online"}};

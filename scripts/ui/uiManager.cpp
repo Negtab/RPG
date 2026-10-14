@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "UIManager.h"
 #include "../main/game.h"
 #include <SDL_log.h>
@@ -130,7 +132,20 @@ void UIManager::addLabel(const std::string &id, const std::string &sceneId,
     }
     target->addLabel(id, bgRect, bgTexture, text, font, color, paddingX, paddingY);
 }
+void UIManager::addWindow(const std::string &id, const std::string &sceneId,
+                          const SDL_Rect &rect, const std::string &panelId)
+{
+    Scene *scene = findScene(sceneId);
+    if (!scene) return;
 
+    Panel *target = panelId.empty() ? scene : scene->findPanel(panelId);
+    if (!target)
+    {
+        SDL_Log("addWindow: panel '%s' not found", panelId.c_str());
+        return;
+    }
+    target->addWindow(id, rect);
+}
 // ─────────────────────────────────────────
 // Audio
 // ─────────────────────────────────────────
@@ -340,45 +355,81 @@ void UIManager::handleHoverEvent(const SDL_Event &event, const std::string &scen
 // Draw
 // ─────────────────────────────────────────
 
+
+namespace {
+int px(float v) { return static_cast<int>(std::lround(v)); }
+
+SDL_Texture* idleFrame(Direction d)     // стоячий кадр = первый кадр анимации ходьбы в этом направлении
+{
+    static const std::unordered_map<Direction, const char*> names = {
+        {Direction::Up, "MoveUpAnimation"},   {Direction::Down, "MoveDownAnimation"},
+        {Direction::Left, "MoveLeftAnimation"}, {Direction::Right, "MoveRightAnimation"} };
+    auto it = names.find(d);
+    if (it == names.end()) return nullptr;
+    const auto& frames = ResourceManager::getAnimation(it->second);
+    return frames.empty() ? nullptr : frames.front();
+}
+}
+
+void UIManager::drawActor(const Player& p, int cellScreenX, int cellScreenY)
+{
+    SDL_Texture* tex = nullptr;
+
+    const AnimPlayer& ap = p.animPlayer;
+    if (p.getDirection() != Direction::Idle && !ap.currentAnimationId.empty())
+    {
+        auto it = ap.animations.find(ap.currentAnimationId);
+        if (it != ap.animations.end() && it->second.currentFrame < it->second.frames.size())
+            tex = it->second.frames[it->second.currentFrame];
+    }
+    if (!tex) tex = idleFrame(p.getMove().dir);
+
+    // ноги в центре нижнего края клетки; герой 16x24 при scale 3 выходит на 72 px, то есть на 24 px выше клетки
+    visualizer.drawSprite(tex, cellScreenX + CELL_PX / 2, cellScreenY + CELL_PX, PIXEL_SCALE);
+}
+
+void UIManager::drawMapWorld()
+{
+    const SDL_Rect scr = game.getScreenRect();
+    const MapData& map = game.getMap();
+    const MoveState& localMove = player.getMove();
+    const Vec2f lp = visualCell(localMove);
+
+    auto camAxis = [](int cam, int mapPx, int view) {
+        if (mapPx <= view) return -(view - mapPx) / 2;
+        return std::clamp(cam, 0, mapPx - view);
+    };
+
+    const int camX = camAxis(px(lp.x * CELL_PX) - (scr.w - CELL_PX) / 2, map.w * CELL_PX, scr.w);
+    const int camY = camAxis(px(lp.y * CELL_PX) - (scr.h - CELL_PX) / 2, map.h * CELL_PX, scr.h);
+
+    if (MapRenderer* r = rendererFor(map))
+        r->draw(visualizer.getRenderer(), camX, camY, scr.w, scr.h, PIXEL_SCALE);
+
+    struct Actor { const Player* p; Vec2f pos; };
+    std::vector<Actor> actors;
+    actors.push_back({ &player, lp });
+    for (const auto& [id, remote] : game.getRemotePlayers())
+        if (remote.getMove().mapId == localMove.mapId)           // игроки с другой карты не видны
+            actors.push_back({ &remote, visualCell(remote.getMove()) });
+
+    std::sort(actors.begin(), actors.end(), [](const Actor& a, const Actor& b) { return a.pos.y < b.pos.y; });
+
+    for (const Actor& a : actors)
+        drawActor(*a.p, px(a.pos.x * CELL_PX) - camX, px(a.pos.y * CELL_PX) - camY);
+}
+
 void UIManager::drawScene(const std::string &sceneId)
 {
     Scene *scene = findScene(sceneId);
     if (!scene) return;
 
-    scene->draw(visualizer, game.getScreenRect()); // Panel::draw рекурсивно + animPlayer
-
     if (sceneId == "Map")
-        drawRemotePlayers(*scene);
+        drawMapWorld();                               // под интерфейсом
 
+    scene->draw(visualizer, game.getScreenRect());
     scene->musicPlayer.playMusic(audioManager, sceneId + "Theme");
 }
-
-void UIManager::drawRemotePlayers(Scene &scene)
-{
-    Point localPos = player.getPlayerCoords();
-    SDL_Rect scr = game.getScreenRect();
-
-    for (const auto &[id, remote]: game.getRemotePlayers())
-    {
-        Point remotePos = remote.getPlayerCoords();
-        int screenX = scr.w / 2 - (remotePos.x - localPos.x);
-        int screenY = scr.h / 2 - (remotePos.y - localPos.y);
-
-        const AnimPlayer &anim = remote.animPlayer;
-        if (remote.getDirection() == Direction::Idle || anim.currentAnimationId.empty())
-        {
-            visualizer.drawTexture(ResourceManager::getTexture("MovingCharacter"),
-                                   screenX, screenY, 45, 45, 0, 0, 16, 25);
-        } else
-        {
-            const auto &cur = anim.animations.at(anim.currentAnimationId);
-            if (!cur.frames.empty())
-                visualizer.drawTexture(cur.frames[cur.currentFrame],
-                                       screenX, screenY, 45, 45);
-        }
-    }
-}
-
 // ─────────────────────────────────────────
 // Update
 // ─────────────────────────────────────────
@@ -389,11 +440,7 @@ void UIManager::update(float dt)
     Scene *scene = findScene(sceneId);
     if (!scene) return;
 
-    updateSceneData(sceneId, *scene);
-
-    if (sceneId == "Map")
-        updatePlayerAnimation(scene->animPlayer, player);
-
+    updateSceneData(sceneId, *scene);          // без этого вызова время и FPS замирают
     scene->animPlayer.update(dt);
 }
 
@@ -406,20 +453,8 @@ void UIManager::updateSceneData(const std::string &sceneId, Scene &scene)
                ResourceManager::getTextTexture("FPS: " + std::to_string(game.getCurrentFPS()),
                                                ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
 
-    if (sceneId == "Map")
-        updateMapData(scene);
-    else if (sceneId == "Battle")
+    if (sceneId == "Battle")                   // ветка для Map больше не нужна
         updateBattleData(scene);
-}
-
-void UIManager::updateMapData(Scene &scene)
-{
-    Point pos = player.getPlayerCoords();
-    if (auto *obj = scene.find("MapBackground"))
-    {
-        obj->rect.x = pos.x - 900;
-        obj->rect.y = pos.y - 500;
-    }
 }
 
 void UIManager::updateBattleData(Scene &scene)
@@ -431,28 +466,34 @@ void UIManager::updateBattleData(Scene &scene)
     //Remote Hero
     if (game.getRemotePlayers().size() > 0)
     {
+        // Герои удалённых игроков (раньше: цикл по числу героев ЛОКАЛЬНОГО игрока и [i] у последнего удалённого, выход за границу)
         std::string remoteHeroText;
-        uint32_t searchId = 0;
-        for (const auto &[id, remote]: game.getRemotePlayers())
-            searchId = id;
-        for (int i = 0; i < heroCount; i++)
+        int slot = 0;
+        for (const auto &[id, remote] : game.getRemotePlayers())
         {
-            const auto &hero = game.getRemotePlayers().at(searchId).getHeroes()[i];
-            remoteHeroText += "Remote" + hero.getName() + " "
-                    + std::to_string(hero.getCurrentHp()) + "/"
-                    + std::to_string(hero.getMaxHp()) + "\n";
+            if (!game.getBattle()->isParticipant(id)) continue;
 
-            bool dead = hero.getCurrentHp() <= 0;
-            SDL_Rect drect = dead
-                                 ? SDL_Rect{scr.w - 200, scr.h / 2 - 230 + i * 100, 66, 84}
-                                 : SDL_Rect{scr.w - 200, scr.h / 2 - 230 + i * 100, 56, 74};
+            const auto &heroes = remote.getHeroes();
+            for (int i = 0; i < static_cast<int>(heroes.size()) && slot < MAX_HERO_COUNT; ++i, ++slot)
+            {
+                const auto &hero = heroes[i];
+                remoteHeroText += "Remote" + hero.getName() + " "
+                        + std::to_string(hero.getCurrentHp()) + "/"
+                        + std::to_string(hero.getMaxHp()) + "\n";
 
-            std::string imgId = "Image" + std::to_string(i + 1) + (dead ? "Dead" : "");
-            setRect("RemoteHero" + std::to_string(i + 1), "Battle", drect);
-            setTexture("RemoteHero" + std::to_string(i + 1), "Battle",
-                       ResourceManager::getTexture(imgId));
+                const bool dead = hero.getCurrentHp() <= 0;
+                const SDL_Rect drect = dead
+                    ? SDL_Rect{scr.w - 200, scr.h / 2 - 230 + slot * 100, 66, 84}
+                : SDL_Rect{scr.w - 200, scr.h / 2 - 230 + slot * 100, 56, 74};
+
+                const std::string name = "RemoteHero" + std::to_string(slot + 1);
+                setRect(name, "Battle", drect);
+                setTexture(name, "Battle",
+                           ResourceManager::getTexture("Image" + std::to_string(i + 1) + (dead ? "Dead" : "")));
+            }
         }
-        setText("RemoteHerosStatus", "Battle", remoteHeroText);
+        if (slot > 0)
+            setText("RemoteHerosStatus", "Battle", remoteHeroText);
     }
 
 
@@ -502,7 +543,7 @@ void UIManager::addEnemys()
 {
     for (int i = 0; i < (int) game.getBattle()->getEnemies().size(); i++)
         setTexture("Enemy" + std::to_string(i + 1), "Battle",
-                   ResourceManager::getTexture(game.getBattle()->getEnemies().at(i).getName()));
+                   ResourceManager::getTexture(game.getBattle()->getEnemies().at(i).getTextureName()));
 }
 
 void UIManager::addCharacters()
@@ -774,34 +815,6 @@ void UIManager::snapSelectorToTarget()
 // Player animation
 // ─────────────────────────────────────────
 
-void UIManager::updatePlayerAnimation(AnimPlayer &animPlayer, const Player &player)
-{
-    if (player.getDirection() == Direction::Idle)
-    {
-        animPlayer.stopLoop();
-        currentPlayerAnim.clear();
-        setEnVI("Character", "Map", true);
-        return;
-    }
-
-    setEnVI("Character", "Map", false);
-
-    static const std::unordered_map<Direction, std::string> dirToAnim = {
-        {Direction::Up, "MoveUpAnimation"},
-        {Direction::Down, "MoveDownAnimation"},
-        {Direction::Left, "MoveLeftAnimation"},
-        {Direction::Right, "MoveRightAnimation"},
-    };
-
-    auto it = dirToAnim.find(player.getDirection());
-    if (it == dirToAnim.end()) return;
-
-    if (currentPlayerAnim != it->second)
-    {
-        currentPlayerAnim = it->second;
-        playAnimation(currentPlayerAnim, "Map", true);
-    }
-}
 
 void UIManager::updateRemoteAnimation(AnimPlayer &animPlayer, const Player &player)
 {
@@ -823,10 +836,22 @@ void UIManager::updateRemoteAnimation(AnimPlayer &animPlayer, const Player &play
         animPlayer.play(it->second, false);
 }
 
-// ─────────────────────────────────────────
-// Initialize — по одному методу на сцену
-// ─────────────────────────────────────────
+MapRenderer* UIManager::rendererFor(const MapData& map)
+{
+    auto it = mapRenderers.find(map.mapId);
+    if (it != mapRenderers.end())
+        return it->second->width() > 0 ? it->second.get() : nullptr;      // загрузка не удалась: повторять не будем
 
+    auto r = std::make_unique<MapRenderer>();
+    if (r->loadFile(visualizer.getRenderer(), map.backgroundPath) &&
+        (r->width() != map.w * TILE_PX || r->height() != map.h * TILE_PX))
+        SDL_Log("Map '%s': image is %dx%d, but the grid is %dx%d cells (%dx%d px)",
+                map.name.c_str(), r->width(), r->height(), map.w, map.h, map.w * TILE_PX, map.h * TILE_PX);
+
+    MapRenderer* raw = r.get();
+    mapRenderers.emplace(map.mapId, std::move(r));
+    return raw->width() > 0 ? raw : nullptr;
+}
 void UIManager::initialize()
 {
     screen = game.getScreenRect();
@@ -848,11 +873,9 @@ void UIManager::initialize()
 void UIManager::initMapScene()
 {
     TTF_Font *font = ResourceManager::getFont("RetroByte");
-    addImage("MapBackground", "Map",
-             {-900, -500, 18000, 18000}, ResourceManager::getTexture("MapBackground"));
-    addImage("Character", "Map",
-             {screen.w / 2 - 25, screen.h / 2 - 25, 45, 45},
-             ResourceManager::getTexture("MovingCharacter"), {0, 0, 16, 25});
+
+    rendererFor(game.getMap());     // грузим оверворлд сразу, чтобы не было паузы на первом кадре
+
     addImage("Press E", "Map",
              {screen.w / 2 - 25, screen.h / 2 - 50, 60, 20},
              ResourceManager::getTextTexture("Press E", font, {0, 0, 0, 255}));
@@ -860,15 +883,6 @@ void UIManager::initMapScene()
              ResourceManager::getTextTexture("FPS: 0", font, {0, 0, 0, 0}));
     addImage("Time", "Map", {screen.w - 90, 10, 80, 30},
              ResourceManager::getTextTexture("00:00", font, {0, 0, 0, 0}));
-
-    addAnimation("MoveLeftAnimation", "Map",
-                 ResourceManager::getAnimation("MoveLeftAnimation"), {0, 0, 45, 45}, 0.2f);
-    addAnimation("MoveRightAnimation", "Map",
-                 ResourceManager::getAnimation("MoveRightAnimation"), {0, 0, 45, 45}, 0.2f);
-    addAnimation("MoveUpAnimation", "Map",
-                 ResourceManager::getAnimation("MoveUpAnimation"), {0, 0, 45, 45}, 0.2f);
-    addAnimation("MoveDownAnimation", "Map",
-                 ResourceManager::getAnimation("MoveDownAnimation"), {0, 0, 45, 45}, 0.2f);
 
     setVisible("Press E", "Map", false);
     addMusic("MapTheme", "Map");
@@ -968,11 +982,27 @@ void UIManager::initBattleScene()
 {
     TTF_Font *font = ResourceManager::getFont("RetroByte");
     auto hover = [this]() { playSound("Battle", "ButtonHover"); };
+    const SDL_Color white{255, 255, 255, 255};
 
+    const int barY = 452;                     // верх нижней панели
+    const int barH = screen.h - barY;
+    const int colW = 200;                     // ширина окон со статусом
+
+    // ── Всё, что лежит ПОД панелями, добавляется до addPanel ─────────────
     addImage("BattleBackground", "Battle",
-             {0, 0, screen.w, 452}, ResourceManager::getTexture("BattleImage0"));
-    addImage("DownMenuBackground", "Battle",
-             {0, 452, screen.w, screen.h - 452}, ResourceManager::getTexture("BattleTile"));
+             {0, 0, screen.w, barY}, ResourceManager::getTexture("BattleImage0"));
+
+    addWindow("CommandWindow", "Battle", {0, barY, screen.w - 3 * colW, barH});
+    addWindow("HerosWindow",   "Battle", {screen.w - 3 * colW, barY, colW, barH});
+    addWindow("EnemiesWindow", "Battle", {screen.w - 2 * colW, barY, colW, barH});
+    addWindow("RemoteWindow",  "Battle", {screen.w - colW,     barY, colW, barH});
+
+    // Тексты статусов тоже под панелями: когда открыт список умений, он их закрывает.
+    // Метка ставит текст в (x + paddingX, y + paddingY), а ширину и высоту берёт по тексту.
+    addLabel("HerosStatus",       "Battle", {screen.w - 3 * colW, barY, 0, 0}, nullptr, "", font, white, 12, 10);
+    addLabel("EnemiesStatus",     "Battle", {screen.w - 2 * colW, barY, 0, 0}, nullptr, "", font, white, 12, 10);
+    addLabel("RemoteHerosStatus", "Battle", {screen.w - colW,     barY, 0, 0}, nullptr, "", font, white, 12, 10);
+
     addImage("FPS", "Battle", {10, 10, 100, 30},
              ResourceManager::getTextTexture("FPS: 0", font, {0, 0, 0, 0}));
     addImage("Time", "Battle", {screen.w - 90, 10, 80, 30},
@@ -980,24 +1010,38 @@ void UIManager::initBattleScene()
 
     addMusic("BattleTheme", "Battle");
 
+    // ── Панели (порядок = порядок отрисовки) ─────────────────────────────
     addPanel("ActionPanel", "Battle");
     addPanel("EnvironmentPanel", "Battle");
     addPanel("EnemyPanel", "Battle");
     addPanel("HeroPanel", "Battle");
 
-    addButton("AttackButton", "Battle", {0, 453, 60, 25},
-              ResourceManager::getTextTexture("Attack", font, {0, 0, 0, 0}),
+    addButton("AttackButton", "Battle", {12, barY + 10, 60, 25},
+              ResourceManager::getTextTexture("Attack", font, white),
               [this]() { onActionButton(ActionType::Attack); }, hover, "ActionPanel");
-    addButton("ItemsButton", "Battle", {0, 478, 60, 25},
-              ResourceManager::getTextTexture("Items", font, {0, 0, 0, 0}),
+    addButton("ItemsButton", "Battle", {12, barY + 36, 60, 25},
+              ResourceManager::getTextTexture("Items", font, white),
               [this]() { onActionButton(ActionType::Item); }, hover, "ActionPanel");
-    addButton("MagicButton", "Battle", {0, 503, 60, 25},
-              ResourceManager::getTextTexture("Magic", font, {0, 0, 0, 0}),
+    addButton("MagicButton", "Battle", {12, barY + 62, 60, 25},
+              ResourceManager::getTextTexture("Magic", font, white),
               [this]() { onActionButton(ActionType::Magic); }, hover, "ActionPanel");
-    addButton("Run", "Battle", {0, 528, 60, 20},
-              ResourceManager::getTextTexture("Run", font, {0, 0, 0, 0}),
+    addButton("Run", "Battle", {12, barY + 88, 60, 25},
+              ResourceManager::getTextTexture("Run", font, white),
               [this]() { game.endRandomBattle(); }, hover, "ActionPanel");
 
+    // Окно списка умений и предметов: первым в своей панели, значит, под её кнопками.
+    // Скрывается и показывается вместе с панелью.
+    addWindow("EnvironmentWindow", "Battle", {84, barY, 496, 66}, "EnvironmentPanel");
+    for (int i = 0; i < ENV_BUTTON_COUNT; i++)
+    {
+        const int row = barY + 8 + (i < ENV_BUTTON_COUNT / 2 ? 0 : 28);
+        const int col = 92 + (i % (ENV_BUTTON_COUNT / 2)) * 60;
+        addButton("EnButton" + std::to_string(i + 1), "Battle",
+                  {col, row, 60, 25}, nullptr, nullptr, nullptr, "EnvironmentPanel");
+    }
+    setEnVI("EnvironmentPanel", "Battle", false);
+
+    // Селекторы выбора цели: после панелей, чтобы рисовались поверх
     addImage("TargetSelector", "Battle", {0, 0, 100, 100},
              ResourceManager::getTexture("TargetSelector"), {0, 0, 100, 100});
     addImage("ActorSelector", "Battle", {0, 0, 50, 50},
@@ -1005,6 +1049,7 @@ void UIManager::initBattleScene()
     setVisible("TargetSelector", "Battle", false);
     setVisible("ActorSelector", "Battle", false);
 
+    // ── Герои и враги: размеры пока без изменений (займёмся при отрисовке боя) ──
     for (int i = 0; i < 4; i++)
     {
         addImage("Enemy" + std::to_string(i + 1), "Battle",
@@ -1017,20 +1062,6 @@ void UIManager::initBattleScene()
                  {screen.w - 100, screen.h / 2 - 230 + i * 100, 56, 74},
                  nullptr, {0, 0, 16, 24}, "HeroPanel");
     }
-
-    // EnButtons — равномерно, без магических шагов
-    for (int i = 0; i < ENV_BUTTON_COUNT; i++)
-    {
-        int row = i < ENV_BUTTON_COUNT / 2 ? 452 : 480;
-        int col = (i % (ENV_BUTTON_COUNT / 2)) * 60 + 60;
-        addButton("EnButton" + std::to_string(i + 1), "Battle",
-                  {col, row, 60, 25}, nullptr, nullptr, nullptr, "EnvironmentPanel");
-    }
-    setEnVI("EnvironmentPanel", "Battle", false);
-
-    addLabel("HerosStatus", "Battle", {screen.w - 600, 452, 300, screen.h - 452}, nullptr, "", font, {0, 0, 0, 0});
-    addLabel("EnemiesStatus", "Battle", {screen.w - 400, 452, 300, screen.h - 452}, nullptr, "", font, {0, 0, 0, 0});
-    addLabel("RemoteHerosStatus", "Battle", {screen.w - 200, 452, 300, screen.h - 452}, nullptr, "", font, {0, 0, 0, 0});
 
     for (int i = 0; i < (int) player.getHeroes().size(); i++)
     {

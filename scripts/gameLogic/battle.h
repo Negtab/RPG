@@ -1,6 +1,7 @@
 #ifndef PROJECT_NAME_BATTLE_H
 #define PROJECT_NAME_BATTLE_H
 
+#include <optional>
 #include <unordered_set>
 #include <vector>
 
@@ -12,6 +13,8 @@
 
 class Game;
 class UIManager;
+
+struct HeroRef { uint32_t owner; int index; };
 
 struct BattleTarget
 {
@@ -25,7 +28,7 @@ public:
     Battle(Player* player, UIManager* ui, Game* game) : player(player), ui(ui), game(game) {};
     ~Battle() = default;
 
-    void run();
+    void run(const std::vector<int>& formation = {}, const std::vector<int>& pool = {});
     void update();
 
     [[nodiscard]] BattleState getState() const;
@@ -58,7 +61,8 @@ public:
     TurnOwner getCurrentTurn() const;
     int getCurrentActionIndex() const;
 
-
+    void onPlayerLeft(uint32_t playerId);
+    [[nodiscard]] bool isParticipant(uint32_t id) const { return participants.contains(id); }
 
 private:
     void prepairUI();
@@ -73,7 +77,6 @@ private:
 
     void tryCounterAttack(Hero& attacker, Enemy& target);
 
-    [[nodiscard]] int selectHeroTarget() const;
     std::vector<int> resolveTargets(const Action& action);
 
     void checkBattleResult();
@@ -87,6 +90,7 @@ private:
 
     BattleState state = BattleState::Start;
     TurnOwner currentTurn;
+
 
     bool firstTurnIsPlayer = false;
     bool isWin = false;
@@ -107,6 +111,22 @@ private:
     std::vector<Item> rewards;
 
     std::unordered_set<uint32_t> readyPlayers;
+
+    std::vector<int> enemyFormation, enemyPool;                  // enemyPool уже был
+    std::vector<HeroRef> aliveHeroes() const;
+    bool performEnemyAction(int enemyIndex);                     // false: целей нет, все герои мертвы
+    bool enemyBasicAttack(Enemy& enemy, int hits);
+    bool enemyUseSkill(int enemyIndex, int skillId);
+
+    std::optional<HeroRef> selectHeroTarget() const;    // было: int selectHeroTarget() const
+    std::vector<Hero>* partyOf(uint32_t owner);
+    Hero* heroByRef(const HeroRef& ref);
+    void beginParticipants();
+    void executeSkill(GamePerson& caster, int skillId, const std::vector<int>& targets,
+                      bool casterIsHero, uint32_t owner);
+    void executeItem(Hero& user, const std::vector<int>& targets, int itemId, uint32_t owner);
+
+    std::unordered_set<uint32_t> participants;          // кто был в бою на момент старта
 };
 
 #endif // PROJECT_NAME_BATTLE_H

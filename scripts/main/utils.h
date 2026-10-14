@@ -66,6 +66,7 @@ bool initSDL(SDLContext &ctx, int width = 800, int height = 600)
         SDL_Quit();
         return false;
     }
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
 
     return true;
 }

@@ -1,7 +1,7 @@
 {
 	"InstallScripts" : 
 	[
-		"E:/CLionProjects/RPG/cmake-build-debug/cmake_install.cmake"
+		"C:/Users/Artem/CLionProjects/RPG/cmake-build-debug/cmake_install.cmake"
 	],
 	"Parallel" : false
 }

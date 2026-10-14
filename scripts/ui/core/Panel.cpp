@@ -1,5 +1,5 @@
 #include "Panel.h"
-#include "../../controllers/visualizer.h"
+#include "../widgets/Window.h"
 
 void Panel::draw(Visualizer& v) const {
     if (!isVisible) return;
@@ -123,6 +123,14 @@ void Panel::addImage(const std::string& id, const SDL_Rect& rect,
     img->srect    = srect;
     order.push_back(id);
     images[id]    = std::move(img);
+}
+
+void Panel::addWindow(const std::string& id, const SDL_Rect& rect)
+{
+    auto win  = std::make_unique<Window>();
+    win->rect = rect;
+    order.push_back(id);
+    images[id] = std::move(win);          // Window хранится как Image: draw() виртуальный
 }
 
 void Panel::addLabel(const std::string& id, const SDL_Rect& backgroundRect,

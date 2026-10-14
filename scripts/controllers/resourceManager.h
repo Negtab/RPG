@@ -36,8 +36,8 @@ public:
     void initialize();
 
     [[nodiscard]] bool isPlayerNew(const std::string& path) const;
-    void savePlayer(const std::string &path, const Player &player);
-    void loadPlayer(const std::string &path, Player &player);
+    bool savePlayer(const std::string& path, const Player& player);   // было void
+    bool loadPlayer(const std::string& path, Player& player);         // было void
 
     bool addTexture(const std::string& path);
     bool addTextTexture(const std::string& name, const std::string& text, TTF_Font* font, SDL_Color color);
@@ -46,6 +46,9 @@ public:
     bool addMusic(const std::string& path);
     bool addFont(const std::string& path);
     bool addAnimation(const std::string& path);
+    void addTexturesFromDirectory(const std::string& dir);
+
+    static void releaseImage(const std::string& name);
 
     static TextSize measureText(const std::string& text, TTF_Font* font);
     static TextBlock renderMultiline(SDL_Renderer* renderer, const std::string& text, TTF_Font* font, SDL_Color color, int maxWidth = 0);

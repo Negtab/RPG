@@ -1,6 +1,8 @@
 #ifndef PROJECT_NAME_GAMEPERSON_H
 #define PROJECT_NAME_GAMEPERSON_H
 
+#include <algorithm>
+
 #include "../main/types.h"
 #include <vector>
 #include <map>
@@ -25,7 +27,7 @@ public:
     void setMaxHp(uint32_t hp) noexcept { maxHp = hp; }
 
     [[nodiscard]] uint32_t getCurrentHp() const noexcept { return currentHp; }
-    void setCurrentHp(uint32_t hp) noexcept { currentHp = (hp < maxHp) ? hp : maxHp;  isAlive = currentHp == 0;}
+    void setCurrentHp(uint32_t hp) noexcept { currentHp = hp < maxHp ? hp : maxHp; isAlive = currentHp > 0; }
 
     [[nodiscard]] uint32_t getMaxMp() const noexcept { return maxMp; }
     void setMaxMp(uint32_t mp) noexcept { maxMp = mp; }
@@ -60,23 +62,22 @@ public:
     }
     void takeDamage(uint32_t damage, Elemental type)
     {
-        for (int i = 0; i < resists.size(); ++i)
-            if (resists[i] == type)
-                return;
-        for (int i = 0; i < vulnerability.size(); ++i)
-            if (vulnerability[i] == type) {
-                currentHp -= damage * 1.5;
-                return;
-            }
-        if (currentHp <= damage)
-        {
-            currentHp = 0;
-            isAlive = false;
-        }
-        else
-            currentHp -= damage;
+        const auto has = [type](const std::vector<Elemental>& list) {
+            return std::find(list.begin(), list.end(), type) != list.end();
+        };
+        if (has(immunities))    return;                      // иммунитет: урона нет
+        if (has(resists))       damage /= 2;                 // сопротивление: половина
+        if (has(vulnerability)) damage = damage * 3 / 2;     // уязвимость: x1.5
+        takeDamage(damage);
     }
-    void restoreMana(uint32_t mana) { maxMp < currentMp + mana ? maxMp : currentMp += mana ; }
+
+    [[nodiscard]] bool isSkillReady(int skillId) const
+    {
+        for (const auto& s : skills)
+            if (s.skillId == skillId) return s.cooldownLeft == 0;
+        return false;
+    }
+    void restoreMana(uint32_t mana) { currentMp = static_cast<uint32_t>(std::min<uint64_t>(maxMp, static_cast<uint64_t>(currentMp) + mana));}
     void spendMana(uint32_t mana) { currentMp < mana ? 0 : currentMp -= mana; }
 
     void setCooldown(int skillId, uint8_t value)
@@ -120,7 +121,7 @@ protected:
     uint32_t experience{0}, gold{0};
     uint8_t level{1};
     std::vector<SkillInstance> skills;
-    std::vector<Elemental> resists, vulnerability;
+    std::vector<Elemental> resists, immunities, vulnerability;
     std::map<int, uint16_t> currentCooldowns;
 };
 

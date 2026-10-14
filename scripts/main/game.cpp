@@ -4,14 +4,26 @@
 #include <filesystem>
 
 #include "inputController.h"
+#include "mapLoader.h"
+#include "../gameLogic/gameData.h"
 
 #include <SDL.h>
 #include <ws2tcpip.h>
 
+static void initWalkAnimations(Player& p)
+{
+    for (const char* name : {"MoveLeftAnimation", "MoveRightAnimation", "MoveUpAnimation", "MoveDownAnimation"})
+        p.animPlayer.animations[name] =
+    { 0.2f, ResourceManager::getAnimation(name), {}, {0, 0, 0, 0}, 0, 0.f, false, AnimPlayMode::Loop };
+}
+
+namespace { constexpr int kDefaultEncounterRate = 8; }
 
 Game::Game(SDL_Window *window, SDL_Renderer* renderer) : window(window), renderer(renderer)
 {
     players.emplace_back("Test");
+
+    loadMaps();
 
     resourceManager = std::make_unique<ResourceManager>(*renderer);
 
@@ -27,10 +39,11 @@ Game::Game(SDL_Window *window, SDL_Renderer* renderer) : window(window), rendere
     battle = std::make_unique<Battle>(&players.at(0), uiManager.get(), this);
 
     resourceManager->initialize();
+    initWalkAnimations(players.at(0));
     uiManager->initialize();
 
-    initItems();
-    initSkills();
+    items  = GameData::instance().items();
+    skills = GameData::instance().skills();
 
     SDL_SetWindowIcon(window, ResourceManager::getImage("Sword"));
 
@@ -45,12 +58,35 @@ void Game::run()
     srand(static_cast<unsigned int>(time(nullptr)));
 
     pathToSave = std::filesystem::current_path().remove_filename().string() + "save.bin";
+    bool positionRestored = false;
     if (resourceManager->isPlayerNew(pathToSave))
         uiManager->setEnVI("Continue", "Menu", false);
     else
     {
-        uiManager->setEnVI("Continue", "Menu", true);
-        resourceManager->loadPlayer(pathToSave, players.at(0));
+        try
+        {
+            positionRestored = resourceManager->loadPlayer(pathToSave, players.at(0));
+            uiManager->setEnVI("Continue", "Menu", true);
+        }
+        catch (const std::exception& e)
+        {
+            SDL_Log("Save is unreadable (%s), starting a new game", e.what());
+            std::error_code ec;
+            std::filesystem::rename(pathToSave, pathToSave + ".bad", ec);   // не удаляем: можно посмотреть
+            uiManager->setEnVI("Continue", "Menu", false);
+        }
+    }
+
+    Player& me = players.at(0);
+    const Point c = me.getPlayerCoords();
+    const auto mapIt = maps.find(me.getMove().mapId);
+    if (positionRestored && mapIt != maps.end() && mapIt->second.isWalkable(c.x, c.y))
+        currentMap = &mapIt->second;                         // продолжаем там, где сохранились (город, подземелье)
+    else
+    {
+        currentMap = &maps.at(0);
+        me.getMove().mapId = 0;
+        me.setPlayerCoords(currentMap->spawn);
     }
 
     while (this->isRunning)
@@ -132,27 +168,138 @@ std::string Game::getCurrentTime() {
     return std::string(buffer);
 }
 
-void Game::sendLocalPlayerState()
+void Game::loadMaps()
 {
-    if (!isConnected()) return;
-    if (players.empty())
+    const auto dir = std::filesystem::current_path().remove_filename() / "resources" / "Maps";
+
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(dir, ec))
+    {
+        if (entry.path().extension() != ".tmj") continue;
+        try
+        {
+            MapData m = loadMap(entry.path().string());
+            if (maps.contains(m.mapId))
+            {
+                SDL_Log("Map '%s': mapId %d already used, skipped", m.name.c_str(), m.mapId);
+                continue;
+            }
+            mapIdByName[m.name] = m.mapId;
+            maps.emplace(m.mapId, std::move(m));
+        }
+        catch (const std::exception& e)
+        {
+            SDL_Log("Map '%s' failed to load: %s", entry.path().filename().string().c_str(), e.what());
+        }
+    }
+
+    if (!maps.contains(0))                               // нет оверворлда: открытое поле, чтобы игра запустилась
+    {
+        SDL_Log("No overworld map, using an open field");
+        mapIdByName["overworld"] = 0;
+        maps.emplace(0, MapData::openField(256, 277));
+    }
+
+    for (const auto& [id, m] : maps)
+    {
+        // проверка порталов
+        for (const Portal& p : m.portals)
+        {
+            const auto it = mapIdByName.find(p.targetMap);
+            if (it == mapIdByName.end())
+            {
+                SDL_Log("Map '%s': portal at (%d,%d) leads to unknown map '%s'",
+                        m.name.c_str(), p.x, p.y, p.targetMap.c_str());
+                continue;
+            }
+            if (!maps.at(it->second).isWalkable(p.targetX, p.targetY))
+                SDL_Log("Map '%s': portal at (%d,%d) targets (%d,%d), a wall in '%s'",
+                        m.name.c_str(), p.x, p.y, p.targetX, p.targetY, p.targetMap.c_str());
+        }
+        for (const Zone& z : m.zones)
+            if (!z.encounter.empty() && !GameData::instance().hasEncounter(z.encounter))
+                SDL_Log("Map '%s': zone '%s' uses unknown encounter group '%s'",
+                        m.name.c_str(), z.name.c_str(), z.encounter.c_str());
+    }
+
+    currentMap = &maps.at(0);
+}
+
+bool Game::applyMapChange(int mapId, int x, int y)
+{
+    const auto it = maps.find(mapId);
+    if (it == maps.end() || !it->second.isWalkable(x, y))
+    {
+        SDL_Log("applyMapChange: bad target map %d (%d,%d)", mapId, x, y);
+        return false;
+    }
+
+    currentMap = &it->second;
+
+    auto place = [&](MoveState& m) {
+        settle(m);
+        m.cell = m.target = {x, y};
+        m.mapId = static_cast<uint16_t>(mapId);
+    };
+    place(players.at(0).getMove());
+    for (auto& entry : remotePlayers)                    // остальные тоже встают сюда до их собственных пакетов
+        place(entry.second.getMove());
+
+    stepsSinceBattle = 0;
+    if (localPlayerId != 0) sendLocalPlayerState();
+    return true;
+}
+
+void Game::followPortal(const Portal& portal)
+{
+    const Portal p = portal;                             // копия: currentMap сейчас сменится
+    const auto it = mapIdByName.find(p.targetMap);
+    if (it == mapIdByName.end())
+    {
+        SDL_Log("Portal leads to unknown map '%s'", p.targetMap.c_str());
         return;
+    }
+    if (applyMapChange(it->second, p.targetX, p.targetY))
+        sendMapChange(it->second, p.targetX, p.targetY);
+}
 
-    Player& player = players[0];
+void Game::sendMapChange(int mapId, int x, int y)
+{
+    if (!isConnected() || !isHost()) return;
 
-    PlayerMovePacket packet{};
+    MapChangePacket p{};
+    p.header.type = PacketType::MapChange;
+    p.header.size = sizeof(MapChangePacket);
+    p.mapId = static_cast<uint16_t>(mapId);
+    p.cellX = static_cast<int16_t>(x);
+    p.cellY = static_cast<int16_t>(y);
+    client.send(reinterpret_cast<const char*>(&p), sizeof(p));
+}
 
-    packet.header.type = PacketType::PlayerMove;
-    packet.header.size = sizeof(PlayerMovePacket);
+void Game::gatherPartyAtHost()                           // новичок присоединился: все встают в клетку хоста
+{
+    MoveState& m = players.at(0).getMove();
+    settle(m);
+    const Point c = m.cell;
+    const int id = currentMap->mapId;
+    if (applyMapChange(id, c.x, c.y))
+        sendMapChange(id, c.x, c.y);
+}
 
-    packet.playerId = localPlayerId;
+void Game::sendLocalPlayerState() {
+    if (!isConnected() || localPlayerId == 0 || players.empty()) return;
+    const MoveState& m = players[0].getMove();
 
-    packet.x = player.getPlayerCoords().x;
-    packet.y = player.getPlayerCoords().y;
-
-    packet.direction = player.getDirection();
-
-    client.send(reinterpret_cast<const char*>(&packet), sizeof(packet));
+    PlayerMovePacket p{};
+    p.header.type = PacketType::PlayerMove;
+    p.header.size = sizeof(PlayerMovePacket);
+    p.playerId  = localPlayerId;
+    p.mapId     = m.mapId;
+    p.cellX     = static_cast<int16_t>(m.cell.x);   p.cellY   = static_cast<int16_t>(m.cell.y);
+    p.targetX   = static_cast<int16_t>(m.target.x); p.targetY = static_cast<int16_t>(m.target.y);
+    p.direction = static_cast<uint8_t>(m.dir);
+    p.moving    = m.moving ? 1 : 0;
+    client.send(reinterpret_cast<const char*>(&p), sizeof(p));
 }
 
 void Game::sendBattleEnd(bool isWin)
@@ -167,29 +314,31 @@ void Game::sendBattleEnd(bool isWin)
     client.send(reinterpret_cast<const char*>(&packet), sizeof(packet));
 }
 
-void Game::processMovePacket(const PlayerMovePacket& packet)
-{
-    if (packet.playerId == localPlayerId)
-        return;
+Player& Game::ensureRemote(uint32_t id) {
+    auto it = remotePlayers.find(id);
+    if (it != remotePlayers.end()) return it->second;
 
-    if (!remotePlayers.contains(packet.playerId))
-    {
-        Player player("RemotePlayer");
-        player.setRole(NetworkRole::Remote);
-        player.setNetworkId(packet.playerId);
+    Player player("RemotePlayer");
+    player.setRole(NetworkRole::Remote);
+    player.setNetworkId(id);
+    initWalkAnimations(player);
+    return remotePlayers.emplace(id, std::move(player)).first->second;
+}
 
-        // ✅ Инициализируем анимации
-        player.animPlayer.animations["MoveLeftAnimation"]  = { 0.2f, ResourceManager::getAnimation("MoveLeftAnimation"),  {}, {0,0,45,45}, 0, 0.f, false, AnimPlayMode::Loop };
-        player.animPlayer.animations["MoveRightAnimation"] = { 0.2f, ResourceManager::getAnimation("MoveRightAnimation"), {}, {0,0,45,45}, 0, 0.f, false, AnimPlayMode::Loop };
-        player.animPlayer.animations["MoveUpAnimation"]    = { 0.2f, ResourceManager::getAnimation("MoveUpAnimation"),    {}, {0,0,45,45}, 0, 0.f, false, AnimPlayMode::Loop };
-        player.animPlayer.animations["MoveDownAnimation"]  = { 0.2f, ResourceManager::getAnimation("MoveDownAnimation"),  {}, {0,0,45,45}, 0, 0.f, false, AnimPlayMode::Loop };
+void Game::processMovePacket(const PlayerMovePacket& p) {
+    if (p.playerId == localPlayerId) return;
+    if (p.direction > static_cast<uint8_t>(Direction::Idle)) return;           // мусорное значение
+    const int dx = p.targetX - p.cellX, dy = p.targetY - p.cellY;
+    if (p.moving && std::abs(dx) + std::abs(dy) != 1) return;                  // шаг ровно на одну клетку
 
-        remotePlayers.emplace(packet.playerId, std::move(player));
-    }
-
-    Player& remote = remotePlayers.at(packet.playerId);
-    remote.setPlayerCoords({ packet.x, packet.y });
-    remote.setDirection(packet.direction);
+    MoveState& m = ensureRemote(p.playerId).getMove();
+    m.cell   = {p.cellX, p.cellY};
+    m.target = {p.moving ? p.targetX : p.cellX, p.moving ? p.targetY : p.cellY};
+    m.dir    = p.direction == static_cast<uint8_t>(Direction::Idle) ? Direction::Down
+                                                                     : static_cast<Direction>(p.direction);
+    m.moving = p.moving != 0;
+    m.progress = 0.f;
+    m.mapId  = p.mapId;
 }
 
 void Game::processPacket(const char* data)
@@ -202,6 +351,7 @@ void Game::processPacket(const char* data)
         {
             auto* packet = reinterpret_cast<const ConnectPacket*>(data);
             localPlayerId = packet->assignedId;
+            sendLocalPlayerState();
             SDL_Log("Player connect");
             break;
         }
@@ -213,9 +363,21 @@ void Game::processPacket(const char* data)
             break;
         }
 
+        case PacketType::MapChange:
+        {
+            const auto* p = reinterpret_cast<const MapChangePacket*>(data);
+            if (!isHost())                                   // хост применил смену сам
+                applyMapChange(p->mapId, p->cellX, p->cellY);
+            break;
+        }
+
         case PacketType::PlayerJoined:
         {
             auto* packet = reinterpret_cast<const PlayerJoinedPacket*>(data);
+            if (packet->playerId != localPlayerId)
+                ensureRemote(packet->playerId);
+            if (isHost())
+                gatherPartyAtHost();
             SDL_Log("Player joined: %d", packet->playerId);
             break;
         }
@@ -224,6 +386,10 @@ void Game::processPacket(const char* data)
         {
             auto* packet = reinterpret_cast<const DisconnectPacket*>(data);
             remotePlayers.erase(packet->playerId);
+            if (state == GameState::Battle)
+                battle->onPlayerLeft(packet->playerId);
+
+                                                    // enum из сети: значение вне диапазона
             SDL_Log("Player disconnected: %d", packet->playerId);
             break;
         }
@@ -235,6 +401,8 @@ void Game::processPacket(const char* data)
             if (!battleStarted)
             {
                 battleStarted = true;
+                settle(players.at(0).getMove());
+                sendLocalPlayerState();
                 battle->runFromNetwork(*packet);
 
                 setPreviousGameState(GameState::Map);
@@ -251,6 +419,11 @@ void Game::processPacket(const char* data)
             auto* packet = reinterpret_cast<const BattleActionPacket*>(data);
 
             if (packet->playerId == localPlayerId)
+                break;
+
+                // case PacketType::BattleAction: в начале, после проверки playerId == localPlayerId
+            if (packet->actionType > static_cast<uint8_t>(ActionType::Skip) ||
+                packet->targetType > static_cast<uint8_t>(TargetType::AllAllies))
                 break;
 
             Action action{};
@@ -293,38 +466,80 @@ void Game::processPacket(const char* data)
 
 void Game::updateNetwork()
 {
+    if (!client.isConnected()) return;
+
+    // Сервер, который принял соединение, но не прислал Connect (например, на порту чужая программа)
+    if (localPlayerId == 0 && SDL_GetTicks() - connectTicks > 3000)
+    {
+        onConnectionLost("handshake timeout");
+        return;
+    }
+
     char chunk[2048];
-    int received = client.receive(chunk, sizeof(chunk));
+    for (int i = 0; i < 16; ++i)                            // читаем всё накопившееся, но не бесконечно
+    {
+        const RecvResult r = client.receive(chunk, sizeof(chunk));
 
-    if (received > 0)
-        netRecvBuffer.insert(netRecvBuffer.end(), chunk, chunk + received);
+        if (r.status == RecvStatus::Data)
+            netRecvBuffer.insert(netRecvBuffer.end(), chunk, chunk + r.bytes);
+        else if (r.status == RecvStatus::NoData)
+            break;
+        else
+        {
+            onConnectionLost(r.status == RecvStatus::Closed ? "connection closed" : "network error");
+            return;
+        }
+    }
 
-    int offset = 0;
-    const int total = (int)netRecvBuffer.size();
-
-    while (offset + (int)sizeof(PacketHeader) <= total)
+    size_t offset = 0;
+    while (netRecvBuffer.size() - offset >= sizeof(PacketHeader))
     {
         auto* header = reinterpret_cast<PacketHeader*>(netRecvBuffer.data() + offset);
 
-        if (header->size < sizeof(PacketHeader) || header->size > 4096)
+        const uint32_t expected = expectedSize(header->type);
+        if (expected == 0 || header->size != expected)
         {
-            SDL_Log("Invalid packet size: %d — clearing buffer", header->size);
-            netRecvBuffer.clear();
+            // В TCP границы пакетов не восстановить: единственный безопасный выход это разрыв
+            onConnectionLost("protocol error");
             return;
         }
 
-        // пакет ещё не пришёл целиком — ждём следующего кадра
-        if (offset + (int)header->size > total)
-            break;
+        if (netRecvBuffer.size() - offset < header->size)
+            break;                                          // пакет ещё не пришёл целиком
 
-        // обрабатываем пакет
         processPacket(netRecvBuffer.data() + offset);
         offset += header->size;
+
+        if (!client.isConnected()) return;                 // processPacket могла разорвать соединение
     }
 
-    // убираем обработанные байты
-    if (offset > 0)
-        netRecvBuffer.erase(netRecvBuffer.begin(), netRecvBuffer.begin() + offset);
+    netRecvBuffer.erase(netRecvBuffer.begin(), netRecvBuffer.begin() + offset);
+
+    if (!client.flush())
+        onConnectionLost("send failed");
+}
+
+void Game::onConnectionLost(const std::string& reason)
+{
+    SDL_Log("Connection lost: %s", reason.c_str());
+
+    const bool wasHost = isHost();
+    client.disconnect();
+    if (wasHost) server.stop();            // если хост сам потерял связь, закрываем и сервер
+
+    netRecvBuffer.clear();
+    remotePlayers.clear();
+    localPlayerId = 0;
+
+    if (state == GameState::Battle)        // как в обработчике BattleEnd
+    {
+        battle->resetState();
+        battleStarted = false;
+        setGameState(getPrevGameState());
+        setPreviousGameState(GameState::Battle);
+    }
+
+    uiManager->setText("NotifyLabel", "Online", "Disconnected: " + reason);
 }
 
 const std::unordered_map<uint32_t, Player>& Game::getRemotePlayers() const noexcept
@@ -351,22 +566,29 @@ void Game::handleInput(const SDL_Event &event)
 
 void Game::update(float dt)
 {
+    if (state == GameState::Battle)
+        battle->update();
+
     if (state == GameState::Map) {
-        inputController->mapMove(*this, players.at(0));
-        startRandomBattle();
+        Player& me = players.at(0);
+        MoveState& m = me.getMove();
+        const Direction oldDir = m.dir;
 
-        if (localPlayerId != 0)
-            sendLocalPlayerState();
+        const MoveResult r = updateLocal(m, *currentMap, inputController->readMoveDirection(), dt);
+        uiManager->updateRemoteAnimation(me.animPlayer, me);   // название историческое: работает для любого игрока
+        me.animPlayer.update(dt);
 
-        for (auto& [id, remote] : remotePlayers)
-        {
+        if (localPlayerId != 0 && (r.stepStarted || r.stopped || m.dir != oldDir))
+            sendLocalPlayerState();                       // только по событиям, не каждый кадр
+
+        for (auto& [id, remote] : remotePlayers) {
+            advance(remote.getMove(), dt);
             uiManager->updateRemoteAnimation(remote.animPlayer, remote);
             remote.animPlayer.update(dt);
         }
-    }
 
-    if (state == GameState::Battle)
-        battle->update();
+        if (r.stepFinished) onStepFinished();             // последним: может сменить состояние на Battle
+    }
 
     updateNetwork();
     uiManager->update(dt);
@@ -380,26 +602,49 @@ void Game::render()
     SDL_RenderPresent(renderer);
 }
 
-void Game::startRandomBattle()
+void Game::onStepFinished()
 {
-    if (isConnected() && !isHost())
-        return;
+    if (isConnected() && !isHost()) return;              // порталы и бои ведёт хост (или офлайн)
 
-    int randomNumber = rand() % 1000;
-    if (randomNumber == 1)
+    const Point c = players.at(0).getMove().cell;
+
+    if (const Portal* portal = currentMap->portalAt(c.x, c.y))
     {
-        setPreviousGameState(getGameState());
-        setGameState(GameState::Battle);
-        battle->run();
-        uiManager->addEnemys();
-        uiManager->addCharacters();
-
-        battleStarted = true;
-
-        // ✅ Уведомляем других игроков
-        if (localPlayerId != 0)
-            sendBattleStart();
+        followPortal(*portal);
+        return;
     }
+
+    const Zone* zone = currentMap->zoneAt(c.x, c.y);
+    if (zone && zone->safe) { stepsSinceBattle = 0; return; }
+
+    if (++stepsSinceBattle < 6) return;
+    if (rand() % 100 >= (zone ? zone->encounterRate : kDefaultEncounterRate)) return;
+
+    stepsSinceBattle = 0;
+    beginBattle(zone);
+}
+
+void Game::beginBattle(const Zone* zone)
+{
+    settle(players.at(0).getMove());
+    if (localPlayerId != 0) sendLocalPlayerState();
+
+    std::vector<int> formation, pool;
+    if (zone)
+    {
+        pool = zone->enemies;
+        if (!zone->encounter.empty())
+            formation = GameData::instance().pickFormation(zone->encounter);
+    }
+
+    setPreviousGameState(getGameState());
+    setGameState(GameState::Battle);
+    battle->run(formation, pool);
+    uiManager->addEnemys();
+    uiManager->addCharacters();
+    battleStarted = true;
+
+    if (localPlayerId != 0) sendBattleStart();
 }
 
 void Game::endRandomBattle()
@@ -450,12 +695,17 @@ void Game::connectToServer(const std::string &ip)
     }
 
     if (client.connectTo(ip, 54000))
+    {
+        netRecvBuffer.clear();
+        connectTicks = SDL_GetTicks();
         uiManager->setText("NotifyLabel", "Online", "You are connected");
+    }
     else
         uiManager->setText("NotifyLabel", "Online", "You are not connected");
 }
 
-void Game::startServer() {
+void Game::startServer()
+{
     if (this->isConnected())
     {
         uiManager->setText("NotifyLabel", "Online", "You are already connected!");
@@ -467,10 +717,21 @@ void Game::startServer() {
         return;
     }
 
-    if (server.start() && client.connectTo("127.0.0.1", 54000))
-        uiManager->setText("NotifyLabel","Online", "Server started");
-    else
-        uiManager->setText("NotifyLabel","Online", "Server not started. Something happend");
+    if (!server.start())
+    {
+        uiManager->setText("NotifyLabel", "Online", "Server not started (port busy?)");
+        return;
+    }
+    if (!client.connectTo("127.0.0.1", 54000))
+    {
+        server.stop();
+        uiManager->setText("NotifyLabel", "Online", "Server not started. Something happened");
+        return;
+    }
+
+    netRecvBuffer.clear();
+    connectTicks = SDL_GetTicks();
+    uiManager->setText("NotifyLabel", "Online", "Server started");
 }
 
 std::string Game::getIP()
@@ -538,13 +799,14 @@ void Game::sendBattleStart()
     BattleStartPacket packet{};
     packet.header.type = PacketType::BattleStart;
     packet.header.size = sizeof(BattleStartPacket);
-    packet.enemyCount = static_cast<uint8_t>(enemies.size());
 
-    for (int i = 0; i < (int)enemies.size() && i < 4; i++)
+    const int n = std::min<int>(static_cast<int>(enemies.size()), 4);
+    packet.enemyCount = static_cast<uint8_t>(n);
+    for (int i = 0; i < n; i++)
     {
-        packet.enemies[i].enemyName  = static_cast<uint8_t>(enemies[i].getEnemyName());
-        packet.enemies[i].currentHp  = enemies[i].getCurrentHp();
-        packet.enemies[i].maxHp      = enemies[i].getMaxHp();
+        packet.enemies[i].enemyId   = static_cast<uint8_t>(enemies[i].getEnemyId());
+        packet.enemies[i].currentHp = static_cast<int32_t>(enemies[i].getCurrentHp());
+        packet.enemies[i].maxHp     = static_cast<int32_t>(enemies[i].getMaxHp());
     }
 
     client.send(reinterpret_cast<const char*>(&packet), sizeof(packet));
@@ -570,6 +832,7 @@ void Game::sendBattleAction(const Action& action)
 void Game::sendBattleSnapshot()
 {
     if (!isConnected()) return;
+
     BattleSnapshotPacket packet{};
     packet.header.type = PacketType::BattleSnapshot;
     packet.header.size = sizeof(BattleSnapshotPacket);
@@ -577,40 +840,46 @@ void Game::sendBattleSnapshot()
     const auto& heroes  = players.at(0).getHeroes();
     const auto& enemies = battle->getEnemies();
 
-    packet.enemyCount = static_cast<uint8_t>(enemies.size());
+    constexpr int kMaxHeroes  = 8;   // размер packet.heroes и heroOwner
+    constexpr int kMaxEnemies = 4;   // размер packet.enemies
 
-    // ✅ Сначала герои хоста
+    // Сначала герои хоста
     int heroIndex = 0;
-    for (int i = 0; i < (int)heroes.size() && heroIndex < 8; i++, heroIndex++)
+    for (int i = 0; i < static_cast<int>(heroes.size()) && heroIndex < kMaxHeroes; i++, heroIndex++)
     {
         packet.heroes[heroIndex].currentHp   = heroes[i].getCurrentHp();
         packet.heroes[heroIndex].currentMana = heroes[i].getCurrentMp();
-        packet.heroOwner[heroIndex] = localPlayerId; // ← чьи герои
+        packet.heroOwner[heroIndex]          = localPlayerId;   // чьи герои
     }
 
-    // ✅ Потом герои удалённых игроков
-    for (auto& [id, remote] : remotePlayers)
+    // Потом герои удалённых игроков, но только тех, кто участвует в этом бою
+    for (const auto& [id, remote] : remotePlayers)
     {
-        for (int i = 0; i < (int)remote.getHeroes().size() && heroIndex < 8; i++, heroIndex++)
+        if (!battle->isParticipant(id)) continue;   // зашёл посреди боя: героев в бою у него нет
+
+        const auto& remoteHeroes = remote.getHeroes();
+        for (int i = 0; i < static_cast<int>(remoteHeroes.size()) && heroIndex < kMaxHeroes; i++, heroIndex++)
         {
-            packet.heroes[heroIndex].currentHp   = remote.getHeroes()[i].getCurrentHp();
-            packet.heroes[heroIndex].currentMana = remote.getHeroes()[i].getCurrentMp();
-            packet.heroOwner[heroIndex] = id; // ← чьи герои
+            packet.heroes[heroIndex].currentHp   = remoteHeroes[i].getCurrentHp();
+            packet.heroes[heroIndex].currentMana = remoteHeroes[i].getCurrentMp();
+            packet.heroOwner[heroIndex]          = id;
         }
     }
 
     packet.heroCount = static_cast<uint8_t>(heroIndex);
 
-    for (int i = 0; i < (int)enemies.size() && i < 4; i++)
+    const int enemyCount = std::min<int>(static_cast<int>(enemies.size()), kMaxEnemies);
+    packet.enemyCount = static_cast<uint8_t>(enemyCount);
+
+    for (int i = 0; i < enemyCount; i++)
     {
         packet.enemies[i].currentHp   = enemies[i].getCurrentHp();
         packet.enemies[i].currentMana = 0;
     }
 
-    packet.battleState      = static_cast<uint8_t>(battle->getState());
-    packet.currentHeroIndex = static_cast<uint8_t>(battle->getCurrentHeroIndex());
-
-    packet.currentActionIndex = battle->getCurrentActionIndex();
+    packet.battleState        = static_cast<uint8_t>(battle->getState());
+    packet.currentHeroIndex   = static_cast<uint8_t>(battle->getCurrentHeroIndex());
+    packet.currentActionIndex = static_cast<uint8_t>(battle->getCurrentActionIndex());
     packet.currentTurn        = static_cast<uint8_t>(battle->getCurrentTurn());
 
     client.send(reinterpret_cast<const char*>(&packet), sizeof(packet));
@@ -626,32 +895,33 @@ void Game::setPreviousGameState(GameState s) { prevState = s; }
 GameState Game::getGameState() const { return state; }
 GameState Game::getPrevGameState() const { return prevState; }
 
-void Game::addLocation(const Location &location) { locations.push_back(location); }
-std::vector<Location> Game::getLocations() const { return locations; }
-
 void Game::setScreenRect(const SDL_Rect *rect) {this->screen = *rect;}
 
 SDL_Rect Game::getScreenRect() const { return screen; }
 
 Battle *Game::getBattle() const { return battle.get(); }
 
-Item &Game::getItem(const int &index) {
-    auto it = items.find(index);
-    if (it == items.end()) {
-        SDL_Log("Item not found: %d", index);
-        return items.at(0);
-    }
+const Item* Game::findItem(int id) const {
+    auto it = items.find(id);
+    return it != items.end() ? &it->second : nullptr;
+}
 
+const Skill* Game::findSkill(int id) const {
+    auto it = skills.find(id);
+    return it != skills.end() ? &it->second : nullptr;
+}
+
+Item &Game::getItem(const int &index) {
+    static Item none{};                       // id 0, эффект None: пустышка вместо падения
+    auto it = items.find(index);
+    if (it == items.end()) { SDL_Log("Item not found: %d", index); return none; }
     return it->second;
 }
 
 Skill &Game::getSkill(const int &id) {
+    static Skill none = [] { Skill s; s.effectType = SkillEffectType::None; s.name = "?"; return s; }();
     auto it = skills.find(id);
-    if (it == skills.end()) {
-        SDL_Log("Skill not found: %d", id);
-        return skills.at(0);
-    }
-
+    if (it == skills.end()) { SDL_Log("Skill not found: %d", id); return none; }
     return it->second;
 }
 
@@ -665,7 +935,7 @@ void Game::initItems()
         potion.id = 1;
         potion.cost = 5;
         potion.name = "Health Potion";
-        potion.power = 30;
+        potion.power = 15;
         potion.consumable = true;
         potion.effectType = ItemEffectType::Heal;
         potion.targetType = TargetType::Self;
@@ -748,7 +1018,7 @@ void Game::initSkills()
         attack.targetType = TargetType::Enemy;
 
         attack.effectType = SkillEffectType::Damage;
-        attack.element = Elemental::None;
+        attack.element = Elemental::Physical;
 
         attack.power = 10;
 
@@ -790,7 +1060,7 @@ void Game::initSkills()
         heal.targetType = TargetType::Ally;
 
         heal.effectType = SkillEffectType::Heal;
-        heal.element = Elemental::None;
+        heal.element = Elemental::Physical;
 
         heal.power = 20;
 
@@ -832,7 +1102,7 @@ void Game::initSkills()
         defenseBuff.targetType = TargetType::Self;
 
         defenseBuff.effectType = SkillEffectType::Buff;
-        defenseBuff.element = Elemental::None;
+        defenseBuff.element = Elemental::Physical;
 
         defenseBuff.power = 5;
 
@@ -853,7 +1123,7 @@ void Game::initSkills()
         weaken.targetType = TargetType::Enemy;
 
         weaken.effectType = SkillEffectType::Debuff;
-        weaken.element = Elemental::None;
+        weaken.element = Elemental::Physical;
 
         weaken.power = 5;
 

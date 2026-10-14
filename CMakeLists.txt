@@ -59,6 +59,16 @@ add_executable(${PROJECT_NAME} scripts/main/main.cpp
         scripts/controllers/audioManager.h
         scripts/controllers/audioManager.cpp
         scripts/ui/animation/animPlayer.cpp
+        scripts/main/movement.h
+        scripts/main/mapRenderer.h
+        scripts/main/mapRenderer.cpp
+        scripts/main/mapLoader.h
+        scripts/main/mapLoader.cpp
+        scripts/ui/windowSkin.h
+        scripts/ui/windowSkin.cpp
+        scripts/ui/widgets/Window.h
+        scripts/gameLogic/gameData.h
+        scripts/gameLogic/gameData.cpp
 )
 
 # --- SDL2 SETUP ---
@@ -74,6 +84,7 @@ find_package(SDL2_image REQUIRED)
 find_package(SDL2_mixer REQUIRED)
 find_package(SDL2_ttf REQUIRED)
 
+include_directories(${CMAKE_SOURCE_DIR}/third_party)
 include_directories(${SDL2_INCLUDE_DIR})
 include_directories(${SDL2_IMAGE_INCLUDE_DIR})
 include_directories(${SDL2_MIXER_INCLUDE_DIR})

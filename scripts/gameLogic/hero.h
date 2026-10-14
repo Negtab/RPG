@@ -22,11 +22,6 @@ public:
     void addXP(const uint32_t& xp);
 
 private:
-    void makeBasicKnight();
-    void makeBasicMagician();
-    void makeBasicArcher();
-    void makeBasicThief();
-
     uint32_t xpToNextLevel;
     Specialization spec;
 };

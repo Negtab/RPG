@@ -1,0 +1,7 @@
+[
+  { "id": 1, "name": "Health Potion", "cost": 5,  "power": 15, "consumable": true, "effectType": "Heal",        "targetType": "Self"  },
+  { "id": 2, "name": "Mana Potion",   "cost": 5,  "power": 20, "consumable": true, "effectType": "RestoreMana", "targetType": "Self"  },
+  { "id": 3, "name": "Bomb",          "cost": 10, "power": 25, "consumable": true, "effectType": "Damage",      "targetType": "Enemy" },
+  { "id": 4, "name": "Attack Scroll", "cost": 8,  "power": 10, "consumable": true, "effectType": "Buff",        "targetType": "Self"  },
+  { "id": 5, "name": "Weaken Scroll", "cost": 8,  "power": 10, "consumable": true, "effectType": "Debuff",      "targetType": "Enemy" }
+]

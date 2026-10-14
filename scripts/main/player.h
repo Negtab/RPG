@@ -1,6 +1,7 @@
 #ifndef PROJECT_NAME_PLAYER_H
 #define PROJECT_NAME_PLAYER_H
 
+#include "movement.h"
 #include "types.h"
 #include "../ui/animation/animPlayer.h"
 #include "../gameLogic/hero.h"
@@ -32,14 +33,9 @@ public:
     [[nodiscard]] uint32_t getPlayerGold() const noexcept;
     void setPlayerGold(uint32_t g) noexcept;
 
-    [[nodiscard]] int32_t getPlayerSpeed() const noexcept;
-    void setPlayerSpeed(int32_t newSpeed) noexcept;
-
     [[nodiscard]] std::string getPlayerName() const noexcept;
     void setPlayerName(std::string newName) noexcept;
 
-    [[nodiscard]] Point getPlayerCoords() const noexcept;
-    void setPlayerCoords(Point newCoords) noexcept;
 
     [[nodiscard]] GameState getLastGameState() const noexcept;
     //void setLastGameState(GameState newGameState);
@@ -50,7 +46,6 @@ public:
 
     [[nodiscard]] std::vector<std::string> getDiscoveredEnemies() const;
     [[nodiscard]] std::vector<int> getAvailableItems() const;
-    [[nodiscard]] Location getPlayerLocation(const Game& game) const;
 
     void addDiscoveredEnemy(const std::string& enemy);
     void addItem(int itemId, uint8_t count);
@@ -59,14 +54,22 @@ public:
     bool consumeItem(int itemId);
     //void removeItem(int itemId);
 
-    [[nodiscard]] Direction getDirection() const;
-    void setDirection(const Direction &newDirection);
 
     [[nodiscard]] uint32_t getNetworkId() const noexcept;
     void setNetworkId(uint32_t id) noexcept;
 
     [[nodiscard]] NetworkRole getRole() const noexcept;
     void setRole(NetworkRole newRole) noexcept;
+
+    [[nodiscard]] const std::map<int, uint8_t>& getItemCounts() const noexcept { return itemIds; }
+
+    [[nodiscard]] MoveState& getMove() noexcept { return move; }
+    [[nodiscard]] const MoveState& getMove() const noexcept { return move; }
+
+    [[nodiscard]] Direction getDirection() const { return move.moving ? move.dir : Direction::Idle; }
+    void setDirection(const Direction& d) { if (d != Direction::Idle) move.dir = d; }
+    [[nodiscard]] Point getPlayerCoords() const noexcept { return move.cell; }
+    void setPlayerCoords(Point p) noexcept { move.cell = move.target = p; move.moving = false; move.progress = 0.f; }
 
     AnimPlayer animPlayer;
 
@@ -76,8 +79,7 @@ private:
 
     std::string name;
     uint32_t gold{0};
-    Point coords{0, 0};
-    int32_t speed{1};
+    MoveState move;
 
     GameState lastState{GameState::Map};
     Direction direction {Direction::Idle};

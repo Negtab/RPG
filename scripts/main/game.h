@@ -42,9 +42,6 @@ class Game {
         [[nodiscard]] GameState getGameState() const;
         [[nodiscard]] GameState getPrevGameState() const;
 
-        void addLocation(const Location &location);
-        [[nodiscard]] std::vector<Location> getLocations() const;
-
         [[nodiscard]] Battle *getBattle() const;
 
         void setScreenRect(const SDL_Rect *rect);
@@ -62,7 +59,6 @@ class Game {
         void openOnlineMenu();
         void closeOnlineMenu();
 
-        void startRandomBattle();
         void endRandomBattle();
 
         float getDeltaTime();
@@ -88,11 +84,21 @@ class Game {
 
         std::unordered_map<uint32_t, Player>& getRemotePlayersMutable() { return remotePlayers; }
 
-
         bool battleStarted = false;
         uint32_t localPlayerId {0};
 
+        [[nodiscard]] const Item*  findItem(int id) const;
+        [[nodiscard]] const Skill* findSkill(int id) const;
+
+        [[nodiscard]] const MapData& getMap() const { return *currentMap; }
+
     private:
+
+        void loadMaps();
+        bool applyMapChange(int mapId, int x, int y);
+        void followPortal(const Portal& portal);
+        void sendMapChange(int mapId, int x, int y);
+        void gatherPartyAtHost();
 
         void handleInput(const SDL_Event &event);
         void update(float dt);
@@ -103,13 +109,25 @@ class Game {
 
         void updateNetwork();
 
+        void onStepFinished();
+        void beginBattle(const Zone* zone = nullptr);
+        Player& ensureRemote(uint32_t id);
+        int stepsSinceBattle = 0;
+
         void processMovePacket(const PlayerMovePacket& packet);
         void processPacket(const char* data);
 
         void sendBattleEnd(bool isWin);
 
+        void onConnectionLost(const std::string& reason);
+        Uint32 connectTicks = 0;      // когда подключились: ждём Connect-пакет не дольше 3 секунд
+
 
         bool isRunning = false;
+
+        std::map<int, MapData> maps;                  // mapId -> карта (узлы std::map не двигаются, указатель безопасен)
+        std::map<std::string, int> mapIdByName;
+        const MapData *currentMap = nullptr;
 
         Uint64 lastCounter = 0;     // для deltaTime
         Uint64 fpsLastCounter = 0;  // для подсчёта FPS
@@ -128,7 +146,6 @@ class Game {
 
         std::map<int, Item> items;
         std::map<int, Skill> skills;
-        std::vector<Location> locations;
         std::vector<Player> players;
         std::vector<NotGamePerson> npss;
         std::vector<Quest> quests;

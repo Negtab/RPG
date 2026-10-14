@@ -1,0 +1,116 @@
+id,name,texture,hp,attack,defence,agility,exp,gold,hits,resists,immunities,vulnerabilities,abilities,notes
+1,Goblin,,8,4,4,,6,6,1,,,,attack:100,
+2,Goblin Guard,,16,8,6,,18,18,1,,,,attack:100,drop Potion
+3,Wolf,,20,8,0,,24,6,1,,,,attack:100,
+4,Crazy Horse,,64,10,2,,63,15,1,,,,attack:100,drop Potion
+5,Skeleton,,10,10,0,,9,3,1,,,Fire|Light,attack:100,undead; drop Echo Screen
+6,Black Widow,,28,10,0,,30,8,1,,,,attack:100,
+7,Gigas Worm,,56,17,8,,63,15,1,,,Fire,attack:100,
+8,Warg Wolf,,72,14,0,,93,22,1,,,,attack:100,drop Antidote
+9,Werewolf,,68,14,6,,135,67,1,,,,attack:70;100:30,poison attack; regen 3 HP per turn
+10,Zombie,,20,10,0,,24,12,1,,,Fire|Light,attack:100,undead; drop Staff
+11,Ghoul,,48,8,6,,93,50,1,,,Fire|Light,attack:100,undead; paralyze attack
+12,Garland,,212,15,8,,130,250,1,,,,attack:100,boss; HP 106 on NES and PS; drop Longsword
+13,Cobra,,56,6,6,,123,50,1,,,,attack:70;100:30,poison attack
+14,Ogre,,100,18,10,,195,195,1,,,,attack:100,
+15,Ogre Chief,,132,23,14,,282,300,1,,,,attack:100,
+16,Lizard,,92,18,12,,153,50,1,,,,attack:100,
+17,Pirate,,24,10,0,,40,40,1,,,,attack:100,boss group of 9; HP 6 on NES and PS; drop Leather Shield
+18,Sahagin,,28,10,4,20,30,30,1,,,Lightning,attack:100,high agility; drop Potion
+19,Sahagin Chief,,64,15,8,,105,105,1,,,Lightning,attack:100,
+20,Buccaneer,,50,14,6,,60,120,1,,,,attack:100,drop Saber
+21,Shark,,120,22,0,,267,66,1,,,Lightning,attack:100,
+22,Bigeyes,,10,4,0,20,42,10,1,,,Lightning,attack:100,gaze may paralyze; high evade
+23,Tarantula,,64,5,12,,141,50,1,,,,attack:70;100:30,poison attack
+24,Ghast,,56,8,10,,117,117,1,,,Fire|Light,attack:100,undead; paralyze attack
+25,Scorpion,,84,22,10,,225,70,1,,,,attack:70;100:30,poison attack; drop Spider's Silk
+26,Shadow,,50,10,0,,90,45,1,,,Fire|Light,attack:100,undead; darkness attack
+27,Green Slime,,24,1,255,,84,20,1,,,Fire|Ice,attack:70;100:30,poison attack; physical wall; drop Hi-Potion
+28,Crawler,,84,1,8,,186,200,8,,,,attack:100,paralyze attack; up to 8 hits
+29,Gray Ooze,,76,30,7,,255,70,1,,,Lightning,attack:100,
+30,Gargoyle,,80,12,8,20,132,80,3,,,,attack:100,high agility; up to 3 hits
+31,Bloodbones,,144,26,12,,378,378,1,,,Fire|Light,attack:100,undead
+32,Piscodemon,,84,30,16,,276,300,1,Fire|Ice,,,attack:100,resists most statuses; unrunable
+33,Astos,,420,30,18,,2250,2000,1,,,,attack:100,boss; HP 168 and def 40 on NES and PS; casts Death Slow Sleep Haste Fira Thundara; drop Mythril Sword
+34,Mummy,,80,30,20,,300,300,1,,,Fire|Light,attack:100,undead; sleep attack
+35,Wraith,,86,22,4,,231,231,1,,,Fire|Light,attack:100,undead; paralyze attack; drop Crosier
+36,Anaconda,,80,22,10,,165,50,1,,,,attack:70;100:30,poison attack
+37,Hyenadon,,120,22,4,,288,72,1,,,,attack:100,drop Power Plus
+38,Lesser Tiger,,132,22,8,,438,108,1,,,,attack:100,drop X-Potion
+39,Minotaur,,164,22,4,,489,489,2,,,,attack:100,hits twice; drop Knife
+40,Hill Gigas,,240,38,12,,879,879,1,,,,attack:100,drop Tent
+41,Earth Elemental,,288,66,20,,1536,768,1,,,Fire,attack:100,drop Remedy
+42,Troll,,184,24,12,,621,621,1,,,Fire,attack:70;102:30,regen 9 HP per turn
+43,Wight,,52,20,20,,150,150,1,,,Fire|Light,attack:100,undead; paralyze attack
+45,Cockatrice,,50,1,4,,186,200,1,,,,attack:100,petrify attack; drop Gold Needle
+46,Vampire,,280,76,26,,1200,2000,1,,,Fire|Light,attack:100,undead; gaze may paralyze; HP 156 and def 10 on NES
+50,Ankheg,,222,39,20,,1194,300,3,,,,attack:70;100:30,up to 3 hits; poison attack
+55,Ochu,,208,20,24,,1224,102,1,,,Lightning,attack:70;100:30,poison attack
+56,Neochu,,344,35,32,,3189,500,1,,,,attack:70;100:30,poison attack
+59,Pyrolisk,,44,20,4,,432,500,1,,,Ice,attack:100,gaze may petrify or kill; drop Gold Needle
+60,Fire Elemental,,276,50,20,,1620,800,1,,,Ice,attack:100,
+61,Fire Hydra,,182,20,14,,1215,400,1,,,Ice,attack:100,drop Red Fang
+62,Lava Worm,,280,50,31,,1671,400,1,,,Ice,attack:100,
+63,Hellhound,,192,30,8,,1182,600,1,,,Ice,attack:100,
+64,Fire Lizard,,296,31,18,,2472,1200,1,,,Ice,attack:100,
+65,Fire Gigas,,300,73,20,,1506,1506,1,,,Ice,attack:100,
+66,Red Dragon,,248,75,30,,2904,4000,1,,,Ice,attack:100,also weak to stone and poison statuses
+68,White Dragon,,200,53,8,,1701,2000,1,,,Fire|Lightning,attack:100,
+69,Winter Wolf,,92,25,0,,402,200,1,,,Fire,attack:100,drop Ice Shield
+70,Mindflayer,,112,1,12,,822,999,1,,,,attack:100,attack may instantly kill; drop Phoenix Down
+71,Ice Gigas,,336,60,16,,1752,1752,1,,,Fire,attack:100,
+74,Dark Wizard,,105,26,40,,1095,1095,1,,,,attack:100,drop Red Curtain
+75,Evil Eye,,162,30,30,,3325,3325,1,,,,attack:100,casts many spells
+76,Desert Baretta,,352,98,48,,2610,1,1,,,,attack:100,high magic defense
+77,Sabertooth,,200,24,8,,843,500,1,,,,attack:100,
+78,Wyvern,,212,30,12,,1173,20,1,,,,attack:70;100:30,poison attack
+79,Wyrm,,260,40,22,,1218,502,1,,,,attack:100,
+80,Manticore,,164,22,8,,1317,650,1,,,,attack:100,drop Tent
+81,Baretta,,256,60,38,,1428,300,1,,,,attack:100,high magic defense
+82,Basilisk,,196,30,20,,1977,658,1,,,,attack:100,gaze may petrify; drop Gold Needle
+83,Allosaurus,,480,65,10,,3387,502,1,,,,attack:100,drop Strength Tonic
+84,Weretiger,,160,30,16,,780,780,1,,,,attack:60;100:20;102:20,poison attack; regen 8 HP per turn; drop Sleeping Bag
+85,Sand Worm,,200,46,14,,2683,900,1,,,,attack:70;100:30,poison attack; casts Earthquake
+86,Minotaur Zombie,,224,40,14,,1050,1050,1,,,Fire|Light,attack:100,undead; drop Great Axe
+87,King Mummy,,188,43,24,,984,1000,1,,,Fire|Light,attack:100,undead; sleep attack
+88,Medusa,,68,20,10,,699,699,1,,,,attack:70;100:30,poison attack; gaze may petrify
+89,Rakshasa,,110,20,30,,603,800,1,,,,attack:100,
+90,Clay Golem,,176,64,7,,1257,800,1,,,,attack:70;100:30,poison attack; resists all elements; drop Potion
+91,Nightmare,,200,30,24,,1272,700,1,,,Ice,attack:100,snort may cause darkness
+92,Dragon Zombie,,268,56,30,,2331,999,1,,,Fire|Light,attack:100,undead; paralyze attack; drop Megalixir
+93,Sahagin Prince,,204,47,20,,882,882,1,,,Lightning,attack:100,
+94,White Shark,,344,50,8,,2361,600,1,,,Lightning,attack:100,drop Wyrmkiller
+95,Deepeyes,,304,30,16,,3591,3591,1,,,Lightning,attack:100,gaze may paralyze; flash may cause darkness
+96,Sea Snake,,224,35,12,,957,600,1,,,Lightning,attack:100,
+97,Sea Scorpion,,148,35,18,,639,300,1,,,Lightning,attack:70;100:30,poison attack
+98,Sea Troll,,216,40,20,,852,852,1,,,Lightning,attack:70;102:30,regen 10 HP per turn
+99,Ghost,,180,93,10,,990,990,1,,,Fire|Light,attack:100,undead; strongest regular physical attack
+100,Water Elemental,,300,69,20,,1962,800,1,,,Ice,attack:100,
+101,Water Naga,,356,9,8,,84,20,1,,,Lightning,attack:100,casts Thundara Hold Slow Dark Thunder Focus Sleep
+102,Kraken,,1800,50,60,,4245,5000,8,Earth|Fire,,Lightning,attack:100,fiend of water; HP 800 on NES and 1600 on PS; up to 8 hits; drop Kikuichimonji
+103,Tyrannosaur,,600,115,10,,7200,600,1,,,,attack:100,high magic defense; rarest enemy
+104,Black Knight,,260,44,38,,1263,1800,1,,,,attack:100,drop Deathbringer
+105,Chimera,,300,30,20,,2064,2500,1,,,Ice,attack:100,casts Blaze
+106,Guardian,,200,25,40,,1224,400,1,,,Lightning,attack:100,paralyze attack
+107,Blue Dragon,,454,92,20,,3274,2000,1,,,Fire,attack:100,casts Thunderbolt; unrunable
+108,Green Dragon,,352,72,16,,4068,5000,1,,,,attack:100,
+109,Stone Golem,,200,70,16,,2385,1000,1,,,,attack:100,resists all elements; casts Slow
+110,Air Elemental,,358,53,4,,1614,807,1,,,,attack:100,drop Ether
+111,Spirit Naga,,420,7,16,,3489,4000,1,,,,attack:100,mostly casts spells
+112,Death Knight,,190,55,32,,2700,3000,1,,,,attack:100,casts Flare and Kill
+113,Earth Medusa,,96,11,12,,1218,1218,1,,,,attack:100,glance may petrify
+114,Black Flan,,156,49,255,,900,1101,1,,,Fire,attack:100,physical wall
+115,Soldier,,400,102,48,,4000,2000,1,,,Lightning,attack:100,
+116,Vampire Lord,,300,90,28,,2385,3000,1,,,Fire|Light,attack:100,undead; casts Blizzard Thunder Sleep Stun; drop Hermes' Shoes
+117,Dark Fighter,,200,40,38,,3420,3420,1,,,,attack:100,casts buffs heals and debuffs
+118,Warmech,,2000,128,80,,32000,32000,1,Earth|Fire|Lightning|Ice,,,attack:100,rare boss on the bridge; HP 1000 on NES; casts Nuclear; drop Genji Armor
+119,Tiamat,,2400,49,80,,5496,6000,1,Fire|Ice|Lightning|Earth,,,attack:100,fiend of wind; HP 1000 on NES and 2000 on PS; casts Thunderbolt Poison Gas Icestorm Blaze
+120,Rhyos,,350,40,18,,4584,5000,1,,,Ice,attack:100,stone gas can petrify; drop Power Staff
+121,Death Eye,,360,120,60,,1,1,1,Earth|Ice,,Fire|Light,attack:100,mini boss in the Temple of Time; casts many spells; drop Elixir
+122,Purple Worm,,488,65,10,,4344,1000,1,,,,attack:100,high magic defense; drop Emergency Exit
+123,Iron Golem,,304,93,100,,6717,3000,1,,,,attack:100,toxic may instantly kill; rarest encounter
+124,Lich,,2800,50,80,,2000,1,1,Ice,,Light,attack:100,refight; HP 500 on NES and 1000 on PS
+125,Marilith,,3200,60,60,,2000,1,1,Fire|Lightning|Ice|Poison,,,attack:100,refight; HP 700 on NES and 1400 on PS
+126,Kraken,Kraken,3600,60,80,,2000,1,1,Earth|Fire,,,attack:100,refight; HP 900 on NES and 1800 on PS
+127,Tiamat,Tiamat,5500,75,90,,2000,1,1,Earth|Fire|Ice|Lightning,,,attack:100,refight; HP 1100 on NES and 2200 on PS
+128,Chaos,,20000,100,100,,0,0,1,Earth|Fire|Lightning|Ice,,,attack:100,final boss; HP 2000 on NES and 4000 on PS; casts many spells
