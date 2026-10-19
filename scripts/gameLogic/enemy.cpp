@@ -1,7 +1,6 @@
 #include "enemy.h"
 
 #include <algorithm>
-#include <stdexcept>
 #include "gameData.h"
 
 Enemy::Enemy(int id, int lvl) : enemyId(id)

@@ -20,20 +20,27 @@ void Panel::draw(Visualizer& v) const {
 
 void Panel::handleClick(int x, int y) {
     if (!isEnabled || !isVisible) return;
-    for (auto& [id, btn] : buttons) {
-        if (btn->isEnabled && btn->containsPoint(x, y)) {
-            btn->handleClick(x, y);
-            return;
-        }
-    }
-    for (auto& [id, edt] : edits) {
-        if (edt->isEnabled && edt->containsPoint(x, y)) {
-            edt->handleClick(x, y);
-            return;
-        }
-    }
+
+    Edit* hitEdit = nullptr;
+    for (auto& [id, edt] : edits)
+        if (edt->isEnabled && edt->isVisible && edt->containsPoint(x, y)) hitEdit = edt.get();
+    for (auto& [id, edt] : edits)
+        if (edt.get() != hitEdit) edt->setFocus(false);              // клик мимо поля снимает фокус
+
+    for (auto& [id, btn] : buttons)
+        if (btn->isEnabled && btn->containsPoint(x, y)) { btn->handleClick(x, y); return; }
+
+    if (hitEdit) { hitEdit->handleClick(x, y); return; }
     for (auto& [id, panel] : panels)
         panel->handleClick(x, y);
+}
+
+Edit* Panel::focusedEdit() {
+    for (auto& [id, edt] : edits)
+        if (edt->isFocused && edt->isVisible && edt->isEnabled) return edt.get();
+    for (auto& [id, panel] : panels)
+        if (Edit* e = panel->focusedEdit()) return e;
+    return nullptr;
 }
 
 void Panel::handleHover(int x, int y) {

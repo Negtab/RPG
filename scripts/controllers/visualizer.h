@@ -16,6 +16,7 @@ public:
     void drawRect(const SDL_Rect& rect, SDL_Color color) const;
     void drawSprite(SDL_Texture* texture, int footX, int footY, int scale, const SDL_Rect* src = nullptr) const;
     void drawNinePatch(SDL_Texture* skin, const SDL_Rect& dst, int slice, int scale = 1) const;
+    void fillRect(const SDL_Rect& rect, SDL_Color color) const;
 
     void playMusic(Mix_Music* music) const;
     void stopMusic() const;

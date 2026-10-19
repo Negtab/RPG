@@ -2,6 +2,7 @@
 
 #include "UIManager.h"
 #include "../main/game.h"
+#include "../gameLogic/gameData.h"
 #include <SDL_log.h>
 
 constexpr int ENV_BUTTON_COUNT = 16;
@@ -463,58 +464,36 @@ void UIManager::updateBattleData(Scene &scene)
     const int enemyCount = static_cast<int>(game.getBattle()->getEnemies().size());
     const int heroCount = static_cast<int>(player.getHeroes().size());
 
-    //Remote Hero
-    if (game.getRemotePlayers().size() > 0)
+    // Герои напарников
+    std::string remoteHeroText;
+    int slot = 0;
+    for (const auto &[id, remote] : game.getRemotePlayers())
     {
-        // Герои удалённых игроков (раньше: цикл по числу героев ЛОКАЛЬНОГО игрока и [i] у последнего удалённого, выход за границу)
-        std::string remoteHeroText;
-        int slot = 0;
-        for (const auto &[id, remote] : game.getRemotePlayers())
+        if (!game.getBattle()->isParticipant(id)) continue;
+        const auto &heroes = remote.getHeroes();
+        for (int i = 0; i < static_cast<int>(heroes.size()) && slot < 4; ++i, ++slot)
         {
-            if (!game.getBattle()->isParticipant(id)) continue;
-
-            const auto &heroes = remote.getHeroes();
-            for (int i = 0; i < static_cast<int>(heroes.size()) && slot < MAX_HERO_COUNT; ++i, ++slot)
-            {
-                const auto &hero = heroes[i];
-                remoteHeroText += "Remote" + hero.getName() + " "
-                        + std::to_string(hero.getCurrentHp()) + "/"
-                        + std::to_string(hero.getMaxHp()) + "\n";
-
-                const bool dead = hero.getCurrentHp() <= 0;
-                const SDL_Rect drect = dead
-                    ? SDL_Rect{scr.w - 200, scr.h / 2 - 230 + slot * 100, 66, 84}
-                : SDL_Rect{scr.w - 200, scr.h / 2 - 230 + slot * 100, 56, 74};
-
-                const std::string name = "RemoteHero" + std::to_string(slot + 1);
-                setRect(name, "Battle", drect);
-                setTexture(name, "Battle",
-                           ResourceManager::getTexture("Image" + std::to_string(i + 1) + (dead ? "Dead" : "")));
-            }
+            const auto &hero = heroes[i];
+            remoteHeroText += "Remote" + hero.getName() + " " + std::to_string(hero.getCurrentHp()) + "/"
+                              + std::to_string(hero.getMaxHp()) + "\n";
+            const std::string img = "Image" + std::to_string(heroLook(hero.getClass()))
+                                    + (hero.getCurrentHp() <= 0 ? "Dead" : "");
+            setTexture("RemoteHero" + std::to_string(slot + 1), "Battle", ResourceManager::getTexture(img));
         }
-        if (slot > 0)
-            setText("RemoteHerosStatus", "Battle", remoteHeroText);
     }
+    setVisible("RemoteWindow", "Battle", slot > 0);
+    setText("RemoteHerosStatus", "Battle", remoteHeroText);
 
-
-    // Герои
+    // Свои герои
     std::string heroText;
-    for (int i = 0; i < heroCount; i++)
+    for (int i = 0; i < heroCount && i < 4; i++)
     {
         const auto &hero = player.getHeroes().at(i);
-        heroText += hero.getName() + " "
-                + std::to_string(hero.getCurrentHp()) + "/"
-                + std::to_string(hero.getMaxHp()) + "\n";
-
-        bool dead = hero.getCurrentHp() <= 0;
-        SDL_Rect drect = dead
-                             ? SDL_Rect{scr.w - 100, scr.h / 2 - 230 + i * 100, 66, 84}
-                             : SDL_Rect{scr.w - 100, scr.h / 2 - 230 + i * 100, 56, 74};
-
-        std::string imgId = "Image" + std::to_string(i + 1) + (dead ? "Dead" : "");
-        setRect("Hero" + std::to_string(i + 1), "Battle", drect);
-        setTexture("Hero" + std::to_string(i + 1), "Battle",
-                   ResourceManager::getTexture(imgId));
+        heroText += hero.getName() + " " + std::to_string(hero.getCurrentHp()) + "/"
+                    + std::to_string(hero.getMaxHp()) + "\n";
+        const std::string img = "Image" + std::to_string(heroLook(hero.getClass()))
+                                + (hero.getCurrentHp() <= 0 ? "Dead" : "");
+        setTexture("Hero" + std::to_string(i + 1), "Battle", ResourceManager::getTexture(img));
     }
     setText("HerosStatus", "Battle", heroText);
 
@@ -538,19 +517,143 @@ void UIManager::updateBattleData(Scene &scene)
 // ─────────────────────────────────────────
 // Battle helpers
 // ─────────────────────────────────────────
+namespace {
+    constexpr double kPi = 3.14159265358979323846;
+
+    SDL_Point textureSize(SDL_Texture* t)
+    {
+        int w = 0, h = 0;
+        if (t) SDL_QueryTexture(t, nullptr, nullptr, &w, &h);
+        return {w, h};
+    }
+
+    // Рамки анимации атаки: герой делает шаг влево и возвращается; «ноги» остаются на нижнем крае слота
+    std::vector<SDL_Rect> attackRects(const std::vector<SDL_Texture*>& frames, const SDL_Rect& slot, int scale)
+    {
+        std::vector<SDL_Rect> rects;
+        const int n = static_cast<int>(frames.size());
+        for (int f = 0; f < n; ++f)
+        {
+            const SDL_Point sz = textureSize(frames[f]);
+            const int w = sz.x * scale, h = sz.y * scale;
+            const int dx = -static_cast<int>(std::lround(14.0 * scale * std::sin(kPi * f / std::max(1, n - 1))));
+            rects.push_back({slot.x + slot.w / 2 - w / 2 + dx, slot.y + slot.h - h, w, h});
+        }
+        return rects;
+    }
+}
+
+
+void UIManager::layoutBattle()
+{
+    const SDL_Rect scr = game.getScreenRect();
+    const int S = PIXEL_SCALE;                 // тот же масштаб, что на карте
+    const int fieldH = 452;                    // поле боя над нижней панелью
+    const int margin = 16;
+
+    // ── Враги: одна или две колонки слева ──────────────────────────────
+    const auto& enemies = game.getBattle()->getEnemies();
+    const int n = std::min<int>(static_cast<int>(enemies.size()), 4);
+
+    std::array<SDL_Point, 4> nat{};            // родные размеры спрайтов
+    for (int i = 0; i < n; ++i)
+        if (const EnemyDef* def = GameData::instance().enemy(enemies[i].getEnemyId()))
+            nat[i] = {def->srcRect.w, def->srcRect.h};
+
+    const int columns = n <= 2 ? 1 : 2;
+    std::array<std::vector<int>, 2> col;
+    for (int i = 0; i < n; ++i) col[columns == 1 ? 0 : i % 2].push_back(i);
+
+    const SDL_Rect area{margin, margin, 560 - margin, fieldH - 2 * margin};
+
+    auto fits = [&](int scale) {
+        for (int c = 0; c < columns; ++c)
+        {
+            int sumH = 0, maxW = 0;
+            for (int i : col[c]) { sumH += nat[i].y * scale; maxW = std::max(maxW, nat[i].x * scale); }
+            if (sumH > area.h || maxW > area.w / columns) return false;
+        }
+        return true;
+    };
+    int es = S;
+    while (es > 1 && !fits(es)) --es;          // слишком крупная группа: уменьшаем целым шагом, а не дробью
+
+    for (int c = 0; c < columns; ++c)
+    {
+        const int cx = columns == 1 ? area.x + area.w / 2 : area.x + area.w * (c == 0 ? 27 : 73) / 100;
+        const int m = static_cast<int>(col[c].size());
+        for (int k = 0; k < m; ++k)
+        {
+            const int i = col[c][k];
+            const int w = nat[i].x * es, h = nat[i].y * es;
+            const int slotH = area.h / std::max(1, m);
+            const int bottom = area.y + slotH * (k + 1) - 6;               // «ноги» на нижнем крае слота
+            enemySlotRect[i] = {cx - w / 2, bottom - h, w, h};
+        }
+    }
+    for (int i = 0; i < 4; ++i)
+    {
+        const std::string id = "Enemy" + std::to_string(i + 1);
+        if (i < n && nat[i].x > 0) setRect(id, "Battle", enemySlotRect[i]);
+        else                       setTexture(id, "Battle", nullptr);      // пустой слот: убираем остатки прошлого боя
+    }
+
+    // ── Герои: две колонки справа (свои и напарника) ──────────────────
+    const int hw = 16 * S, hh = 24 * S;
+    const int slotH = (fieldH - 2 * margin) / 4;
+    const int localX = scr.w - margin - hw - 8;
+    const int remoteX = localX - hw - 36;
+    for (int i = 0; i < 4; ++i)
+    {
+        const int y = margin + slotH * (i + 1) - 10 - hh;
+        heroSlotRect[i]   = {localX,  y, hw, hh};
+        remoteSlotRect[i] = {remoteX, y, hw, hh};
+        setRect("Hero" + std::to_string(i + 1), "Battle", heroSlotRect[i]);
+        setRect("RemoteHero" + std::to_string(i + 1), "Battle", remoteSlotRect[i]);
+    }
+}
 
 void UIManager::addEnemys()
 {
-    for (int i = 0; i < (int) game.getBattle()->getEnemies().size(); i++)
+    const auto& enemies = game.getBattle()->getEnemies();
+    for (int i = 0; i < 4; i++)
         setTexture("Enemy" + std::to_string(i + 1), "Battle",
-                   ResourceManager::getTexture(game.getBattle()->getEnemies().at(i).getTextureName()));
+                   i < static_cast<int>(enemies.size())
+                       ? ResourceManager::getTexture(enemies[i].getTextureName()) : nullptr);
+    layoutBattle();                            // сначала враги, потому что addCharacters использует позиции героев
 }
 
 void UIManager::addCharacters()
 {
-    for (int i = 0; i < MAX_HERO_COUNT; i++)
-        setTexture("Hero" + std::to_string(i + 1), "Battle",
-                   ResourceManager::getTexture("Image" + std::to_string(i + 1)));
+    const int S = PIXEL_SCALE;
+    const auto& mine = player.getHeroes();
+    for (int i = 0; i < 4; ++i)
+    {
+        const std::string id = "Hero" + std::to_string(i + 1);
+        if (i >= static_cast<int>(mine.size())) { setTexture(id, "Battle", nullptr); continue; }
+
+        const int look = heroLook(mine[i].getClass());
+        setTexture(id, "Battle", ResourceManager::getTexture("Image" + std::to_string(look)));
+        const auto& frames = ResourceManager::getAnimation("Hero" + std::to_string(look) + "Animation");
+        addAnimation(id + "Animation", "Battle", frames, attackRects(frames, heroSlotRect[i], S), 0.2f);
+    }
+
+    int slot = 0;                                                         // герои напарников
+    for (const auto& [id, remote] : game.getRemotePlayers())
+    {
+        if (!game.getBattle()->isParticipant(id)) continue;
+        const auto& heroes = remote.getHeroes();
+        for (int i = 0; i < static_cast<int>(heroes.size()) && slot < 4; ++i, ++slot)
+        {
+            const int look = heroLook(heroes[i].getClass());
+            const std::string rid = "RemoteHero" + std::to_string(slot + 1);
+            setTexture(rid, "Battle", ResourceManager::getTexture("Image" + std::to_string(look)));
+            const auto& frames = ResourceManager::getAnimation("Hero" + std::to_string(look) + "Animation");
+            addAnimation(rid + "Animation", "Battle", frames, attackRects(frames, remoteSlotRect[slot], S), 0.2f);
+        }
+    }
+    for (; slot < 4; ++slot)
+        setTexture("RemoteHero" + std::to_string(slot + 1), "Battle", nullptr);
 }
 
 // ─────────────────────────────────────────
@@ -744,9 +847,9 @@ void UIManager::moveSelector()
     SDL_Rect aSel = getRect("ActorSelector", "Battle");
 
     tSel.x = targetRect.x + targetRect.w / 2 - tSel.w / 2;
-    tSel.y = targetRect.y - targetRect.h;
     aSel.x = actorRect.x + actorRect.w / 2 - aSel.w / 2;
-    aSel.y = actorRect.y - actorRect.h;
+    tSel.y = std::max(0, targetRect.y - tSel.h);              // над целью, но не за верхним краем экрана
+    aSel.y = std::max(0, actorRect.y - aSel.h);
 
     setRect("TargetSelector", "Battle", tSel);
     setRect("ActorSelector", "Battle", aSel);
@@ -852,6 +955,138 @@ MapRenderer* UIManager::rendererFor(const MapData& map)
     mapRenderers.emplace(map.mapId, std::move(r));
     return raw->width() > 0 ? raw : nullptr;
 }
+
+namespace {
+constexpr SpecializationNames kPickable[4] = {
+    SpecializationNames::Warrior, SpecializationNames::Thief,
+    SpecializationNames::Archer,  SpecializationNames::Magician };
+}
+
+void UIManager::initCreateScene()
+{
+    TTF_Font* font = ResourceManager::getFont("RetroByte");
+    const SDL_Color white{255, 255, 255, 255};
+    const SDL_Color black{0, 0, 0, 255};
+    auto hover = [this]() { playSound("Menu", "ButtonHover"); };
+
+    // drawScene берёт музыку сцены по имени «<сцена>Theme»: подставляем музыку меню
+    if (Scene* s = findScene("CreatePlayer"))
+        s->musicPlayer.music["CreatePlayerTheme"] = ResourceManager::getMusic("MenuTheme");
+
+    addImage("CreateBackground", "CreatePlayer", screen,
+             ResourceManager::getTexture("OptionsBackground"), {0, 0, 1920, 1000});
+    addLabel("CreateTitle", "CreatePlayer", {screen.w / 2 - 140, 24, 0, 0}, nullptr,
+             "Choose your party", font, black, 8, 4);
+
+    const int slotW = 200, gap = 16, top = 80, slotH = 400;
+    const int startX = (screen.w - (4 * slotW + 3 * gap)) / 2;
+
+    for (int i = 0; i < 4; ++i)
+    {
+        const std::string n = std::to_string(i + 1);
+        const int x = startX + i * (slotW + gap);
+
+        addWindow("Slot" + n, "CreatePlayer", {x, top, slotW, slotH});
+        addImage("Portrait" + n, "CreatePlayer", {x + 60, top + 24, 80, 120}, nullptr, {0, 0, 16, 24});
+        addButton("Prev" + n, "CreatePlayer", {x + 10, top + 160, 30, 30},
+                  ResourceManager::getTextTexture("<", font, white), [this, i]() { cycleClass(i, -1); }, hover);
+        addButton("Next" + n, "CreatePlayer", {x + slotW - 40, top + 160, 30, 30},
+                  ResourceManager::getTextTexture(">", font, white), [this, i]() { cycleClass(i, +1); }, hover);
+        addLabel("Class" + n, "CreatePlayer", {x + 48, top + 162, 0, 0}, nullptr, "", font, white, 4, 4);
+        addLabel("Stats" + n, "CreatePlayer", {x + 14, top + 205, 0, 0}, nullptr, "", font, white, 4, 4);
+        addEdit("Name" + n, "CreatePlayer", {x + 14, top + slotH - 56, slotW - 28, 38}, font, white, nullptr, hover);
+        styleEdit("Name" + n, "CreatePlayer", {10, 20, 90, 255}, {232, 232, 240, 255}, 12);
+    }
+
+    addButton("StartButton", "CreatePlayer", {screen.w / 2 - 90, screen.h - 90, 180, 50},
+              ResourceManager::getTextTexture("Start", font, black), [this]() { confirmParty(); }, hover);
+    addButton("BackToMenu", "CreatePlayer", {20, screen.h - 90, 140, 50},
+              ResourceManager::getTextTexture("Back", font, black), [this]() { game.closePartyCreation(); }, hover);
+
+    resetPartyCreation();
+}
+
+void UIManager::resetPartyCreation()
+{
+    pickedClass = {0, 1, 2, 3};
+    autoName.fill("");
+    for (int i = 0; i < 4; ++i)
+    {
+        const std::string n = std::to_string(i + 1);
+        setText("Name" + n, "CreatePlayer", "");
+        setFocus("Name" + n, "CreatePlayer", false);
+        refreshPartySlot(i);
+    }
+}
+
+void UIManager::refreshPartySlot(int slot)
+{
+    const std::string n = std::to_string(slot + 1);
+    const SpecializationNames cls = kPickable[pickedClass[slot]];
+    const HeroClassDef* def = GameData::instance().heroClass(cls);
+    if (!def) return;
+
+    setTexture("Portrait" + n, "CreatePlayer", ResourceManager::getTexture("Image" + std::to_string(heroLook(cls))));
+    setText("Class" + n, "CreatePlayer", def->name);
+    setText("Stats" + n, "CreatePlayer",
+            "HP  " + std::to_string(def->hp) + "\nMP  " + std::to_string(def->mp) +
+            "\nATK " + std::to_string(def->attack) + "\nDEF " + std::to_string(def->defence) +
+            "\nAGI " + std::to_string(def->agility));
+
+    const std::string current = getText("Name" + n, "CreatePlayer");
+    if (current.empty() || current == autoName[slot])        // имя по умолчанию следует за классом, своё не трогаем
+        setText("Name" + n, "CreatePlayer", def->name);
+    autoName[slot] = def->name;
+}
+
+void UIManager::cycleClass(int slot, int dir)
+{
+    pickedClass[slot] = (pickedClass[slot] + dir + 4) % 4;
+    refreshPartySlot(slot);
+}
+
+bool UIManager::handleTextEvent(const SDL_Event& event, const std::string& sceneId)
+{
+    if (event.type != SDL_TEXTINPUT && event.type != SDL_KEYDOWN) return false;
+
+    Scene* scene = findScene(sceneId);
+    Edit* edit = scene ? scene->focusedEdit() : nullptr;
+    if (!edit) return false;
+
+    if (event.type == SDL_TEXTINPUT)
+        return edit->handleTextInput(event.text.text);
+    return edit->handleKey(event.key.keysym.scancode);
+}
+
+void UIManager::styleEdit(const std::string& id, const std::string& sceneId,
+                          SDL_Color background, SDL_Color border, int maxLength)
+{
+    if (auto* edit = dynamic_cast<Edit*>(findUIObject(id, sceneId)))
+    {
+        edit->background = background;
+        edit->border = border;
+        edit->maxLength = maxLength;
+    }
+}
+
+void UIManager::focusNameField(int slot)
+{
+    for (int i = 0; i < 4; ++i)
+        setFocus("Name" + std::to_string(i + 1), "CreatePlayer", i == slot);
+}
+
+void UIManager::confirmParty()
+{
+    std::vector<SpecializationNames> classes;
+    std::vector<std::string> names;
+    for (int i = 0; i < 4; ++i)
+    {
+        classes.push_back(kPickable[pickedClass[i]]);
+        names.push_back(sanitizeHeroName(getText("Name" + std::to_string(i + 1), "CreatePlayer")));
+    }
+    game.createParty(classes, names);
+}
+
 void UIManager::initialize()
 {
     screen = game.getScreenRect();
@@ -868,6 +1103,7 @@ void UIManager::initialize()
     initOptionsScene();
     initOnlineScene();
     initBattleScene();
+    initCreateScene();
 }
 
 void UIManager::initMapScene()
@@ -907,7 +1143,7 @@ void UIManager::initMenuScene()
               [this]() { game.startGame(); }, hover, "ButtonPanel");
     addButton("New game", "Menu", {190, screen.h / 2 + 130, 170, 50},
               ResourceManager::getTextTexture("New game", font, {0, 0, 0, 0}),
-              [this]() { game.startGame(); }, hover, "ButtonPanel");
+              [this]() { game.openPartyCreation(); }, hover, "ButtonPanel");
     addButton("Options", "Menu", {190, screen.h / 2 + 180, 150, 50},
               ResourceManager::getTextTexture("Options", font, {0, 0, 0, 0}),
               [this]() { game.openOptions(GameState::Menu); }, hover, "ButtonPanel");
@@ -976,6 +1212,28 @@ void UIManager::initOnlineScene()
 
     addImage("FPS", "Online", {10, 10, 100, 30},
              ResourceManager::getTextTexture("FPS: 0", font, {0, 0, 0, 0}));
+}
+
+void UIManager::showBattleResults(const BattleReport& r)
+{
+    std::string text = "Victory!\n\n";
+    text += "Obtained " + std::to_string(r.gold) + " Gil\n";
+    text += "Each hero earned " + std::to_string(r.expEach) + " EXP\n";
+    for (const auto& up : r.levelUps)
+        text += "\n" + up.name + " reached level " + std::to_string(up.newLevel) + "!";
+
+    setText("ResultText", "Battle", text);
+    setEnVI("ActionPanel", "Battle", false);
+    setEnVI("EnvironmentPanel", "Battle", false);
+    setEnVI("TargetSelector", "Battle", false);
+    setEnVI("ActorSelector", "Battle", false);
+    setEnVI("ResultPanel", "Battle", true);
+}
+
+void UIManager::hideBattleResults()
+{
+    setEnVI("ResultPanel", "Battle", false);
+    setEnVI("ActionPanel", "Battle", true);                      // для следующего боя
 }
 
 void UIManager::initBattleScene()
@@ -1063,21 +1321,12 @@ void UIManager::initBattleScene()
                  nullptr, {0, 0, 16, 24}, "HeroPanel");
     }
 
-    for (int i = 0; i < (int) player.getHeroes().size(); i++)
-    {
-        addAnimation("Hero" + std::to_string(i + 1) + "Animation", "Battle",
-                     ResourceManager::getAnimation("Hero" + std::to_string(i + 1) + "Animation"),
-                     {
-                         {screen.w - 100, screen.h / 2 - 230 + i * 100, 56, 94},
-                         {screen.w - 150, screen.h / 2 - 230 + i * 100, 56, 94},
-                         {screen.w - 100, screen.h / 2 - 230 + i * 100, 56, 94}
-                     }, 0.2f);
-        addAnimation("RemoteHero" + std::to_string(i + 1) + "Animation", "Battle",
-                     ResourceManager::getAnimation("Hero" + std::to_string(i + 1) + "Animation"),
-                     {
-                         {screen.w - 200, screen.h / 2 - 230 + i * 100, 56, 94},
-                         {screen.w - 250, screen.h / 2 - 230 + i * 100, 56, 94},
-                         {screen.w - 200, screen.h / 2 - 230 + i * 100, 56, 94}
-                     }, 0.2f);
-    }
+
+    addPanel("ResultPanel", "Battle");
+    addWindow("ResultWindow", "Battle", {screen.w / 2 - 230, 110, 460, 230}, "ResultPanel");
+    addLabel("ResultText", "Battle", {screen.w / 2 - 210, 125, 0, 0}, nullptr, "", font,
+             {255, 255, 255, 255}, 8, 4, "ResultPanel");
+    addLabel("ResultHint", "Battle", {screen.w / 2 - 210, 300, 0, 0}, nullptr, "Press Enter", font,
+             {255, 255, 255, 255}, 8, 4, "ResultPanel");
+    setEnVI("ResultPanel", "Battle", false);
 }

@@ -61,6 +61,7 @@ bool Server::start(uint16_t port) {
     {
         std::lock_guard<std::mutex> lock(clientsMutex);
         lastMove.clear();
+        lastParty.clear();
     }
 
     running = true;
@@ -144,6 +145,8 @@ void Server::acceptLoop() {
             }
             for (const auto& [id, mv] : lastMove)
                 ::send(s, reinterpret_cast<const char*>(&mv), sizeof(mv), 0);
+            for (const auto& [id, party] : lastParty)
+                ::send(s, reinterpret_cast<const char*>(&party), sizeof(party), 0);
             clients.push_back(client);
         }
 
@@ -185,6 +188,17 @@ void Server::clientLoop(Client client) {
                 lastMove[client.id] = *p;
                 break;
             }
+            case PacketType::PartyInfo: {
+                auto* p = reinterpret_cast<PartyInfoPacket*>(buf);
+                p->playerId = client.id;                         // чужому id не верим
+                if (p->heroCount > 4) {
+                    SDL_Log("[Server] client %u sent a party of %d heroes, dropped", client.id, (int)p->heroCount);
+                    continue;
+                }
+                std::lock_guard<std::mutex> lock(clientsMutex);
+                lastParty[client.id] = *p;                       // для новичков
+                break;
+            }
             case PacketType::BattleAction:
                 reinterpret_cast<BattleActionPacket*>(buf)->playerId = client.id;
                 break;
@@ -213,6 +227,7 @@ void Server::clientLoop(Client client) {
         std::lock_guard<std::mutex> lock(clientsMutex);
         std::erase_if(clients, [&](const Client& c) { return c.id == client.id; });
         lastMove.erase(client.id);
+        lastParty.erase(client.id);
     }
     closesocket(client.socket);   // раньше сокет нигде не закрывался: утечка дескриптора
 

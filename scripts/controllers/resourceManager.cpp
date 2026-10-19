@@ -290,7 +290,7 @@ void ResourceManager::initialize()
 }
 
 constexpr uint32_t kSaveMagic   = 0x504C5952;   // 'PLYR'
-constexpr uint32_t kSaveVersion = 2;            // 2: координаты в клетках + mapId
+constexpr uint32_t kSaveVersion = 3;            // 2: координаты в клетках + mapId
 constexpr uint64_t kMaxString   = 1024;
 constexpr uint64_t kMaxCount    = 100000;
 
@@ -362,6 +362,19 @@ bool ResourceManager::savePlayer(const std::string& path, const Player& player)
         {
             writePod<int32_t>(out, id);
             writePod<uint8_t>(out, count);
+        }
+
+        const auto& heroes = player.getHeroes();
+        writePod<uint8_t>(out, static_cast<uint8_t>(std::min<size_t>(heroes.size(), 4)));
+        for (size_t i = 0; i < heroes.size() && i < 4; ++i)
+        {
+            const Hero& h = heroes[i];
+            writePod<uint8_t>(out, static_cast<uint8_t>(h.getClass()));
+            writePod<uint8_t>(out, h.getLevel());
+            writePod<uint32_t>(out, h.getExperience());
+            writePod<uint32_t>(out, h.getCurrentHp());
+            writePod<uint32_t>(out, h.getCurrentMp());
+            writeString(out, h.getName());
         }
 
         out.flush();
@@ -438,6 +451,24 @@ bool ResourceManager::loadPlayer(const std::string& path, Player& player)
         readPod(in, count);
         items.emplace_back(id, count);
     }
+    struct SavedHero { uint8_t cls = 0, level = 1; uint32_t exp = 0, hp = 0, mp = 0; std::string name; };
+    std::vector<SavedHero> savedHeroes;
+    if (version >= 3)
+    {
+        uint8_t count = 0;
+        readPod(in, count);
+        if (count > 4) throw std::runtime_error("save file is corrupted (hero count)");
+        for (int i = 0; i < count; ++i)
+        {
+            SavedHero s;
+            readPod(in, s.cls); readPod(in, s.level); readPod(in, s.exp);
+            readPod(in, s.hp);  readPod(in, s.mp);
+            s.name = sanitizeHeroName(readString(in));
+            if (s.cls > static_cast<uint8_t>(SpecializationNames::Thief) || s.level < 1 || s.level > 99)
+                throw std::runtime_error("save file is corrupted (hero data)");
+            savedHeroes.push_back(std::move(s));
+        }
+    }
 
     // 2) всё прочитано без ошибок: применяем
     player.setPlayerName(name);
@@ -451,6 +482,21 @@ bool ResourceManager::loadPlayer(const std::string& path, Player& player)
         player.addDiscoveredEnemy(e);
     for (const auto& [id, count] : items)
         player.addItem(id, count);
+    if (!savedHeroes.empty())
+    {
+        auto& heroes = player.getLinkTOHeroes();
+        heroes.clear();
+        for (const auto& s : savedHeroes)
+        {
+            Hero hero{Specialization(static_cast<SpecializationNames>(s.cls))};
+            hero.setLevel(s.level);
+            hero.setExperience(s.exp);
+            hero.setCurrentHp(s.hp);
+            hero.setCurrentMp(s.mp);
+            if (!s.name.empty()) hero.setName(s.name);
+            heroes.push_back(std::move(hero));
+        }
+    }
 
     return hasPosition;
 }

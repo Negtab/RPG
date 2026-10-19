@@ -1,13 +1,1368 @@
 [
   {
+    "id": 1,
+    "name": "Goblin",
+    "texture": "Goblin",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      32,
+      0
+    ],
+    "attack": [
+      16,
+      0
+    ],
+    "defence": [
+      16,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      15,
+      0
+    ],
+    "gold": [
+      15,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Goblin Guard",
+    "texture": "Goblin Guard",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      64,
+      0
+    ],
+    "attack": [
+      32,
+      0
+    ],
+    "defence": [
+      24,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      45,
+      0
+    ],
+    "gold": [
+      45,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Wolf",
+    "texture": "Wolf",
+    "srcRect": [
+      0,
+      0,
+      32,
+      31
+    ],
+    "hp": [
+      80,
+      0
+    ],
+    "attack": [
+      32,
+      0
+    ],
+    "defence": [
+      0,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      60,
+      0
+    ],
+    "gold": [
+      15,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Crazy Horse",
+    "texture": "Crazy Horse",
+    "srcRect": [
+      0,
+      0,
+      46,
+      48
+    ],
+    "hp": [
+      256,
+      0
+    ],
+    "attack": [
+      40,
+      0
+    ],
+    "defence": [
+      8,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      158,
+      0
+    ],
+    "gold": [
+      38,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Skeleton",
+    "texture": "Skeleton",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      40,
+      0
+    ],
+    "attack": [
+      40,
+      0
+    ],
+    "defence": [
+      0,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      22,
+      0
+    ],
+    "gold": [
+      8,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Black Widow",
+    "texture": "Black Widow",
+    "srcRect": [
+      0,
+      0,
+      33,
+      30
+    ],
+    "hp": [
+      112,
+      0
+    ],
+    "attack": [
+      40,
+      0
+    ],
+    "defence": [
+      0,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      75,
+      0
+    ],
+    "gold": [
+      20,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "name": "Gigas Worm",
+    "texture": "Gigas Worm",
+    "srcRect": [
+      0,
+      0,
+      32,
+      33
+    ],
+    "hp": [
+      224,
+      0
+    ],
+    "attack": [
+      68,
+      0
+    ],
+    "defence": [
+      32,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      158,
+      0
+    ],
+    "gold": [
+      38,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "name": "Warg Wolf",
+    "texture": "Warg Wolf",
+    "srcRect": [
+      0,
+      0,
+      32,
+      31
+    ],
+    "hp": [
+      288,
+      0
+    ],
+    "attack": [
+      56,
+      0
+    ],
+    "defence": [
+      0,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      232,
+      0
+    ],
+    "gold": [
+      55,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "name": "Werewolf",
+    "texture": "Werewolf",
+    "srcRect": [
+      0,
+      0,
+      32,
+      31
+    ],
+    "hp": [
+      272,
+      0
+    ],
+    "attack": [
+      56,
+      0
+    ],
+    "defence": [
+      24,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      338,
+      0
+    ],
+    "gold": [
+      168,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 100,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "name": "Zombie",
+    "texture": "Zombie",
+    "srcRect": [
+      0,
+      0,
+      32,
+      33
+    ],
+    "hp": [
+      80,
+      0
+    ],
+    "attack": [
+      40,
+      0
+    ],
+    "defence": [
+      0,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      60,
+      0
+    ],
+    "gold": [
+      30,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "name": "Ghoul",
+    "texture": "Ghoul",
+    "srcRect": [
+      0,
+      0,
+      32,
+      33
+    ],
+    "hp": [
+      192,
+      0
+    ],
+    "attack": [
+      32,
+      0
+    ],
+    "defence": [
+      24,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      232,
+      0
+    ],
+    "gold": [
+      125,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "name": "Garland",
+    "texture": "Garland",
+    "srcRect": [
+      0,
+      0,
+      34,
+      33
+    ],
+    "hp": [
+      848,
+      0
+    ],
+    "attack": [
+      60,
+      0
+    ],
+    "defence": [
+      32,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      325,
+      0
+    ],
+    "gold": [
+      625,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "name": "Cobra",
+    "texture": "Cobra",
+    "srcRect": [
+      0,
+      0,
+      33,
+      32
+    ],
+    "hp": [
+      224,
+      0
+    ],
+    "attack": [
+      24,
+      0
+    ],
+    "defence": [
+      24,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      308,
+      0
+    ],
+    "gold": [
+      125,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 100,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "name": "Ogre",
+    "texture": "Ogre",
+    "srcRect": [
+      0,
+      0,
+      44,
+      49
+    ],
+    "hp": [
+      400,
+      0
+    ],
+    "attack": [
+      72,
+      0
+    ],
+    "defence": [
+      40,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      488,
+      0
+    ],
+    "gold": [
+      488,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "name": "Ogre Chief",
+    "texture": "Ogre Chief",
+    "srcRect": [
+      0,
+      0,
+      44,
+      49
+    ],
+    "hp": [
+      528,
+      0
+    ],
+    "attack": [
+      92,
+      0
+    ],
+    "defence": [
+      56,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      705,
+      0
+    ],
+    "gold": [
+      750,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "name": "Lizard",
+    "texture": "Lizard",
+    "srcRect": [
+      0,
+      0,
+      49,
+      32
+    ],
+    "hp": [
+      368,
+      0
+    ],
+    "attack": [
+      72,
+      0
+    ],
+    "defence": [
+      48,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      382,
+      0
+    ],
+    "gold": [
+      125,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 17,
+    "name": "Pirate",
+    "texture": "Pirate",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      96,
+      0
+    ],
+    "attack": [
+      40,
+      0
+    ],
+    "defence": [
+      0,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      100,
+      0
+    ],
+    "gold": [
+      100,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "name": "Sahagin",
+    "texture": "Sahagin",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      112,
+      0
+    ],
+    "attack": [
+      40,
+      0
+    ],
+    "defence": [
+      16,
+      0
+    ],
+    "agility": [
+      20,
+      0
+    ],
+    "exp": [
+      75,
+      0
+    ],
+    "gold": [
+      75,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 19,
+    "name": "Sahagin Chief",
+    "texture": "Sahagin Chief",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      256,
+      0
+    ],
+    "attack": [
+      60,
+      0
+    ],
+    "defence": [
+      32,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      262,
+      0
+    ],
+    "gold": [
+      262,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 20,
+    "name": "Buccaneer",
+    "texture": "Buccaneer",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      200,
+      0
+    ],
+    "attack": [
+      56,
+      0
+    ],
+    "defence": [
+      24,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      150,
+      0
+    ],
+    "gold": [
+      300,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "name": "Shark",
+    "texture": "Shark",
+    "srcRect": [
+      0,
+      0,
+      47,
+      47
+    ],
+    "hp": [
+      480,
+      0
+    ],
+    "attack": [
+      88,
+      0
+    ],
+    "defence": [
+      0,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      668,
+      0
+    ],
+    "gold": [
+      165,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 22,
+    "name": "Bigeyes",
+    "texture": "Bigeyes",
+    "srcRect": [
+      0,
+      0,
+      37,
+      46
+    ],
+    "hp": [
+      40,
+      0
+    ],
+    "attack": [
+      16,
+      0
+    ],
+    "defence": [
+      0,
+      0
+    ],
+    "agility": [
+      20,
+      0
+    ],
+    "exp": [
+      105,
+      0
+    ],
+    "gold": [
+      25,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 23,
+    "name": "Tarantula",
+    "texture": "Tarantula",
+    "srcRect": [
+      0,
+      0,
+      33,
+      30
+    ],
+    "hp": [
+      256,
+      0
+    ],
+    "attack": [
+      20,
+      0
+    ],
+    "defence": [
+      48,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      352,
+      0
+    ],
+    "gold": [
+      125,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 100,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 24,
+    "name": "Ghast",
+    "texture": "Ghast",
+    "srcRect": [
+      0,
+      0,
+      32,
+      33
+    ],
+    "hp": [
+      224,
+      0
+    ],
+    "attack": [
+      32,
+      0
+    ],
+    "defence": [
+      40,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      292,
+      0
+    ],
+    "gold": [
+      292,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 25,
+    "name": "Scorpion",
+    "texture": "Scorpion",
+    "srcRect": [
+      0,
+      0,
+      33,
+      30
+    ],
+    "hp": [
+      336,
+      0
+    ],
+    "attack": [
+      88,
+      0
+    ],
+    "defence": [
+      40,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      562,
+      0
+    ],
+    "gold": [
+      175,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 100,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 26,
+    "name": "Shadow",
+    "texture": "Shadow",
+    "srcRect": [
+      0,
+      0,
+      30,
+      33
+    ],
+    "hp": [
+      200,
+      0
+    ],
+    "attack": [
+      40,
+      0
+    ],
+    "defence": [
+      0,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      225,
+      0
+    ],
+    "gold": [
+      112,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 27,
+    "name": "Green Slime",
+    "texture": "Green Slime",
+    "srcRect": [
+      0,
+      0,
+      31,
+      33
+    ],
+    "hp": [
+      96,
+      0
+    ],
+    "attack": [
+      4,
+      0
+    ],
+    "defence": [
+      1020,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      210,
+      0
+    ],
+    "gold": [
+      50,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Ice"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 100,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 28,
+    "name": "Crawler",
+    "texture": "Crawler",
+    "srcRect": [
+      0,
+      0,
+      32,
+      33
+    ],
+    "hp": [
+      336,
+      0
+    ],
+    "attack": [
+      4,
+      0
+    ],
+    "defence": [
+      32,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      465,
+      0
+    ],
+    "gold": [
+      500,
+      0
+    ],
+    "hits": 8,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 29,
+    "name": "Gray Ooze",
+    "texture": "Gray Ooze",
+    "srcRect": [
+      0,
+      0,
+      31,
+      33
+    ],
+    "hp": [
+      304,
+      0
+    ],
+    "attack": [
+      120,
+      0
+    ],
+    "defence": [
+      28,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      638,
+      0
+    ],
+    "gold": [
+      175,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
     "id": 30,
     "name": "Gargoyle",
     "texture": "Gargoyle",
     "srcRect": [
       0,
       0,
-      108,
-      144
+      33,
+      33
     ],
     "hp": [
       320,
@@ -45,14 +1400,2611 @@
     ]
   },
   {
+    "id": 31,
+    "name": "Bloodbones",
+    "texture": "Bloodbones",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      576,
+      0
+    ],
+    "attack": [
+      104,
+      0
+    ],
+    "defence": [
+      48,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      945,
+      0
+    ],
+    "gold": [
+      945,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 32,
+    "name": "Piscodemon",
+    "texture": "Piscodemon",
+    "srcRect": [
+      0,
+      0,
+      30,
+      33
+    ],
+    "hp": [
+      336,
+      0
+    ],
+    "attack": [
+      120,
+      0
+    ],
+    "defence": [
+      64,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      690,
+      0
+    ],
+    "gold": [
+      750,
+      0
+    ],
+    "hits": 1,
+    "resists": [
+      "Fire",
+      "Ice"
+    ],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 33,
+    "name": "Astos",
+    "texture": "Astos",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      1680,
+      0
+    ],
+    "attack": [
+      120,
+      0
+    ],
+    "defence": [
+      72,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      5625,
+      0
+    ],
+    "gold": [
+      5000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 34,
+    "name": "Mummy",
+    "texture": "Mummy",
+    "srcRect": [
+      0,
+      0,
+      28,
+      33
+    ],
+    "hp": [
+      320,
+      0
+    ],
+    "attack": [
+      120,
+      0
+    ],
+    "defence": [
+      80,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      750,
+      0
+    ],
+    "gold": [
+      750,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 35,
+    "name": "Wraith",
+    "texture": "Wraith",
+    "srcRect": [
+      0,
+      0,
+      30,
+      33
+    ],
+    "hp": [
+      344,
+      0
+    ],
+    "attack": [
+      88,
+      0
+    ],
+    "defence": [
+      16,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      578,
+      0
+    ],
+    "gold": [
+      578,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 36,
+    "name": "Anaconda",
+    "texture": "Anaconda",
+    "srcRect": [
+      0,
+      0,
+      33,
+      32
+    ],
+    "hp": [
+      320,
+      0
+    ],
+    "attack": [
+      88,
+      0
+    ],
+    "defence": [
+      40,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      412,
+      0
+    ],
+    "gold": [
+      125,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 100,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 37,
+    "name": "Hyenadon",
+    "texture": "Hyenadon",
+    "srcRect": [
+      0,
+      0,
+      37,
+      42
+    ],
+    "hp": [
+      480,
+      0
+    ],
+    "attack": [
+      88,
+      0
+    ],
+    "defence": [
+      16,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      720,
+      0
+    ],
+    "gold": [
+      180,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 38,
+    "name": "Lesser Tiger",
+    "texture": "Lesser Tiger",
+    "srcRect": [
+      0,
+      0,
+      49,
+      38
+    ],
+    "hp": [
+      528,
+      0
+    ],
+    "attack": [
+      88,
+      0
+    ],
+    "defence": [
+      32,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      1095,
+      0
+    ],
+    "gold": [
+      270,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 39,
+    "name": "Minotaur",
+    "texture": "Minotaur",
+    "srcRect": [
+      0,
+      0,
+      46,
+      50
+    ],
+    "hp": [
+      656,
+      0
+    ],
+    "attack": [
+      88,
+      0
+    ],
+    "defence": [
+      16,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      1222,
+      0
+    ],
+    "gold": [
+      1222,
+      0
+    ],
+    "hits": 2,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 40,
+    "name": "Hill Gigas",
+    "texture": "Hill Gigas",
+    "srcRect": [
+      0,
+      0,
+      48,
+      49
+    ],
+    "hp": [
+      960,
+      0
+    ],
+    "attack": [
+      152,
+      0
+    ],
+    "defence": [
+      48,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      2198,
+      0
+    ],
+    "gold": [
+      2198,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 41,
+    "name": "Earth Elemental",
+    "texture": "Earth Elemental",
+    "srcRect": [
+      0,
+      0,
+      48,
+      49
+    ],
+    "hp": [
+      1152,
+      0
+    ],
+    "attack": [
+      264,
+      0
+    ],
+    "defence": [
+      80,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      3840,
+      0
+    ],
+    "gold": [
+      1920,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 42,
+    "name": "Troll",
+    "texture": "Troll",
+    "srcRect": [
+      0,
+      0,
+      38,
+      49
+    ],
+    "hp": [
+      736,
+      0
+    ],
+    "attack": [
+      96,
+      0
+    ],
+    "defence": [
+      48,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      1552,
+      0
+    ],
+    "gold": [
+      1552,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 102,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 43,
+    "name": "Wight",
+    "texture": "Wight",
+    "srcRect": [
+      0,
+      0,
+      32,
+      33
+    ],
+    "hp": [
+      208,
+      0
+    ],
+    "attack": [
+      80,
+      0
+    ],
+    "defence": [
+      80,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      375,
+      0
+    ],
+    "gold": [
+      375,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 45,
+    "name": "Cockatrice",
+    "texture": "Cockatrice",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      200,
+      0
+    ],
+    "attack": [
+      4,
+      0
+    ],
+    "defence": [
+      16,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      465,
+      0
+    ],
+    "gold": [
+      500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 46,
+    "name": "Vampire",
+    "texture": "Vampire",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      1120,
+      0
+    ],
+    "attack": [
+      304,
+      0
+    ],
+    "defence": [
+      104,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      3000,
+      0
+    ],
+    "gold": [
+      5000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 50,
+    "name": "Ankheg",
+    "texture": "Ankheg",
+    "srcRect": [
+      0,
+      0,
+      49,
+      49
+    ],
+    "hp": [
+      888,
+      0
+    ],
+    "attack": [
+      156,
+      0
+    ],
+    "defence": [
+      80,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      2985,
+      0
+    ],
+    "gold": [
+      750,
+      0
+    ],
+    "hits": 3,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 100,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 55,
+    "name": "Ochu",
+    "texture": "Ochu",
+    "srcRect": [
+      0,
+      0,
+      47,
+      49
+    ],
+    "hp": [
+      832,
+      0
+    ],
+    "attack": [
+      80,
+      0
+    ],
+    "defence": [
+      96,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      3060,
+      0
+    ],
+    "gold": [
+      255,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 100,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 56,
+    "name": "Neochu",
+    "texture": "Neochu",
+    "srcRect": [
+      0,
+      0,
+      47,
+      49
+    ],
+    "hp": [
+      1376,
+      0
+    ],
+    "attack": [
+      140,
+      0
+    ],
+    "defence": [
+      128,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      7972,
+      0
+    ],
+    "gold": [
+      1250,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 100,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 59,
+    "name": "Pyrolisk",
+    "texture": "Pyrolisk",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      176,
+      0
+    ],
+    "attack": [
+      80,
+      0
+    ],
+    "defence": [
+      16,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      1080,
+      0
+    ],
+    "gold": [
+      1250,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Ice"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 60,
+    "name": "Fire Elemental",
+    "texture": "Fire Elemental",
+    "srcRect": [
+      0,
+      0,
+      48,
+      49
+    ],
+    "hp": [
+      1104,
+      0
+    ],
+    "attack": [
+      200,
+      0
+    ],
+    "defence": [
+      80,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      4050,
+      0
+    ],
+    "gold": [
+      2000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Ice"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 61,
+    "name": "Fire Hydra",
+    "texture": "Fire Hydra",
+    "srcRect": [
+      0,
+      0,
+      49,
+      48
+    ],
+    "hp": [
+      728,
+      0
+    ],
+    "attack": [
+      80,
+      0
+    ],
+    "defence": [
+      56,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      3038,
+      0
+    ],
+    "gold": [
+      1000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Ice"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 62,
+    "name": "Lava Worm",
+    "texture": "Lava Worm",
+    "srcRect": [
+      0,
+      0,
+      49,
+      49
+    ],
+    "hp": [
+      1120,
+      0
+    ],
+    "attack": [
+      200,
+      0
+    ],
+    "defence": [
+      124,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      4178,
+      0
+    ],
+    "gold": [
+      1000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Ice"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 63,
+    "name": "Hellhound",
+    "texture": "Hellhound",
+    "srcRect": [
+      0,
+      0,
+      37,
+      42
+    ],
+    "hp": [
+      768,
+      0
+    ],
+    "attack": [
+      120,
+      0
+    ],
+    "defence": [
+      32,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      2955,
+      0
+    ],
+    "gold": [
+      1500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Ice"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 64,
+    "name": "Fire Lizard",
+    "texture": "Fire Lizard",
+    "srcRect": [
+      0,
+      0,
+      49,
+      32
+    ],
+    "hp": [
+      1184,
+      0
+    ],
+    "attack": [
+      124,
+      0
+    ],
+    "defence": [
+      72,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      6180,
+      0
+    ],
+    "gold": [
+      3000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Ice"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 65,
+    "name": "Fire Gigas",
+    "texture": "Fire Gigas",
+    "srcRect": [
+      0,
+      0,
+      48,
+      49
+    ],
+    "hp": [
+      1200,
+      0
+    ],
+    "attack": [
+      292,
+      0
+    ],
+    "defence": [
+      80,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      3765,
+      0
+    ],
+    "gold": [
+      3765,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Ice"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 66,
+    "name": "Red Dragon",
+    "texture": "Red Dragon",
+    "srcRect": [
+      0,
+      0,
+      44,
+      49
+    ],
+    "hp": [
+      992,
+      0
+    ],
+    "attack": [
+      300,
+      0
+    ],
+    "defence": [
+      120,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      7260,
+      0
+    ],
+    "gold": [
+      10000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Ice"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 68,
+    "name": "White Dragon",
+    "texture": "White Dragon",
+    "srcRect": [
+      0,
+      0,
+      44,
+      49
+    ],
+    "hp": [
+      800,
+      0
+    ],
+    "attack": [
+      212,
+      0
+    ],
+    "defence": [
+      32,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      4252,
+      0
+    ],
+    "gold": [
+      5000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 69,
+    "name": "Winter Wolf",
+    "texture": "Winter Wolf",
+    "srcRect": [
+      0,
+      0,
+      32,
+      31
+    ],
+    "hp": [
+      368,
+      0
+    ],
+    "attack": [
+      100,
+      0
+    ],
+    "defence": [
+      0,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      1005,
+      0
+    ],
+    "gold": [
+      500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 70,
+    "name": "Mindflayer",
+    "texture": "Mindflayer",
+    "srcRect": [
+      0,
+      0,
+      30,
+      33
+    ],
+    "hp": [
+      448,
+      0
+    ],
+    "attack": [
+      4,
+      0
+    ],
+    "defence": [
+      48,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      2055,
+      0
+    ],
+    "gold": [
+      2498,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 71,
+    "name": "Ice Gigas",
+    "texture": "Ice Gigas",
+    "srcRect": [
+      0,
+      0,
+      48,
+      49
+    ],
+    "hp": [
+      1344,
+      0
+    ],
+    "attack": [
+      240,
+      0
+    ],
+    "defence": [
+      64,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      4380,
+      0
+    ],
+    "gold": [
+      4380,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 74,
+    "name": "Dark Wizard",
+    "texture": "Dark Wizard",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      420,
+      0
+    ],
+    "attack": [
+      104,
+      0
+    ],
+    "defence": [
+      160,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      2738,
+      0
+    ],
+    "gold": [
+      2738,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 75,
+    "name": "Evil Eye",
+    "texture": "Evil Eye",
+    "srcRect": [
+      0,
+      0,
+      46,
+      49
+    ],
+    "hp": [
+      648,
+      0
+    ],
+    "attack": [
+      120,
+      0
+    ],
+    "defence": [
+      120,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      8312,
+      0
+    ],
+    "gold": [
+      8312,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 76,
+    "name": "Desert Baretta",
+    "texture": "Desert Baretta",
+    "srcRect": [
+      0,
+      0,
+      47,
+      43
+    ],
+    "hp": [
+      1408,
+      0
+    ],
+    "attack": [
+      392,
+      0
+    ],
+    "defence": [
+      192,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      6525,
+      0
+    ],
+    "gold": [
+      2,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 77,
+    "name": "Sabertooth",
+    "texture": "Sabertooth",
+    "srcRect": [
+      0,
+      0,
+      49,
+      38
+    ],
+    "hp": [
+      800,
+      0
+    ],
+    "attack": [
+      96,
+      0
+    ],
+    "defence": [
+      32,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      2108,
+      0
+    ],
+    "gold": [
+      1250,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 78,
+    "name": "Wyvern",
+    "texture": "Wyvern",
+    "srcRect": [
+      0,
+      0,
+      48,
+      48
+    ],
+    "hp": [
+      848,
+      0
+    ],
+    "attack": [
+      120,
+      0
+    ],
+    "defence": [
+      48,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      2932,
+      0
+    ],
+    "gold": [
+      50,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 100,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 79,
+    "name": "Wyrm",
+    "texture": "Wyrm",
+    "srcRect": [
+      0,
+      0,
+      48,
+      48
+    ],
+    "hp": [
+      1040,
+      0
+    ],
+    "attack": [
+      160,
+      0
+    ],
+    "defence": [
+      88,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      3045,
+      0
+    ],
+    "gold": [
+      1255,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 80,
+    "name": "Manticore",
+    "texture": "Manticore",
+    "srcRect": [
+      0,
+      0,
+      46,
+      49
+    ],
+    "hp": [
+      656,
+      0
+    ],
+    "attack": [
+      88,
+      0
+    ],
+    "defence": [
+      32,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      3292,
+      0
+    ],
+    "gold": [
+      1625,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 81,
+    "name": "Baretta",
+    "texture": "Baretta",
+    "srcRect": [
+      0,
+      0,
+      47,
+      43
+    ],
+    "hp": [
+      1024,
+      0
+    ],
+    "attack": [
+      240,
+      0
+    ],
+    "defence": [
+      152,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      3570,
+      0
+    ],
+    "gold": [
+      750,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 82,
+    "name": "Basilisk",
+    "texture": "Basilisk",
+    "srcRect": [
+      0,
+      0,
+      49,
+      32
+    ],
+    "hp": [
+      784,
+      0
+    ],
+    "attack": [
+      120,
+      0
+    ],
+    "defence": [
+      80,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      4942,
+      0
+    ],
+    "gold": [
+      1645,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 83,
+    "name": "Allosaurus",
+    "texture": "Allosaurus",
+    "srcRect": [
+      0,
+      0,
+      46,
+      49
+    ],
+    "hp": [
+      1920,
+      0
+    ],
+    "attack": [
+      260,
+      0
+    ],
+    "defence": [
+      40,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      8468,
+      0
+    ],
+    "gold": [
+      1255,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 84,
+    "name": "Weretiger",
+    "texture": "Weretiger",
+    "srcRect": [
+      0,
+      0,
+      32,
+      33
+    ],
+    "hp": [
+      640,
+      0
+    ],
+    "attack": [
+      120,
+      0
+    ],
+    "defence": [
+      64,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      1950,
+      0
+    ],
+    "gold": [
+      1950,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 60
+      },
+      {
+        "skill": 100,
+        "weight": 20
+      },
+      {
+        "skill": 102,
+        "weight": 20
+      }
+    ]
+  },
+  {
+    "id": 85,
+    "name": "Sand Worm",
+    "texture": "Sand Worm",
+    "srcRect": [
+      0,
+      0,
+      49,
+      49
+    ],
+    "hp": [
+      800,
+      0
+    ],
+    "attack": [
+      184,
+      0
+    ],
+    "defence": [
+      56,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      6708,
+      0
+    ],
+    "gold": [
+      2250,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 100,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 86,
+    "name": "Minotaur Zombie",
+    "texture": "Minotaur Zombie",
+    "srcRect": [
+      0,
+      0,
+      46,
+      50
+    ],
+    "hp": [
+      896,
+      0
+    ],
+    "attack": [
+      160,
+      0
+    ],
+    "defence": [
+      56,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      2625,
+      0
+    ],
+    "gold": [
+      2625,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 87,
+    "name": "King Mummy",
+    "texture": "King Mummy",
+    "srcRect": [
+      0,
+      0,
+      28,
+      33
+    ],
+    "hp": [
+      752,
+      0
+    ],
+    "attack": [
+      172,
+      0
+    ],
+    "defence": [
+      96,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      2460,
+      0
+    ],
+    "gold": [
+      2500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 88,
+    "name": "Medusa",
+    "texture": "Medusa",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      272,
+      0
+    ],
+    "attack": [
+      80,
+      0
+    ],
+    "defence": [
+      40,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      1748,
+      0
+    ],
+    "gold": [
+      1748,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 100,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 89,
+    "name": "Rakshasa",
+    "texture": "Rakshasa",
+    "srcRect": [
+      0,
+      0,
+      32,
+      33
+    ],
+    "hp": [
+      440,
+      0
+    ],
+    "attack": [
+      80,
+      0
+    ],
+    "defence": [
+      120,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      1508,
+      0
+    ],
+    "gold": [
+      2000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 90,
+    "name": "Clay Golem",
+    "texture": "Clay Golem",
+    "srcRect": [
+      0,
+      0,
+      47,
+      49
+    ],
+    "hp": [
+      704,
+      0
+    ],
+    "attack": [
+      256,
+      0
+    ],
+    "defence": [
+      28,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      3142,
+      0
+    ],
+    "gold": [
+      2000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 100,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 91,
+    "name": "Nightmare",
+    "texture": "Nightmare",
+    "srcRect": [
+      0,
+      0,
+      46,
+      48
+    ],
+    "hp": [
+      800,
+      0
+    ],
+    "attack": [
+      120,
+      0
+    ],
+    "defence": [
+      96,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      3180,
+      0
+    ],
+    "gold": [
+      1750,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Ice"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 92,
+    "name": "Dragon Zombie",
+    "texture": "Dragon Zombie",
+    "srcRect": [
+      0,
+      0,
+      44,
+      49
+    ],
+    "hp": [
+      1072,
+      0
+    ],
+    "attack": [
+      224,
+      0
+    ],
+    "defence": [
+      120,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      5828,
+      0
+    ],
+    "gold": [
+      2498,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 93,
+    "name": "Sahagin Prince",
+    "texture": "Sahagin Prince",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      816,
+      0
+    ],
+    "attack": [
+      188,
+      0
+    ],
+    "defence": [
+      80,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      2205,
+      0
+    ],
+    "gold": [
+      2205,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 94,
+    "name": "White Shark",
+    "texture": "White Shark",
+    "srcRect": [
+      0,
+      0,
+      47,
+      47
+    ],
+    "hp": [
+      1376,
+      0
+    ],
+    "attack": [
+      200,
+      0
+    ],
+    "defence": [
+      32,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      5902,
+      0
+    ],
+    "gold": [
+      1500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 95,
+    "name": "Deepeyes",
+    "texture": "Deepeyes",
+    "srcRect": [
+      0,
+      0,
+      37,
+      46
+    ],
+    "hp": [
+      1216,
+      0
+    ],
+    "attack": [
+      120,
+      0
+    ],
+    "defence": [
+      64,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      8978,
+      0
+    ],
+    "gold": [
+      8978,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 96,
+    "name": "Sea Snake",
+    "texture": "Sea Snake",
+    "srcRect": [
+      0,
+      0,
+      33,
+      32
+    ],
+    "hp": [
+      896,
+      0
+    ],
+    "attack": [
+      140,
+      0
+    ],
+    "defence": [
+      48,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      2392,
+      0
+    ],
+    "gold": [
+      1500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 97,
+    "name": "Sea Scorpion",
+    "texture": "Sea Scorpion",
+    "srcRect": [
+      0,
+      0,
+      33,
+      30
+    ],
+    "hp": [
+      592,
+      0
+    ],
+    "attack": [
+      140,
+      0
+    ],
+    "defence": [
+      72,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      1598,
+      0
+    ],
+    "gold": [
+      750,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 100,
+        "weight": 30
+      }
+    ]
+  },
+  {
+    "id": 98,
+    "name": "Sea Troll",
+    "texture": "Sea Troll",
+    "srcRect": [
+      0,
+      0,
+      38,
+      49
+    ],
+    "hp": [
+      864,
+      0
+    ],
+    "attack": [
+      160,
+      0
+    ],
+    "defence": [
+      80,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      2130,
+      0
+    ],
+    "gold": [
+      2130,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 70
+      },
+      {
+        "skill": 102,
+        "weight": 30
+      }
+    ]
+  },
+  {
     "id": 99,
     "name": "Ghost",
     "texture": "Ghost",
     "srcRect": [
       0,
       0,
-      84,
-      94
+      30,
+      33
     ],
     "hp": [
       720,
@@ -93,14 +4045,1134 @@
     ]
   },
   {
+    "id": 100,
+    "name": "Water Elemental",
+    "texture": "Water Elemental",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      1200,
+      0
+    ],
+    "attack": [
+      276,
+      0
+    ],
+    "defence": [
+      80,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      4905,
+      0
+    ],
+    "gold": [
+      2000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Ice"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 101,
+    "name": "Water Naga",
+    "texture": "Water Naga",
+    "srcRect": [
+      0,
+      0,
+      46,
+      49
+    ],
+    "hp": [
+      1424,
+      0
+    ],
+    "attack": [
+      36,
+      0
+    ],
+    "defence": [
+      32,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      210,
+      0
+    ],
+    "gold": [
+      50,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 102,
+    "name": "Kraken",
+    "texture": "Kraken",
+    "srcRect": [
+      0,
+      0,
+      62,
+      66
+    ],
+    "hp": [
+      7200,
+      0
+    ],
+    "attack": [
+      200,
+      0
+    ],
+    "defence": [
+      240,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      10612,
+      0
+    ],
+    "gold": [
+      12500,
+      0
+    ],
+    "hits": 8,
+    "resists": [
+      "Earth",
+      "Fire"
+    ],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 103,
+    "name": "Tyrannosaur",
+    "texture": "Tyrannosaur",
+    "srcRect": [
+      0,
+      0,
+      46,
+      49
+    ],
+    "hp": [
+      2400,
+      0
+    ],
+    "attack": [
+      460,
+      0
+    ],
+    "defence": [
+      40,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      18000,
+      0
+    ],
+    "gold": [
+      1500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 104,
+    "name": "Black Knight",
+    "texture": "Black Knight",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      1040,
+      0
+    ],
+    "attack": [
+      176,
+      0
+    ],
+    "defence": [
+      152,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      3158,
+      0
+    ],
+    "gold": [
+      4500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 105,
+    "name": "Chimera",
+    "texture": "Chimera",
+    "srcRect": [
+      0,
+      0,
+      49,
+      49
+    ],
+    "hp": [
+      1200,
+      0
+    ],
+    "attack": [
+      120,
+      0
+    ],
+    "defence": [
+      80,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      5160,
+      0
+    ],
+    "gold": [
+      6250,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Ice"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 106,
+    "name": "Guardian",
+    "texture": "Guardian",
+    "srcRect": [
+      0,
+      0,
+      30,
+      33
+    ],
+    "hp": [
+      800,
+      0
+    ],
+    "attack": [
+      100,
+      0
+    ],
+    "defence": [
+      160,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      3060,
+      0
+    ],
+    "gold": [
+      1000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 107,
+    "name": "Blue Dragon",
+    "texture": "Blue Dragon",
+    "srcRect": [
+      0,
+      0,
+      50,
+      49
+    ],
+    "hp": [
+      1816,
+      0
+    ],
+    "attack": [
+      368,
+      0
+    ],
+    "defence": [
+      80,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      8185,
+      0
+    ],
+    "gold": [
+      5000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 108,
+    "name": "Green Dragon",
+    "texture": "Green Dragon",
+    "srcRect": [
+      0,
+      0,
+      50,
+      49
+    ],
+    "hp": [
+      1408,
+      0
+    ],
+    "attack": [
+      288,
+      0
+    ],
+    "defence": [
+      64,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      10170,
+      0
+    ],
+    "gold": [
+      12500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 109,
+    "name": "Stone Golem",
+    "texture": "Stone Golem",
+    "srcRect": [
+      0,
+      0,
+      47,
+      49
+    ],
+    "hp": [
+      800,
+      0
+    ],
+    "attack": [
+      280,
+      0
+    ],
+    "defence": [
+      64,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      5962,
+      0
+    ],
+    "gold": [
+      2500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 110,
+    "name": "Air Elemental",
+    "texture": "Air Elemental",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      1432,
+      0
+    ],
+    "attack": [
+      212,
+      0
+    ],
+    "defence": [
+      16,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      4035,
+      0
+    ],
+    "gold": [
+      2018,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 111,
+    "name": "Spirit Naga",
+    "texture": "Spirit Naga",
+    "srcRect": [
+      0,
+      0,
+      46,
+      49
+    ],
+    "hp": [
+      1680,
+      0
+    ],
+    "attack": [
+      28,
+      0
+    ],
+    "defence": [
+      64,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      8722,
+      0
+    ],
+    "gold": [
+      10000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 112,
+    "name": "Death Knight",
+    "texture": "Death Knight",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      760,
+      0
+    ],
+    "attack": [
+      220,
+      0
+    ],
+    "defence": [
+      128,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      6750,
+      0
+    ],
+    "gold": [
+      7500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 113,
+    "name": "Earth Medusa",
+    "texture": "Earth Medusa",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      384,
+      0
+    ],
+    "attack": [
+      44,
+      0
+    ],
+    "defence": [
+      48,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      3045,
+      0
+    ],
+    "gold": [
+      3045,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 114,
+    "name": "Black Flan",
+    "texture": "Black Flan",
+    "srcRect": [
+      0,
+      0,
+      31,
+      33
+    ],
+    "hp": [
+      624,
+      0
+    ],
+    "attack": [
+      196,
+      0
+    ],
+    "defence": [
+      1020,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      2250,
+      0
+    ],
+    "gold": [
+      2752,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 115,
+    "name": "Soldier",
+    "texture": "Soldier",
+    "srcRect": [
+      0,
+      0,
+      30,
+      33
+    ],
+    "hp": [
+      1600,
+      0
+    ],
+    "attack": [
+      408,
+      0
+    ],
+    "defence": [
+      192,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      10000,
+      0
+    ],
+    "gold": [
+      5000,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Lightning"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 116,
+    "name": "Vampire Lord",
+    "texture": "Vampire Lord",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      1200,
+      0
+    ],
+    "attack": [
+      360,
+      0
+    ],
+    "defence": [
+      112,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      5962,
+      0
+    ],
+    "gold": [
+      7500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 117,
+    "name": "Dark Fighter",
+    "texture": "Dark Fighter",
+    "srcRect": [
+      0,
+      0,
+      33,
+      33
+    ],
+    "hp": [
+      800,
+      0
+    ],
+    "attack": [
+      160,
+      0
+    ],
+    "defence": [
+      152,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      8550,
+      0
+    ],
+    "gold": [
+      8550,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 118,
+    "name": "Warmech",
+    "texture": "Warmech",
+    "srcRect": [
+      0,
+      0,
+      44,
+      48
+    ],
+    "hp": [
+      8000,
+      0
+    ],
+    "attack": [
+      512,
+      0
+    ],
+    "defence": [
+      320,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      80000,
+      0
+    ],
+    "gold": [
+      80000,
+      0
+    ],
+    "hits": 1,
+    "resists": [
+      "Earth",
+      "Fire",
+      "Lightning",
+      "Ice"
+    ],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 119,
+    "name": "Tiamat",
+    "texture": "Tiamat",
+    "srcRect": [
+      0,
+      0,
+      61,
+      66
+    ],
+    "hp": [
+      9600,
+      0
+    ],
+    "attack": [
+      196,
+      0
+    ],
+    "defence": [
+      320,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      13740,
+      0
+    ],
+    "gold": [
+      15000,
+      0
+    ],
+    "hits": 1,
+    "resists": [
+      "Fire",
+      "Ice",
+      "Lightning",
+      "Earth"
+    ],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 120,
+    "name": "Rhyos",
+    "texture": "Rhyos",
+    "srcRect": [
+      0,
+      0,
+      49,
+      49
+    ],
+    "hp": [
+      1400,
+      0
+    ],
+    "attack": [
+      160,
+      0
+    ],
+    "defence": [
+      72,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      11460,
+      0
+    ],
+    "gold": [
+      12500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [
+      "Ice"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 121,
+    "name": "Death Eye",
+    "texture": "Death Eye",
+    "srcRect": [
+      0,
+      0,
+      46,
+      49
+    ],
+    "hp": [
+      1440,
+      0
+    ],
+    "attack": [
+      480,
+      0
+    ],
+    "defence": [
+      240,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      2,
+      0
+    ],
+    "gold": [
+      2,
+      0
+    ],
+    "hits": 1,
+    "resists": [
+      "Earth",
+      "Ice"
+    ],
+    "immunities": [],
+    "vulnerabilities": [
+      "Fire",
+      "Light"
+    ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 122,
+    "name": "Purple Worm",
+    "texture": "Purple Worm",
+    "srcRect": [
+      0,
+      0,
+      49,
+      49
+    ],
+    "hp": [
+      1952,
+      0
+    ],
+    "attack": [
+      260,
+      0
+    ],
+    "defence": [
+      40,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      10860,
+      0
+    ],
+    "gold": [
+      2500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 123,
+    "name": "Iron Golem",
+    "texture": "Iron Golem",
+    "srcRect": [
+      0,
+      0,
+      47,
+      49
+    ],
+    "hp": [
+      1216,
+      0
+    ],
+    "attack": [
+      372,
+      0
+    ],
+    "defence": [
+      400,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      16792,
+      0
+    ],
+    "gold": [
+      7500,
+      0
+    ],
+    "hits": 1,
+    "resists": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
     "id": 124,
     "name": "Lich",
     "texture": "Lich",
     "srcRect": [
       0,
       0,
-      180,
-      228
+      50,
+      65
     ],
     "hp": [
       11200,
@@ -134,6 +5206,204 @@
     "vulnerabilities": [
       "Light"
     ],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 125,
+    "name": "Marilith",
+    "texture": "Marilith",
+    "srcRect": [
+      0,
+      0,
+      59,
+      65
+    ],
+    "hp": [
+      12800,
+      0
+    ],
+    "attack": [
+      240,
+      0
+    ],
+    "defence": [
+      240,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      5000,
+      0
+    ],
+    "gold": [
+      2,
+      0
+    ],
+    "hits": 1,
+    "resists": [
+      "Fire",
+      "Lightning",
+      "Ice",
+      "Poison"
+    ],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 126,
+    "name": "Kraken",
+    "texture": "Kraken",
+    "srcRect": [
+      0,
+      0,
+      62,
+      66
+    ],
+    "hp": [
+      14400,
+      0
+    ],
+    "attack": [
+      240,
+      0
+    ],
+    "defence": [
+      320,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      5000,
+      0
+    ],
+    "gold": [
+      2,
+      0
+    ],
+    "hits": 1,
+    "resists": [
+      "Earth",
+      "Fire"
+    ],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 127,
+    "name": "Tiamat",
+    "texture": "Tiamat",
+    "srcRect": [
+      0,
+      0,
+      61,
+      66
+    ],
+    "hp": [
+      22000,
+      0
+    ],
+    "attack": [
+      300,
+      0
+    ],
+    "defence": [
+      360,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      5000,
+      0
+    ],
+    "gold": [
+      2,
+      0
+    ],
+    "hits": 1,
+    "resists": [
+      "Earth",
+      "Fire",
+      "Ice",
+      "Lightning"
+    ],
+    "immunities": [],
+    "vulnerabilities": [],
+    "abilities": [
+      {
+        "attack": true,
+        "weight": 100
+      }
+    ]
+  },
+  {
+    "id": 128,
+    "name": "Chaos",
+    "texture": "Chaos",
+    "srcRect": [
+      0,
+      0,
+      110,
+      97
+    ],
+    "hp": [
+      80000,
+      0
+    ],
+    "attack": [
+      400,
+      0
+    ],
+    "defence": [
+      400,
+      0
+    ],
+    "agility": [
+      8,
+      0
+    ],
+    "exp": [
+      0,
+      0
+    ],
+    "gold": [
+      0,
+      0
+    ],
+    "hits": 1,
+    "resists": [
+      "Earth",
+      "Fire",
+      "Lightning",
+      "Ice"
+    ],
+    "immunities": [],
+    "vulnerabilities": [],
     "abilities": [
       {
         "attack": true,

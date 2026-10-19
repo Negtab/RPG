@@ -69,6 +69,7 @@ void Battle::runFromNetwork(const BattleStartPacket& packet)
     rewards.clear();
     isWin = false;
     escapeUsed = false;
+    ui->hideBattleResults();
 
     for (int i = 0; i < packet.enemyCount && i < 4; i++)
     {
@@ -583,6 +584,15 @@ std::optional<HeroRef> Battle::selectHeroTarget() const
     return alive[rand() % alive.size()];
 }
 
+int Battle::averageLevel() const
+{
+    int sum = 0, count = 0;
+    for (const auto& h : player->getHeroes()) { sum += h.getLevel(); ++count; }
+    for (const auto& [id, remote] : game->getRemotePlayers())
+        for (const auto& h : remote.getHeroes()) { sum += h.getLevel(); ++count; }
+    return count > 0 ? std::max(1, sum / count) : 1;
+}
+
 std::vector<int> Battle::resolveTargets(const Action& action)
 {
     std::vector<int> result;
@@ -752,33 +762,10 @@ void Battle::update()
 }
 
 
-void Battle::finishBattle(const bool &isWin)
-{
-    if (isWin) {
-        uint32_t sumExp = 0, sumGold = 0;
-        for (auto e : enemies)
-        {
-            sumExp += e.getExperience();
-            sumGold += e.getGold();
-        }
-        player->setPlayerGold(player->getPlayerGold() + sumGold);
-        auto &heroes = player->getLinkTOHeroes();
-        for (int i = 0; i < heroes.size(); i++)
-            heroes.at(i).addXP(sumExp/heroes.size());
-    }
-    else {
-        //sd
-    }
-
-    currentHeroIndex = 0;
-    game->battleStarted = false;
-    game->setGameState(GameState::Map);
-}
-
 void Battle::spawnEnemies()
 {
     const auto& data = GameData::instance();
-    const int avgLvl = player->getAverageLevel();
+    const int avgLvl = averageLevel();
 
     for (int id : enemyFormation)                            // 1) готовая формация из encounters.json
     {
@@ -836,6 +823,7 @@ void Battle::run(const std::vector<int>& formation, const std::vector<int>& pool
     rewards.clear();
     isWin = false;
     escapeChance = 10;
+    ui->hideBattleResults();
 
     enemyFormation = formation;
     enemyPool = pool;
@@ -915,4 +903,54 @@ void Battle::onPlayerLeft(uint32_t id)
         readyPlayers.clear();
         startExecuteActions();
     }
+}
+
+void Battle::finishBattle(const bool& win)
+{
+    isWin = win;
+    if (!win)                                  // поражение или побег: сразу на карту
+    {
+        leaveBattle();
+        return;
+    }
+
+    report = BattleReport{};
+    uint32_t totalExp = 0, totalGold = 0;
+    for (const auto& e : enemies) { totalExp += e.getExperience(); totalGold += e.getGold(); }
+
+    const size_t living  = std::max<size_t>(1, aliveHeroes().size());     // опыт делят живые герои всех игроков
+    const size_t sharers = std::max<size_t>(1, participants.size());      // золото делят игроки
+
+    report.exp     = totalExp;
+    report.expEach = static_cast<uint32_t>(totalExp / living);
+    report.gold    = static_cast<uint32_t>(totalGold / sharers);
+
+    for (auto& h : player->getLinkTOHeroes())
+        if (h.getCurrentHp() > 0)
+        {
+            const int before = h.getLevel();
+            h.addXP(report.expEach);
+            if (h.getLevel() > before)
+                report.levelUps.push_back({h.getName(), h.getLevel()});
+        }
+    player->setPlayerGold(player->getPlayerGold() + report.gold);
+
+    game->sendPartyInfo();
+    state = BattleState::Victory;              // ждём подтверждения
+    ui->showBattleResults(report);
+}
+
+void Battle::closeResults()
+{
+    if (state != BattleState::Victory) return;
+    ui->hideBattleResults();
+    leaveBattle();
+}
+
+void Battle::leaveBattle()
+{
+    currentHeroIndex = 0;
+    game->battleStarted = false;
+    game->sendPartyInfo();                     // новые уровни и HP видны напарнику
+    game->setGameState(GameState::Map);
 }

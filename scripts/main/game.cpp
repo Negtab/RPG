@@ -2,13 +2,15 @@
 
 #include <chrono>
 #include <filesystem>
+#include <algorithm>
+#include <cstring>
+#include <SDL.h>
+#include <ws2tcpip.h>
 
 #include "inputController.h"
 #include "mapLoader.h"
 #include "../gameLogic/gameData.h"
 
-#include <SDL.h>
-#include <ws2tcpip.h>
 
 static void initWalkAnimations(Player& p)
 {
@@ -46,7 +48,6 @@ Game::Game(SDL_Window *window, SDL_Renderer* renderer) : window(window), rendere
     skills = GameData::instance().skills();
 
     SDL_SetWindowIcon(window, ResourceManager::getImage("Sword"));
-
     this->isRunning = true;
     this->setGameState(GameState::Menu);
 }
@@ -250,6 +251,67 @@ bool Game::applyMapChange(int mapId, int x, int y)
     return true;
 }
 
+void Game::sendPartyInfo()
+{
+    if (!isConnected() || localPlayerId == 0 || players.empty()) return;
+
+    PartyInfoPacket p{};
+    p.header.type = PacketType::PartyInfo;
+    p.header.size = sizeof(PartyInfoPacket);
+    p.playerId = localPlayerId;
+
+    const auto& heroes = players[0].getHeroes();
+    p.heroCount = static_cast<uint8_t>(std::min<size_t>(heroes.size(), 4));
+    for (int i = 0; i < p.heroCount; ++i)
+    {
+        p.heroes[i].classId   = static_cast<uint8_t>(heroes[i].getClass());
+        p.heroes[i].level     = heroes[i].getLevel();
+        p.heroes[i].currentHp = static_cast<int32_t>(heroes[i].getCurrentHp());
+        p.heroes[i].currentMp = static_cast<int32_t>(heroes[i].getCurrentMp());
+        std::strncpy(p.heroes[i].name, heroes[i].getName().c_str(), 12);
+        p.heroes[i].name[12] = '\0';
+    }
+    client.send(reinterpret_cast<const char*>(&p), sizeof(p));
+}
+
+void Game::applyPartyInfo(const PartyInfoPacket& p)
+{
+    if (p.playerId == localPlayerId || p.heroCount > 4) return;
+    for (int i = 0; i < p.heroCount; ++i)                        // данные из сети: проверяем
+        if (p.heroes[i].classId > static_cast<uint8_t>(SpecializationNames::Thief) ||
+            p.heroes[i].level < 1 || p.heroes[i].level > 99 || std::memchr(p.heroes[i].name, 0, 13) == nullptr)
+            return;
+
+    // Посреди хода хоста HP и MP считает только хост: чужие значения не принимаем
+    const bool applyVitals = !(state == GameState::Battle && isHost() &&
+                               battle->getState() != BattleState::PlayerChoose);
+
+    auto& heroes = ensureRemote(p.playerId).getLinkTOHeroes();
+    std::vector<Hero> rebuilt;
+    for (int i = 0; i < p.heroCount; ++i)
+    {
+        Hero hero{Specialization(static_cast<SpecializationNames>(p.heroes[i].classId))};
+        hero.setLevel(p.heroes[i].level);
+        if (applyVitals)
+        {
+            hero.setCurrentHp(static_cast<uint32_t>(std::max(0, p.heroes[i].currentHp)));
+            hero.setCurrentMp(static_cast<uint32_t>(std::max(0, p.heroes[i].currentMp)));
+        }
+        else if (i < static_cast<int>(heroes.size()))
+        {
+            hero.setCurrentHp(heroes[i].getCurrentHp());        // сохраняем то, что считал хост
+            hero.setCurrentMp(heroes[i].getCurrentMp());
+        }
+        const std::string cleaned = sanitizeHeroName(p.heroes[i].name);
+        if (!cleaned.empty()) hero.setName(cleaned);
+        rebuilt.push_back(std::move(hero));
+    }
+    heroes = std::move(rebuilt);
+
+    SDL_Log("Party of player %u: %d heroes, first level %d", p.playerId, (int)p.heroCount,
+            p.heroCount ? (int)p.heroes[0].level : 0);
+}
+
 void Game::followPortal(const Portal& portal)
 {
     const Portal p = portal;                             // копия: currentMap сейчас сменится
@@ -352,6 +414,7 @@ void Game::processPacket(const char* data)
             auto* packet = reinterpret_cast<const ConnectPacket*>(data);
             localPlayerId = packet->assignedId;
             sendLocalPlayerState();
+            sendPartyInfo();
             SDL_Log("Player connect");
             break;
         }
@@ -382,6 +445,10 @@ void Game::processPacket(const char* data)
             break;
         }
 
+        case PacketType::PartyInfo:
+            applyPartyInfo(*reinterpret_cast<const PartyInfoPacket*>(data));
+            break;
+
         case PacketType::Disconnect:
         {
             auto* packet = reinterpret_cast<const DisconnectPacket*>(data);
@@ -403,6 +470,7 @@ void Game::processPacket(const char* data)
                 battleStarted = true;
                 settle(players.at(0).getMove());
                 sendLocalPlayerState();
+                sendPartyInfo();
                 battle->runFromNetwork(*packet);
 
                 setPreviousGameState(GameState::Map);
@@ -644,7 +712,11 @@ void Game::beginBattle(const Zone* zone)
     uiManager->addCharacters();
     battleStarted = true;
 
-    if (localPlayerId != 0) sendBattleStart();
+    if (localPlayerId != 0)
+    {
+        sendBattleStart();
+        sendPartyInfo();
+    }
 }
 
 void Game::endRandomBattle()
@@ -669,11 +741,6 @@ void Game::openOptions(const GameState &preGame) {
 void Game::closeOptions() {
     this->setGameState(this->getPrevGameState());
     this->setPreviousGameState(GameState::Options);
-}
-
-void Game::openOnlineMenu() {
-    this->setGameState(GameState::Online);
-    this->setPreviousGameState(GameState::Menu);
 }
 
 void Game::closeOnlineMenu() {
@@ -1131,3 +1198,50 @@ void Game::initSkills()
     }
 }
 
+void Game::openPartyCreation()
+{
+    setPreviousGameState(GameState::Menu);
+    setGameState(GameState::CreatePlayer);
+    uiManager->resetPartyCreation();
+}
+
+void Game::closePartyCreation()
+{
+    setGameState(GameState::Menu);
+    setPreviousGameState(GameState::CreatePlayer);
+}
+
+void Game::buildParty(const std::vector<SpecializationNames>& classes, const std::vector<std::string>& names)
+{
+    Player& me = players.at(0);
+    me.resetProgress();
+    currentMap = &maps.at(0);
+    me.setPlayerCoords(currentMap->spawn);
+    me.getMove().mapId = 0;
+
+    for (size_t i = 0; i < classes.size() && i < 4; ++i)
+    {
+        Hero hero{Specialization(classes[i])};
+        if (i < names.size())
+        {
+            const std::string name = sanitizeHeroName(names[i]);
+            if (!name.empty()) hero.setName(name);
+        }
+        me.getLinkTOHeroes().push_back(std::move(hero));
+    }
+}
+
+void Game::createParty(const std::vector<SpecializationNames>& classes, const std::vector<std::string>& names)
+{
+    buildParty(classes, names);
+    startGame();
+}
+
+void Game::openOnlineMenu()
+{
+    if (players.at(0).getHeroes().empty())               // без отряда в кооператив не зайти: берём классический
+        buildParty({SpecializationNames::Warrior, SpecializationNames::Thief,
+                    SpecializationNames::Archer, SpecializationNames::Magician}, {});
+    this->setGameState(GameState::Online);
+    this->setPreviousGameState(GameState::Menu);
+}

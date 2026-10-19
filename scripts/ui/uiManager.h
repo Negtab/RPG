@@ -115,6 +115,15 @@ public:
     void setState(const UIChooseState& state);
     [[nodiscard]] UIChooseState getState() const;
 
+    void showBattleResults(const BattleReport& r);
+    void hideBattleResults();
+
+    void resetPartyCreation();
+
+    bool handleTextEvent(const SDL_Event& event, const std::string& sceneId);   // true: событие поглотило поле ввода
+    void styleEdit(const std::string& id, const std::string& sceneId,
+                   SDL_Color background, SDL_Color border, int maxLength = 32);
+
 private:
     // ── Поиск ─────────────────────────────────────────
     Scene*     findScene    (const std::string& id);
@@ -146,6 +155,18 @@ private:
 
     void snapSelectorToTarget();
     [[nodiscard]] int getTargetCount(TargetType type) const;
+
+    void initCreateScene();
+    void refreshPartySlot(int slot);
+    void cycleClass(int slot, int dir);
+    void focusNameField(int slot);
+    void confirmParty();
+
+    void layoutBattle();
+
+    std::array<int, 4> pickedClass{0, 1, 2, 3};
+    std::array<SDL_Rect, 4> heroSlotRect{}, remoteSlotRect{}, enemySlotRect{};
+    std::array<std::string, 4> autoName;
 
     Action        pendingAction;
     UIChooseState uiState    { UIChooseState::ChooseAction };

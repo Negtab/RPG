@@ -4,6 +4,8 @@
 
 void InputController::chooseInput(SDL_Event event, Game& game, Battle& battle, Player& player, UIManager& uiManager)
 {
+    if (uiManager.handleTextEvent(event, gameStateString.at(game.getGameState())))
+        return;                                       // печатаем в поле: игровые клавиши не должны срабатывать
     GameState state = game.getGameState();
     switch (state)
     {
@@ -13,9 +15,19 @@ void InputController::chooseInput(SDL_Event event, Game& game, Battle& battle, P
         case GameState::Inventory:  inventoryInput(player); break;
         case GameState::Options:    optionsInput(event, game, uiManager); break;
         case GameState::Online:     onlineInput(event, game, uiManager); break;
+        case GameState::CreatePlayer: createInput(event, game, uiManager); break;
         default: ;
     }
 }
+
+void InputController::createInput(SDL_Event event, Game& game, UIManager& ui)
+{
+    ui.handleClickEvent(event, "CreatePlayer");
+    ui.handleHoverEvent(event, "CreatePlayer");
+    if (event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
+        game.closePartyCreation();                    // сюда доходит, только если поле не поглотило Esc
+}
+
 static bool dirHeld(const InputManager& in, Direction d) {
     switch (d) {
     case Direction::Up:    return in.isKeyHeld(SDL_SCANCODE_W) || in.isKeyHeld(SDL_SCANCODE_UP);
@@ -62,6 +74,16 @@ void InputController::menuInput(SDL_Event event, Game& game, UIManager& manager)
 
 void InputController::battleInput(SDL_Event event, Game& game, Battle& battle,  UIManager& manager)
 {
+    if (battle.getState() == BattleState::Victory)           // окно результатов: любое подтверждение закрывает его
+    {
+        const bool confirm =
+            (event.type == SDL_KEYDOWN && (event.key.keysym.scancode == SDL_SCANCODE_RETURN ||
+                                           event.key.keysym.scancode == SDL_SCANCODE_SPACE)) ||
+            event.type == SDL_MOUSEBUTTONDOWN;
+        if (confirm) battle.closeResults();
+        return;
+    }
+
     if (input.isMousePressed(SDL_BUTTON_LEFT))
         manager.handleClickEvent(event,gameStateString.at(game.getGameState()));
 
@@ -79,47 +101,13 @@ void InputController::battleInput(SDL_Event event, Game& game, Battle& battle,  
 
 }
 
-void InputController::onlineInput(SDL_Event event, Game &game, UIManager& manager)
+void InputController::onlineInput(SDL_Event event, Game& game, UIManager& manager)
 {
-    if (input.isMousePressed(SDL_BUTTON_LEFT))
-        manager.handleClickEvent(event,gameStateString.at(game.getGameState()));
-    if (event.type != SDL_KEYDOWN && event.type != SDL_MOUSEBUTTONDOWN)
-        return;
-    if (input.isKeyPressed(SDL_SCANCODE_RETURN) || input.isKeyPressed(SDL_SCANCODE_KP_ENTER) || input.isKeyPressed(SDL_SCANCODE_RETURN2))
-        manager.setFocus("IPEdit","Online", false);
-
-    if (input.isKeyPressed(SDL_SCANCODE_ESCAPE))
-    {
-        game.setPreviousGameState(GameState::Online);
-        game.setGameState(GameState::Menu);
-    }
-
-    if (manager.getFocus("IPEdit", "Online"))
-    {
-        if (input.isKeyPressed(SDL_SCANCODE_PERIOD)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), ".") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1); }
-        if (input.isKeyPressed(SDL_SCANCODE_0)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "0") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1); }
-        if (input.isKeyPressed(SDL_SCANCODE_1)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "1") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1); }
-        if (input.isKeyPressed(SDL_SCANCODE_2)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "2") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
-        if (input.isKeyPressed(SDL_SCANCODE_3)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "3") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
-        if (input.isKeyPressed(SDL_SCANCODE_4)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "4") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
-        if (input.isKeyPressed(SDL_SCANCODE_5)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "5") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
-        if (input.isKeyPressed(SDL_SCANCODE_6)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "6") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
-        if (input.isKeyPressed(SDL_SCANCODE_7)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "7") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
-        if (input.isKeyPressed(SDL_SCANCODE_8)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "8") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
-        if (input.isKeyPressed(SDL_SCANCODE_9)) { manager.setText("IPEdit", "Online",manager.getText("IPEdit", "Online").insert(manager.getPos("IPEdit", "Online"), "9") ); manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") + 1);}
-
-        if (input.isKeyPressed(SDL_SCANCODE_BACKSPACE))
-        {
-            if (manager.getPos("IPEdit", "Online") == 0)
-                return;
-            manager.setText("IPEdit", "Online", manager.getText("IPEdit", "Online").erase(manager.getPos("IPEdit", "Online") - 1, 1));
-            manager.setPos("IPEdit", "Online", manager.getPos("IPEdit", "Online") - 1);
-        }
-        if (input.isKeyPressed(SDL_SCANCODE_LEFT)) { manager.setPos("IPEdit","Online", manager.getPos("IPEdit","Online") - 1); }
-        if (input.isKeyPressed(SDL_SCANCODE_RIGHT)) {  manager.setPos("IPEdit","Online", manager.getPos("IPEdit","Online") + 1); }
-    }
+    manager.handleClickEvent(event, "Online");
+    manager.handleHoverEvent(event, "Online");
+    if (event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
+        game.closeOnlineMenu();        // Esc в поле только снимает фокус, второй Esc выходит из меню
 }
-
 
 void InputController::optionsInput(SDL_Event event, Game &game, UIManager &uiManager) {
     if (input.isKeyReleased(SDL_SCANCODE_ESCAPE))

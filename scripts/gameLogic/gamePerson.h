@@ -2,10 +2,11 @@
 #define PROJECT_NAME_GAMEPERSON_H
 
 #include <algorithm>
-
-#include "../main/types.h"
 #include <vector>
 #include <map>
+#include <string>
+
+#include "../main/types.h"
 
 class GamePerson
 {
@@ -111,6 +112,8 @@ public:
 
         return false;
     }
+
+    void setName(std::string n) { name = std::move(n); }
 
 protected:
     std::string name;

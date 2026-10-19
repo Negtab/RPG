@@ -1,0 +1,128 @@
+Goblin
+Goblin Guard
+Wolf
+Warg Wolf
+Werewolf
+Winter Wolf
+Skeleton
+Bloodbones
+Black Widow
+Tarantula
+Gigas Worm
+Crawler
+Zombie
+Ghoul
+Ghast
+Wight
+Cobra
+Anaconda
+Sea Snake
+Pirate
+Buccaneer
+Sahagin
+Sahagin Prince
+Sahagin Chief
+Scorpion
+Sea Scorpion
+Shadow
+Wraith
+Specter
+Ghost
+Green Slime
+Black Flan
+Gray Ooze
+Ochre Jelly
+Gargoyle
+Horned Devil
+Piscodemon
+Mindflayer
+Astos
+Dark Wizard
+Dark Fighter
+Mummy
+King Mummy
+Cockatrice
+Pyrolisk
+Vampire
+Vampire Lord
+Piranha
+Red Piranha
+Crocodile
+White Croc
+Rakshasa
+Weretiger
+Water Elemental
+Air Elemental
+Black Knight
+Death Knight
+Guardian
+Soldier
+Medusa
+Earth Medusa
+
+
+Crazy Horse
+Nightmare
+Ogre Chief
+Ogre
+Ogre Mage
+Lizard
+Basilisk
+Fire Lizard
+Shark
+White Shark
+Bigeyes
+Deepeyes
+Hyenadon
+Hellhound
+Lesser Tiger
+Sabertooth
+Minotaur Zombie
+Minotaur
+Hill Gigas
+Fire Gigas
+Ice Gigas
+Earth Elemental
+Fire Elemental
+Troll
+Sea Troll
+Sphinx
+Manticore
+Ankheg
+Remorazz
+Ochu
+Neochu
+Hydra
+Fire Hydra
+Sand Worm
+Lava Worm
+Purple Worm
+Red Dragon
+White Dragon
+Dragon Zombie
+Desert Baretta
+Baretta
+Wyvern
+Wyrm
+Allosaurus
+Tyrannosaur
+Clay Golem
+Stone Golem
+Iron Golem
+Water Naga
+Spirit Naga
+Chimera
+Rhyos
+Blue Dragon
+Green Dragon
+Warmech
+
+
+Evil Eye
+Death Eye
+Lich
+Marilith
+Kraken
+Tiamat
+Garland
+Chaos

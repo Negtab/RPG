@@ -36,6 +36,7 @@ private:
 
     std::vector<Client> clients;                              // всё ниже, где не сказано иное, под clientsMutex
     std::unordered_map<uint32_t, PlayerMovePacket> lastMove;  // последняя позиция каждого игрока, для новичков
+    std::unordered_map<uint32_t, PartyInfoPacket> lastParty;
     std::mutex clientsMutex;
 
     std::atomic<bool> running{false};

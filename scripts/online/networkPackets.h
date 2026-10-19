@@ -17,7 +17,8 @@ enum class PacketType : uint8_t
     BattleAction = 5,  // игрок отправил действие
     BattleSnapshot = 6, // сервер рассылает состояние боя
     BattleEnd = 7,
-    MapChange = 8
+    MapChange = 8,
+    PartyInfo = 9
 };
 
 #pragma pack(push, 1)
@@ -114,6 +115,23 @@ struct BattleEndPacket
     uint8_t isWin; // 1 = победа, 0 = побег/поражение
 };
 
+struct HeroInfo
+{
+    uint8_t classId;      // SpecializationNames как uint8
+    uint8_t level;
+    int32_t currentHp;
+    int32_t currentMp;
+    char    name[13];
+};
+
+struct PartyInfoPacket
+{
+    PacketHeader header;
+    uint32_t playerId;
+    uint8_t  heroCount;   // максимум 4
+    HeroInfo heroes[4];
+};
+
 #pragma pack(pop)
 
 
@@ -130,6 +148,7 @@ inline uint32_t expectedSize(PacketType t) {
     case PacketType::BattleSnapshot: return sizeof(BattleSnapshotPacket);
     case PacketType::BattleEnd:      return sizeof(BattleEndPacket);
     case PacketType::MapChange:      return sizeof(MapChangePacket);
+    case PacketType::PartyInfo:      return sizeof(PartyInfoPacket);
     }
     return 0;   // неизвестный тип
 }
@@ -143,5 +162,6 @@ static_assert(sizeof(BattleActionPacket)   <= kMaxPacket);
 static_assert(sizeof(BattleSnapshotPacket) <= kMaxPacket);
 static_assert(sizeof(BattleEndPacket)      <= kMaxPacket);
 static_assert(sizeof(MapChangePacket)      <= kMaxPacket);
+static_assert(sizeof(PartyInfoPacket) <= kMaxPacket);
 
 #endif //PROJECT_NAME_NETWORKPACKETS_H

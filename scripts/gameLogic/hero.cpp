@@ -1,6 +1,7 @@
 #include "hero.h"
 
 #include <stdexcept>
+#include <algorithm>
 #include "gameData.h"
 
 Hero::Hero(Specialization spec) : spec(spec)
@@ -47,6 +48,13 @@ void Hero::levelUp()
     currentMp = maxMp;
 
     xpToNextLevel = static_cast<uint32_t>(xpToNextLevel * def->xpGrowth);
+}
+
+void Hero::setLevel(int target)
+{
+    target = std::clamp(target, 1, 99);
+    while (level < target)
+        levelUp();                           // levelUp сам добавляет статы класса и восстанавливает HP/MP
 }
 
 uint32_t Hero::getAttackPower(const Skill* skill) const

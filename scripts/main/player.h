@@ -50,6 +50,7 @@ public:
     void addDiscoveredEnemy(const std::string& enemy);
     void addItem(int itemId, uint8_t count);
 
+    void resetProgress();
     [[nodiscard]] bool hasItem(int itemId) const;
     bool consumeItem(int itemId);
     //void removeItem(int itemId);

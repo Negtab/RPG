@@ -64,6 +64,9 @@ public:
     void onPlayerLeft(uint32_t playerId);
     [[nodiscard]] bool isParticipant(uint32_t id) const { return participants.contains(id); }
 
+    void closeResults();                               // игрок подтвердил окно
+    [[nodiscard]] const BattleReport& getReport() const { return report; }
+
 private:
     void prepairUI();
     void spawnEnemies();
@@ -82,7 +85,12 @@ private:
     void checkBattleResult();
     void finishBattle(const bool &isWin);
 
+    int averageLevel() const;
+
     Hero* resolveActor(const Action& action);
+
+    void leaveBattle();
+    BattleReport report;
 
     Player *player;
     UIManager *ui;

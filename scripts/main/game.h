@@ -92,6 +92,13 @@ class Game {
 
         [[nodiscard]] const MapData& getMap() const { return *currentMap; }
 
+        void sendPartyInfo();
+        void openPartyCreation();
+        void closePartyCreation();
+        void createParty(const std::vector<SpecializationNames>& classes, const std::vector<std::string>& names);
+        // private:
+        void buildParty(const std::vector<SpecializationNames>& classes, const std::vector<std::string>& names);
+
     private:
 
         void loadMaps();
@@ -119,8 +126,12 @@ class Game {
 
         void sendBattleEnd(bool isWin);
 
+        void applyPartyInfo(const PartyInfoPacket& packet);
+
         void onConnectionLost(const std::string& reason);
         Uint32 connectTicks = 0;      // когда подключились: ждём Connect-пакет не дольше 3 секунд
+
+
 
 
         bool isRunning = false;

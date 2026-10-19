@@ -2,8 +2,8 @@
 #define PROJECT_NAME_TYPES_H
 #include <unordered_map>
 #include <string>
+#include <vector>
 
-#include "SDL_rect.h"
 #include "../gameLogic/action.h"
 
 constexpr int MAX_ENEMY_COUNT = 9;
@@ -11,7 +11,7 @@ constexpr int MAX_HERO_COUNT = 4;
 
 enum class BattleAction { Attack, Magic, Item, Run };
 enum class BattlePhase { PlayerTurn, EnemyTurn, EndBattle };
-enum class BattleState { Start, EnemyTurn, PlayerChoose, ExecuteActions, Animation, EscapeResult, Result, WaitingForHost };
+enum class BattleState { Start, EnemyTurn, PlayerChoose, ExecuteActions, Animation, EscapeResult, Result, WaitingForHost, Victory };
 enum class TurnOwner { Player, Enemy };
 
 
@@ -97,7 +97,41 @@ struct Specialization {
     explicit Specialization(const SpecializationNames name) : name(name) {}
 };
 
+struct LevelUpInfo { std::string name; int newLevel = 0; };
+
+struct BattleReport
+{
+    uint32_t exp = 0;          // всего за бой
+    uint32_t expEach = 0;      // каждому живому герою
+    uint32_t gold = 0;         // этому игроку
+    std::vector<LevelUpInfo> levelUps;
+};
+
+inline int heroLook(SpecializationNames c)        // номер картинки ImageN и анимации HeroNAnimation
+{
+    switch (c)
+    {
+    case SpecializationNames::Archer:   return 1;
+    case SpecializationNames::Magician: return 2;
+    case SpecializationNames::Thief:    return 3;
+    case SpecializationNames::Warrior:  return 4;
+    default:                            return 1;
+    }
+}
+
+inline std::string sanitizeHeroName(const std::string& raw)   // только печатный ASCII, до 12 символов
+{
+    std::string s;
+    for (char c : raw)
+        if (c >= 32 && c <= 126) s += c;
+    while (!s.empty() && s.front() == ' ') s.erase(s.begin());
+    while (!s.empty() && s.back() == ' ') s.pop_back();
+    if (s.size() > 12) s.resize(12);
+    return s;
+}
+
 enum class GameState { CreatePlayer, Menu, Battle, Inventory, Options, Map, Online};
 const std::unordered_map<GameState, std::string> gameStateString =  {{GameState::CreatePlayer, "CreatePlayer"}, {GameState::Menu, "Menu"}, {GameState::Battle, "Battle"}, {GameState::Inventory, "Inventory"}, {GameState::Map, "Map"}, {GameState::Options, "Options"}, {GameState::Online, "Online"}};
+
 
 #endif

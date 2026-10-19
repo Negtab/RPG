@@ -1,5 +1,6 @@
 #include "quest.h"
 #include <algorithm>
+#include <cstdint>
 
 Quest::Quest(std::string name, uint16_t reward, bool isMoney) : name(std::move(name)), reward(reward), isMoney(isMoney) {}
 

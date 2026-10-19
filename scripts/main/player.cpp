@@ -2,11 +2,15 @@
 #include "game.h"
 
 
-Player::Player(std::string name) : name(std::move(name)) {
-    heroes.emplace_back(Specialization(SpecializationNames::Archer));
-    heroes.emplace_back(Specialization(SpecializationNames::Magician));
-    heroes.emplace_back(Specialization(SpecializationNames::Thief));
-    heroes.emplace_back(Specialization(SpecializationNames::Warrior));
+Player::Player(std::string name) : name(std::move(name)) {}
+
+void Player::resetProgress()
+{
+    heroes.clear();
+    gold = 0;
+    itemIds.clear();
+    discoveredEnemies.clear();
+    move = MoveState{};
 }
 
 uint32_t Player::getNetworkId() const noexcept

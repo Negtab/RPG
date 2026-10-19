@@ -32,6 +32,13 @@ void Visualizer::drawRect(const SDL_Rect& rect, SDL_Color color) const {
     SDL_RenderFillRect(renderer, &rect);
 }
 
+void Visualizer::fillRect(const SDL_Rect& rect, SDL_Color color) const
+{
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+    SDL_RenderFillRect(renderer, &rect);
+}
+
 void Visualizer::drawNinePatch(SDL_Texture* skin, const SDL_Rect& dst, int slice, int scale) const
 {
     if (!skin) return;
