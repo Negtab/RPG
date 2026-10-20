@@ -429,7 +429,10 @@ void UIManager::drawMapWorld()
     const int camY = camAxis(px(lp.y * CELL_PX) - (scr.h - CELL_PX) / 2, map.h * CELL_PX, scr.h);
 
     if (MapRenderer* r = rendererFor(map))
+    {
         r->draw(visualizer.getRenderer(), camX, camY, scr.w, scr.h, PIXEL_SCALE);
+        r->drawWater(visualizer.getRenderer(), camX, camY, scr.w, scr.h, PIXEL_SCALE, SDL_GetTicks());
+    }
 
     struct Actor { const Player* p; Vec2f pos; };
     std::vector<Actor> actors;
@@ -1378,12 +1381,12 @@ void UIManager::initMenuScene()
         {"Quit",     "Quit",     [this]() { game.endGame(); }},
     };
     // Один масштаб на все пункты: ширина считается от текста, поэтому буквы везде одного размера
-    constexpr int kButtonH = 40;
+    constexpr int kButtonH = 30;
     for (int i = 0; i < static_cast<int>(std::size(items)); ++i)
     {
         const TextSize ts = ResourceManager::measureText(items[i].text, font);
         const int w = ts.h > 0 ? ts.w * kButtonH / ts.h : 0;
-        addButton(items[i].id, "Menu", {190, screen.h / 2 - 10 + i * 42, w, kButtonH},
+        addButton(items[i].id, "Menu", {120, screen.h / 2 + 100 + i * 25, w, kButtonH},
                   ResourceManager::getTextTexture(items[i].text, font, {0, 0, 0, 0}),
                   items[i].onClick, hover, "ButtonPanel");
     }
