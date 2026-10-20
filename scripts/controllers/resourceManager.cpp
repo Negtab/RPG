@@ -1,3 +1,5 @@
+#include <array>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <SDL_image.h>
@@ -292,7 +294,7 @@ void ResourceManager::initialize()
 }
 
 constexpr uint32_t kSaveMagic   = 0x504C5952;   // 'PLYR'
-constexpr uint32_t kSaveVersion = 3;            // 2: координаты в клетках + mapId
+constexpr uint32_t kSaveVersion = 5;            // 2: координаты в клетках + mapId; 3: герои; 4: локация, время игры, дата; 5: экипировка
 constexpr uint64_t kMaxString   = 1024;
 constexpr uint64_t kMaxCount    = 100000;
 
@@ -324,6 +326,107 @@ std::string readString(std::istream& in)
     return s;
 }
 
+namespace {
+// Содержимое файла целиком. Сначала читаем всё сюда, применяем только если ошибок не было
+struct SaveData
+{
+    struct Hero
+    {
+        uint8_t cls = 0, level = 1; uint32_t exp = 0, hp = 0, mp = 0; std::string name;
+        std::array<int32_t, kEquipSlots> equipment{};
+        bool hasEquipment = false;                       // до версии 5 экипировки не было: выдадим стартовую
+    };
+
+    std::string name;
+    uint32_t gold = 0;
+    int32_t cx = 0, cy = 0;
+    uint16_t mapId = 0;
+    bool hasPosition = false;
+    std::vector<std::string> enemies;
+    std::vector<std::pair<int, uint8_t>> items;
+    std::vector<Hero> heroes;
+    std::string location;
+    uint32_t playSeconds = 0;
+    int64_t savedAt = 0;
+};
+
+// Бросает std::runtime_error, если файл не открыть или он испорчен
+SaveData readSaveFile(const std::string& path)
+{
+    std::ifstream in(path, std::ios::binary);
+    if (!in)
+        throw std::runtime_error("cannot open save file: " + path);
+
+    uint32_t magic = 0, version = 0;
+    readPod(in, magic);
+    readPod(in, version);
+    if (magic != kSaveMagic)
+        throw std::runtime_error("not a save file");
+    if (version < 1 || version > kSaveVersion)
+        throw std::runtime_error("unsupported save version " + std::to_string(version));
+
+    SaveData d;
+    d.name = readString(in);
+    readPod(in, d.gold);
+
+    readPod(in, d.cx);
+    readPod(in, d.cy);
+    if (version >= 2)
+        readPod(in, d.mapId);
+    d.hasPosition = version >= 2;
+
+    uint64_t enemyCount = 0;
+    readPod(in, enemyCount);
+    if (enemyCount > kMaxCount)
+        throw std::runtime_error("save file is corrupted (enemy count)");
+    for (uint64_t i = 0; i < enemyCount; ++i)
+        d.enemies.push_back(readString(in));
+
+    uint64_t itemCount = 0;
+    readPod(in, itemCount);
+    if (itemCount > kMaxCount)
+        throw std::runtime_error("save file is corrupted (item count)");
+    for (uint64_t i = 0; i < itemCount; ++i)
+    {
+        int32_t id = 0;
+        uint8_t count = 0;
+        readPod(in, id);
+        readPod(in, count);
+        d.items.emplace_back(id, count);
+    }
+
+    if (version >= 3)
+    {
+        uint8_t count = 0;
+        readPod(in, count);
+        if (count > 4) throw std::runtime_error("save file is corrupted (hero count)");
+        for (int i = 0; i < count; ++i)
+        {
+            SaveData::Hero s;
+            readPod(in, s.cls); readPod(in, s.level); readPod(in, s.exp);
+            readPod(in, s.hp);  readPod(in, s.mp);
+            s.name = sanitizeHeroName(readString(in));
+            if (version >= 5)
+            {
+                for (auto& id : s.equipment) readPod(in, id);
+                s.hasEquipment = true;
+            }
+            if (s.cls > static_cast<uint8_t>(SpecializationNames::Thief) || s.level < 1 || s.level > 99)
+                throw std::runtime_error("save file is corrupted (hero data)");
+            d.heroes.push_back(std::move(s));
+        }
+    }
+
+    if (version >= 4)
+    {
+        d.location = readString(in);
+        readPod(in, d.playSeconds);
+        readPod(in, d.savedAt);
+    }
+    return d;
+}
+}
+
 
 bool ResourceManager::isPlayerNew(const std::string& path) const
 {
@@ -331,8 +434,11 @@ bool ResourceManager::isPlayerNew(const std::string& path) const
     return !std::filesystem::is_regular_file(path, ec) || std::filesystem::file_size(path, ec) == 0;
 }
 
-bool ResourceManager::savePlayer(const std::string& path, const Player& player)
+bool ResourceManager::savePlayer(const std::string& path, const Player& player, const SaveMeta& meta)
 {
+    std::error_code ec;
+    std::filesystem::create_directories(std::filesystem::path(path).parent_path(), ec);   // папка saves/ при первом сохранении
+
     const std::string tmpPath = path + ".tmp";   // пишем во временный файл: сбой посреди записи не убьёт старое сохранение
     {
         std::ofstream out(tmpPath, std::ios::binary | std::ios::trunc);
@@ -377,7 +483,13 @@ bool ResourceManager::savePlayer(const std::string& path, const Player& player)
             writePod<uint32_t>(out, h.getCurrentHp());
             writePod<uint32_t>(out, h.getCurrentMp());
             writeString(out, h.getName());
+            for (int id : h.getEquipment())
+                writePod<int32_t>(out, id);
         }
+
+        writeString(out, meta.location.substr(0, kMaxString));
+        writePod<uint32_t>(out, meta.playSeconds);
+        writePod<int64_t>(out, static_cast<int64_t>(std::time(nullptr)));
 
         out.flush();
         if (!out)
@@ -387,7 +499,6 @@ bool ResourceManager::savePlayer(const std::string& path, const Player& player)
         }
     }   // файл закрыт
 
-    std::error_code ec;
     std::filesystem::rename(tmpPath, path, ec);
     if (ec)                                           // на некоторых тулчейнах rename не заменяет существующий файл
     {
@@ -402,103 +513,69 @@ bool ResourceManager::savePlayer(const std::string& path, const Player& player)
     return true;
 }
 
-// Возвращает true, если из файла восстановлена позиция (в версии 1 она была в пикселях старого движка)
-// При ошибке бросает std::runtime_error; игрок при этом остаётся нетронутым
-bool ResourceManager::loadPlayer(const std::string& path, Player& player)
+// Заменяет прогресс игрока содержимым файла. Возвращает true, если в файле есть позиция
+// (в версии 1 она была в пикселях старого движка). При ошибке бросает std::runtime_error, игрок остаётся нетронутым
+bool ResourceManager::loadPlayer(const std::string& path, Player& player, SaveMeta* meta)
 {
-    std::ifstream in(path, std::ios::binary);
-    if (!in)
-        throw std::runtime_error("cannot open save file: " + path);
+    const SaveData d = readSaveFile(path);
 
-    uint32_t magic = 0, version = 0;
-    readPod(in, magic);
-    readPod(in, version);
-    if (magic != kSaveMagic)
-        throw std::runtime_error("not a save file");
-    if (version < 1 || version > kSaveVersion)
-        throw std::runtime_error("unsupported save version " + std::to_string(version));
-
-    // 1) читаем всё во временные переменные
-    const std::string name = readString(in);
-
-    uint32_t gold = 0;
-    readPod(in, gold);
-
-    int32_t cx = 0, cy = 0;
-    uint16_t mapId = 0;
-    readPod(in, cx);
-    readPod(in, cy);
-    if (version >= 2)
-        readPod(in, mapId);
-    const bool hasPosition = version >= 2;
-
-    uint64_t enemyCount = 0;
-    readPod(in, enemyCount);
-    if (enemyCount > kMaxCount)
-        throw std::runtime_error("save file is corrupted (enemy count)");
-    std::vector<std::string> enemies;
-    for (uint64_t i = 0; i < enemyCount; ++i)
-        enemies.push_back(readString(in));
-
-    uint64_t itemCount = 0;
-    readPod(in, itemCount);
-    if (itemCount > kMaxCount)
-        throw std::runtime_error("save file is corrupted (item count)");
-    std::vector<std::pair<int, uint8_t>> items;
-    for (uint64_t i = 0; i < itemCount; ++i)
+    player.resetProgress();                           // иначе предметы и враги сложатся с текущей игрой
+    player.setPlayerName(d.name);
+    player.setPlayerGold(d.gold);
+    if (d.hasPosition)
     {
-        int32_t id = 0;
-        uint8_t count = 0;
-        readPod(in, id);
-        readPod(in, count);
-        items.emplace_back(id, count);
+        player.setPlayerCoords({d.cx, d.cy});
+        player.getMove().mapId = d.mapId;
     }
-    struct SavedHero { uint8_t cls = 0, level = 1; uint32_t exp = 0, hp = 0, mp = 0; std::string name; };
-    std::vector<SavedHero> savedHeroes;
-    if (version >= 3)
-    {
-        uint8_t count = 0;
-        readPod(in, count);
-        if (count > 4) throw std::runtime_error("save file is corrupted (hero count)");
-        for (int i = 0; i < count; ++i)
-        {
-            SavedHero s;
-            readPod(in, s.cls); readPod(in, s.level); readPod(in, s.exp);
-            readPod(in, s.hp);  readPod(in, s.mp);
-            s.name = sanitizeHeroName(readString(in));
-            if (s.cls > static_cast<uint8_t>(SpecializationNames::Thief) || s.level < 1 || s.level > 99)
-                throw std::runtime_error("save file is corrupted (hero data)");
-            savedHeroes.push_back(std::move(s));
-        }
-    }
-
-    // 2) всё прочитано без ошибок: применяем
-    player.setPlayerName(name);
-    player.setPlayerGold(gold);
-    if (hasPosition)
-    {
-        player.setPlayerCoords({cx, cy});
-        player.getMove().mapId = mapId;
-    }
-    for (const auto& e : enemies)
+    for (const auto& e : d.enemies)
         player.addDiscoveredEnemy(e);
-    for (const auto& [id, count] : items)
+    for (const auto& [id, count] : d.items)
         player.addItem(id, count);
-    if (!savedHeroes.empty())
+
+    auto& heroes = player.getLinkTOHeroes();
+    for (const auto& s : d.heroes)
     {
-        auto& heroes = player.getLinkTOHeroes();
-        heroes.clear();
-        for (const auto& s : savedHeroes)
-        {
-            Hero hero{Specialization(static_cast<SpecializationNames>(s.cls))};
-            hero.setLevel(s.level);
-            hero.setExperience(s.exp);
-            hero.setCurrentHp(s.hp);
-            hero.setCurrentMp(s.mp);
-            if (!s.name.empty()) hero.setName(s.name);
-            heroes.push_back(std::move(hero));
-        }
+        Hero hero{Specialization(static_cast<SpecializationNames>(s.cls))};
+        hero.setLevel(s.level);
+        hero.setExperience(s.exp);
+        hero.setCurrentHp(s.hp);
+        hero.setCurrentMp(s.mp);
+        if (!s.name.empty()) hero.setName(s.name);
+        if (s.hasEquipment)
+            for (int slot = 0; slot < kEquipSlots; ++slot)
+                hero.equip(static_cast<EquipSlot>(slot), s.equipment[slot]);   // неизвестный id equip просто не наденет
+        else
+            hero.equipStarting();
+        heroes.push_back(std::move(hero));
     }
 
-    return hasPosition;
+    if (meta)
+    {
+        meta->location = d.location;
+        meta->playSeconds = d.playSeconds;
+    }
+    return d.hasPosition;
+}
+
+std::optional<SaveSummary> ResourceManager::readSaveSummary(const std::string& path) const
+{
+    if (isPlayerNew(path)) return std::nullopt;
+
+    SaveSummary s;
+    try
+    {
+        const SaveData d = readSaveFile(path);
+        s.location = d.location;
+        s.gold = d.gold;
+        s.playSeconds = d.playSeconds;
+        s.savedAt = d.savedAt;
+        for (const auto& h : d.heroes)
+            s.heroes.push_back({static_cast<SpecializationNames>(h.cls), h.level, h.name});
+    }
+    catch (const std::exception& e)
+    {
+        SDL_Log("Save '%s' is unreadable: %s", path.c_str(), e.what());
+        s.corrupted = true;
+    }
+    return s;
 }

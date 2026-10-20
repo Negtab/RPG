@@ -23,6 +23,8 @@ class Game;
 class Player;
 class UIObject;
 
+struct MenuListLayout { SDL_Rect area; int cols; int rows; int rowH; };   // список в две колонки с прокруткой
+
 class UIManager {
 public:
     using AnimPlayer = ::AnimPlayer;
@@ -121,6 +123,15 @@ public:
 
     void resetPartyCreation();
 
+    // ── Экран сохранений ───────────────────────────────
+    void openSaveScreen(bool saving);
+    void handleSavesEvent(const SDL_Event& event);
+
+    // ── Игровое меню и настройки ───────────────────────
+    void openGameMenu();
+    void handleGameMenuEvent(const SDL_Event& event);
+    void handleConfigEvent(const SDL_Event& event);
+
     bool handleTextEvent(const SDL_Event& event, const std::string& sceneId);   // true: событие поглотило поле ввода
     void styleEdit(const std::string& id, const std::string& sceneId,
                    SDL_Color background, SDL_Color border, int maxLength = 32);
@@ -181,6 +192,84 @@ private:
     void confirmParty();
 
     void layoutBattle();
+
+    // ── Экран сохранений ───────────────────────────────
+    void initSavesScene();
+    void initGameMenuScene();
+    void updateMenuButtons();
+    void drawSavesScreen();
+    int  drawText(const std::string& text, int x, int y, SDL_Color color) const;    // возвращает ширину
+    [[nodiscard]] SDL_Rect slotCardRect(int row) const;
+    [[nodiscard]] SDL_Rect dialogOptionRect(bool yes) const;
+    [[nodiscard]] static std::string slotName(int slot);
+    void activateSlot(int slot);
+    void answerDialog(bool yes);
+    void showSavesNotice(const std::string& text);
+
+    bool savesSaving = false;
+    std::vector<int> savesRows;                                // какие слоты на экране, сверху вниз
+    int savesSelected = 0;                                     // строка в savesRows
+    std::array<std::optional<SaveSummary>, 5> slotCache;       // читаем файлы при открытии экрана, а не каждый кадр
+    int  dialogSlot = -1;                                      // >= 0: открыт вопрос «точно?» про этот слот
+    bool dialogYes = false;
+    std::string dialogLine1, dialogLine2;
+    std::string savesNotice;
+    Uint32 savesNoticeTicks = 0;
+
+    // ── Игровое меню и настройки ───────────────────────
+    struct MenuCommand { std::string text; bool enabled; std::function<void()> action; };
+    [[nodiscard]] std::vector<MenuCommand> gameMenuCommands();
+    [[nodiscard]] SDL_Rect gameMenuRowRect(int row) const;
+    void drawGameMenu();
+
+    // Страницы игрового меню. *Target — выбор героя, на которого применить предмет или заклинание
+    enum class MenuPage { Main, PickHero, Items, ItemTarget, Magic, MagicTarget, Equip, EquipPick, Status };
+    using ListLayout = MenuListLayout;
+
+    void openMenuPage(MenuPage page);
+    void showMenuNotice(const std::string& text);
+    [[nodiscard]] SDL_Rect partyRowRect(int i) const;
+    [[nodiscard]] SDL_Rect targetRowRect(int i) const;
+    [[nodiscard]] static SDL_Rect listCellRect(const ListLayout& l, int scroll, int index);
+    static void listNavigate(const ListLayout& l, int& sel, int& scroll, int count, SDL_Scancode k);
+    [[nodiscard]] static int listHit(const ListLayout& l, int scroll, int count, SDL_Point p);
+    [[nodiscard]] std::vector<std::pair<int, int>> inventoryList() const;   // (id, количество) для Items
+    [[nodiscard]] std::vector<int> equipCandidates() const;                // для слота equipSlotSel; 0 — «снять»
+    [[nodiscard]] std::string itemDescription(const Item& item) const;
+    [[nodiscard]] std::string skillDescription(const Skill& skill) const;
+    [[nodiscard]] bool skillUsableInField(const Hero& caster, const Skill& skill) const;
+    bool applyFieldEffect(Hero& target, bool restoresMp, int power);         // false: эффекта нет
+    void useItemOn(int heroIndex);
+    void castOn(int heroIndex);
+    void cycleMenuHero(int dir);
+
+    void handleMenuMain(const SDL_Event& e);
+    void handleMenuList(const SDL_Event& e);                                // Items и Magic
+    void handleMenuTarget(const SDL_Event& e);
+    void handleMenuEquip(const SDL_Event& e);
+    void drawMenuHeader(const std::string& title, const std::string& right);
+    void drawPartyPanel(const SDL_Rect& win, int pointerRow, bool compact);
+    void drawItemsPage();
+    void drawMagicPage();
+    void drawEquipPage();
+    void drawStatusPage();
+    void drawTargetOverlay();
+
+    MenuPage menuPage = MenuPage::Main;
+    MenuPage pickFor  = MenuPage::Status;                       // куда ведёт выбор героя на главной странице
+    int menuHero = 0;                                           // чей экран Magic, Equipment, Status
+    int partySel = 0;                                           // строка отряда при выборе героя или цели
+    int listSel = 0, listScroll = 0;
+    int equipSlotSel = 0;
+    std::string menuNotice;
+    Uint32 menuNoticeTicks = 0;
+    void drawConfig();
+    [[nodiscard]] SDL_Rect configRowRect(int row) const;
+    [[nodiscard]] SDL_Rect volumeBarRect(int row) const;
+    void changeVolume(int row, int level);
+    int gameMenuSelected = 0;
+    int configSelected = 0;                                    // 0 музыка, 1 звуки, 2 «Back»
+    bool draggingVolume = false;
 
     std::array<int, 4> pickedClass{0, 1, 2, 3};
     std::array<SDL_Rect, 4> heroSlotRect{}, remoteSlotRect{}, enemySlotRect{};

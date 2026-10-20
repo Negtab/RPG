@@ -122,6 +122,7 @@ struct HeroInfo
     int32_t currentHp;
     int32_t currentMp;
     char    name[13];
+    int32_t equipment[5];   // id предметов по слотам EquipSlot, 0 — пусто: хост считает урон напарника с ними
 };
 
 struct PartyInfoPacket

@@ -5,6 +5,17 @@
 #include "gameData.h"
 #include "../main/game.h"
 
+namespace {
+// Обычный удар: атака минус половина защиты, разброс ±10%, но не меньше 1.
+// Магия и предметы защиту не учитывают, как в FF1
+uint32_t physicalDamage(uint32_t attack, uint32_t defence)
+{
+    const int64_t base = std::max<int64_t>(1, static_cast<int64_t>(attack) - defence / 2);
+    const int64_t spread = 90 + rand() % 21;
+    return static_cast<uint32_t>(std::max<int64_t>(1, base * spread / 100));
+}
+}
+
 const std::vector<Enemy> &Battle::getEnemies() const {
     return enemies;
 }
@@ -215,9 +226,45 @@ void Battle::startPlayerChoose()
     playersReady = 0;
     state = BattleState::PlayerChoose;
 
-    while (currentHeroIndex < player->getHeroes().size() &&
+    skipDeadHeroes();                                  // павший первый герой ход не держит
+}
+
+void Battle::skipDeadHeroes()
+{
+    while (currentHeroIndex < static_cast<int>(player->getHeroes().size()) &&
            player->getHeroes()[currentHeroIndex].getCurrentHp() <= 0)
         currentHeroIndex++;
+
+    if (currentHeroIndex < static_cast<int>(player->getHeroes().size()))
+        return;
+
+    // Все свои уже выбрали или все пали
+    if (game->isConnected())
+    {
+        bool sentAny = false;
+        for (const auto& a : plannedActions)
+            if (a.playerId == game->localPlayerId) { sentAny = true; break; }
+        if (!sentAny)                                  // свои все пали: хост ждёт от нас хотя бы одно действие
+        {
+            Action skip{};
+            skip.type = ActionType::Skip;
+            skip.playerId = game->localPlayerId;
+            plannedActions.push_back(skip);
+            game->sendBattleAction(skip);
+        }
+    }
+
+    readyPlayers.insert(game->localPlayerId);
+    playersReady++;
+    state = BattleState::WaitingForHost;
+
+    if ((game->isHost() && playersReady >= expectedPlayers) ||
+        (!game->isHost() && !game->isConnected()))
+    {
+        playersReady = 0;
+        readyPlayers.clear();
+        startExecuteActions();
+    }
 }
 
 Hero* Battle::resolveActor(const Action& action)
@@ -245,24 +292,7 @@ void Battle::confirmAction(const Action& action)
         game->sendBattleAction(actionWithId);
 
     currentHeroIndex++;
-    while (currentHeroIndex < player->getHeroes().size() &&
-           player->getHeroes()[currentHeroIndex].getCurrentHp() <= 0)
-        currentHeroIndex++;
-
-    if (currentHeroIndex >= player->getHeroes().size())
-    {
-        readyPlayers.insert(game->localPlayerId); // ← добавить
-        playersReady++;
-        state = BattleState::WaitingForHost;
-
-        if ((game->isHost() && playersReady >= expectedPlayers) ||
-            (!game->isHost() && !game->isConnected()))
-        {
-            playersReady = 0;
-            readyPlayers.clear();
-            startExecuteActions();
-        }
-    }
+    skipDeadHeroes();
 }
 
 void Battle::updateExecuteActions()
@@ -315,8 +345,7 @@ void Battle::executeAttack(Hero& attacker, const std::vector<int>& targets)
     for (int idx : targets)
     {
         Enemy& target = enemies[idx];
-        uint32_t damage = attacker.getAttackPower(nullptr);
-        target.takeDamage(damage);
+        target.takeDamage(physicalDamage(attacker.getAttackPower(nullptr), target.getDefense()));
         tryCounterAttack(attacker, target);
     }
 }
@@ -441,8 +470,7 @@ void Battle::tryCounterAttack(Hero& attacker, Enemy& target)
     if (roll >= chance)
         return;
 
-    uint32_t counterDamage = target.getAttackPower(nullptr) / 2;
-    attacker.takeDamage(counterDamage);
+    attacker.takeDamage(physicalDamage(target.getAttackPower(nullptr) / 2, attacker.getDefense()));
 }
 
 void Battle::startEnemyTurn()
@@ -520,7 +548,7 @@ bool Battle::enemyBasicAttack(Enemy& enemy, int hits)
         const auto target = selectHeroTarget();
         if (!target) return i > 0;                          // героев нет вообще: false; погибли за время ударов: true
         if (Hero* hero = heroByRef(*target))
-            hero->takeDamage(enemy.getAttackPower(nullptr));
+            hero->takeDamage(physicalDamage(enemy.getAttackPower(nullptr), hero->getDefense()));
     }
     return true;
 }
@@ -838,8 +866,7 @@ void Battle::run(const std::vector<int>& formation, const std::vector<int>& pool
     playersReady = 0;
 
     //if (firstTurnIsPlayer) {
-        currentTurn = TurnOwner::Player;
-        state = BattleState::PlayerChoose;
+        startPlayerChoose();                          // а не просто state = PlayerChoose: пропустит павших героев
    /* } else {
         currentTurn = TurnOwner::Enemy;
         state = BattleState::EnemyTurn;
@@ -937,6 +964,18 @@ void Battle::finishBattle(const bool& win)
                 report.levelUps.push_back({h.getName(), h.getLevel()});
         }
     player->setPlayerGold(player->getPlayerGold() + report.gold);
+
+    // Трофеи: за каждого врага каждая строка таблицы бросается отдельно; у каждого игрока свои
+    std::map<int, int> found;
+    for (const auto& e : enemies)
+        for (const Drop& d : GameData::instance().drops(e.getEnemyId()))
+            if (rand() % 100 < d.chance) ++found[d.itemId];
+    for (const auto& [id, count] : found)
+    {
+        player->addItem(id, static_cast<uint8_t>(count));
+        const Item* item = game->findItem(id);
+        report.items.push_back((item ? item->name : "Item") + (count > 1 ? " x" + std::to_string(count) : ""));
+    }
 
     game->sendPartyInfo();
     state = BattleState::Victory;              // ждём подтверждения

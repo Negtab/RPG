@@ -56,8 +56,15 @@ struct HeroClassDef
     int hpPerLevel = 0, mpPerLevel = 0, attackPerLevel = 0, defencePerLevel = 0, agilityPerLevel = 0;
     std::vector<Elemental> resists, immunities, vulnerabilities;
     std::vector<int> skills;
+    std::vector<int> startEquipment;                       // id предметов, надетых в новой игре
     uint32_t xpToFirstLevel = 100;
     float xpGrowth = 1.3f;
+};
+
+struct Drop
+{
+    int itemId = 0;
+    int chance = 0;         // процент за каждого побеждённого врага
 };
 
 class GameData
@@ -72,6 +79,7 @@ public:
     [[nodiscard]] const EnemyDef* enemy(int id) const;
     [[nodiscard]] const std::vector<int>& enemyIds() const { return enemyIdList; }
     [[nodiscard]] const HeroClassDef* heroClass(SpecializationNames id) const;
+    [[nodiscard]] const std::vector<Drop>& drops(int enemyId) const;
 
     [[nodiscard]] bool hasEncounter(const std::string& id) const { return encounterMap.contains(id); }
     [[nodiscard]] std::vector<int> pickFormation(const std::string& id) const;   // пусто, если группы нет
@@ -82,6 +90,7 @@ private:
     void loadEnemies(const std::filesystem::path& path);
     void loadEncounters(const std::filesystem::path& path);
     void loadHeroes(const std::filesystem::path& path);
+    void loadDrops(const std::filesystem::path& path);
 
     std::map<int, Item> itemMap;
     std::map<int, Skill> skillMap;
@@ -89,6 +98,7 @@ private:
     std::vector<int> enemyIdList;
     std::map<std::string, EncounterGroup> encounterMap;
     std::map<SpecializationNames, HeroClassDef> heroMap;
+    std::map<int, std::vector<Drop>> dropMap;
 };
 
 #endif

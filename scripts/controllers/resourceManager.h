@@ -1,6 +1,7 @@
 #ifndef PROJECT_NAME_RESOURCEMANAGER_H
 #define PROJECT_NAME_RESOURCEMANAGER_H
 
+#include <optional>
 #include <string>
 #include <SDL.h>
 #include <SDL_mixer.h>
@@ -16,6 +17,23 @@ struct TextBlock {
 
 struct TextSize {
     int w, h;
+};
+
+// Что игрок видит в карточке слота, без загрузки сохранения в игру
+struct SaveSummary {
+    struct HeroInfo { SpecializationNames cls; int level; std::string name; };
+    bool corrupted = false;                 // файл есть, но не читается: слот показываем, загрузить нельзя
+    std::string location;
+    uint32_t gold = 0;
+    uint32_t playSeconds = 0;
+    int64_t savedAt = 0;                    // unix-время, 0 = неизвестно (старые версии файла)
+    std::vector<HeroInfo> heroes;
+};
+
+// Сверх игрока в файле лежит то, что знает только Game
+struct SaveMeta {
+    std::string location;                   // зона или карта, где сохранились
+    uint32_t playSeconds = 0;
 };
 
 class ResourceManager
@@ -36,8 +54,9 @@ public:
     void initialize();
 
     [[nodiscard]] bool isPlayerNew(const std::string& path) const;
-    bool savePlayer(const std::string& path, const Player& player);   // было void
-    bool loadPlayer(const std::string& path, Player& player);         // было void
+    bool savePlayer(const std::string& path, const Player& player, const SaveMeta& meta);
+    bool loadPlayer(const std::string& path, Player& player, SaveMeta* meta = nullptr);
+    [[nodiscard]] std::optional<SaveSummary> readSaveSummary(const std::string& path) const;   // nullopt: слот пуст
 
     bool addTexture(const std::string& path);
     bool addTextTexture(const std::string& name, const std::string& text, TTF_Font* font, SDL_Color color);

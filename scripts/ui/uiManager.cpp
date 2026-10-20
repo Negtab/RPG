@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <ctime>
 
 #include "UIManager.h"
 #include "../main/game.h"
@@ -447,13 +449,32 @@ void UIManager::drawScene(const std::string &sceneId)
     Scene *scene = findScene(sceneId);
     if (!scene) return;
 
-    if (sceneId == "Map")
+    // Экраны поверх игры (игровое меню и всё, что из него открыто) показывают приглушённую карту
+    const bool overGame = game.isGameInProgress() &&
+                          (sceneId == "GameMenu" || sceneId == "Saves" || sceneId == "Options");
+
+    if (sceneId == "Map" || overGame)
         drawMapWorld();                               // под интерфейсом
 
-    scene->draw(visualizer, game.getScreenRect());
+    if (overGame)
+    {
+        if (sceneId != "GameMenu") visualizer.fillRect(screen, {0, 0, 0, 120});
+    }
+    else
+        scene->draw(visualizer, game.getScreenRect());
+
+    if (sceneId == "GameMenu")
+        drawGameMenu();
+    if (sceneId == "Options")
+        drawConfig();
+    if (sceneId == "Saves")
+        drawSavesScreen();
     if (sceneId == "Battle")
         drawBattleOverlay();                          // поверх окон: стрелки и числа урона
-    scene->musicPlayer.playMusic(audioManager, sceneId + "Theme");
+
+    // Из игры музыка карты продолжает играть; экран слотов никогда не меняет трек
+    if (!overGame && sceneId != "Saves")
+        scene->musicPlayer.playMusic(audioManager, sceneId + "Theme");
 }
 // ─────────────────────────────────────────
 // Update
@@ -480,6 +501,8 @@ void UIManager::updateSceneData(const std::string &sceneId, Scene &scene)
 
     if (sceneId == "Battle")                   // ветка для Map больше не нужна
         updateBattleData(scene);
+    else if (sceneId == "Menu")
+        updateMenuButtons();
 }
 
 void UIManager::updateBattleData(Scene &scene)
@@ -739,7 +762,7 @@ bool UIManager::hasUsableSkill() const
 bool UIManager::hasItems() const
 {
     for (const auto& [id, count] : player.getItemCounts())
-        if (count > 0) return true;
+        if (count > 0 && game.getItem(id).usableInBattle()) return true;    // экипировка в бою не применяется
     return false;
 }
 
@@ -843,7 +866,7 @@ void UIManager::initItems()
     int i = 0;
     for (const auto& [itemId, count] : player.getItemCounts())
     {
-        if (count == 0) continue;
+        if (count == 0 || !game.getItem(itemId).usableInBattle()) continue;
         if (i >= ENV_BUTTON_COUNT) break;
         setListEntry(i++, game.getItem(itemId).name, "x" + std::to_string(count), true,
                      [this, itemId]() { onEnvironmentCLick(itemId, false); });
@@ -1302,6 +1325,8 @@ void UIManager::initialize()
     addScene(gameStateString.at(GameState::Map));
     addScene(gameStateString.at(GameState::Inventory));
     addScene(gameStateString.at(GameState::Online));
+    addScene(gameStateString.at(GameState::Saves));
+    addScene(gameStateString.at(GameState::GameMenu));
 
     initMapScene();
     initMenuScene();
@@ -1309,6 +1334,8 @@ void UIManager::initialize()
     initOnlineScene();
     initBattleScene();
     initCreateScene();
+    initSavesScene();
+    initGameMenuScene();
 }
 
 void UIManager::initMapScene()
@@ -1340,46 +1367,47 @@ void UIManager::initMenuScene()
     addPanel("ButtonPanel", "Menu");
 
     auto hover = [this]() { playSound("Menu", "ButtonHover"); };
-    addButton("Online", "Menu", {190, screen.h / 2 + 30, 170, 50},
-              ResourceManager::getTextTexture("Co-op", font, {0, 0, 0, 0}),
-              [this]() { game.openOnlineMenu(); }, hover, "ButtonPanel");
-    addButton("Continue", "Menu", {190, screen.h / 2 + 80, 170, 50},
-              ResourceManager::getTextTexture("Continue", font, {0, 0, 0, 0}),
-              [this]() { game.startGame(); }, hover, "ButtonPanel");
-    addButton("New game", "Menu", {190, screen.h / 2 + 130, 170, 50},
-              ResourceManager::getTextTexture("New game", font, {0, 0, 0, 0}),
-              [this]() { game.openPartyCreation(); }, hover, "ButtonPanel");
-    addButton("Options", "Menu", {190, screen.h / 2 + 180, 150, 50},
-              ResourceManager::getTextTexture("Options", font, {0, 0, 0, 0}),
-              [this]() { game.openOptions(GameState::Menu); }, hover, "ButtonPanel");
-    addButton("Quit", "Menu", {190, screen.h / 2 + 230, 100, 50},
-              ResourceManager::getTextTexture("Quit", font, {0, 0, 0, 0}),
-              [this]() { game.endGame(); }, hover, "ButtonPanel");
+    // Стартовое меню: сохраняться отсюда нечего, это делается в игровом меню. Continue и Load красит updateMenuButtons()
+    struct MenuItem { const char* id; const char* text; std::function<void()> onClick; };
+    const MenuItem items[] = {
+        {"Continue", "Continue", [this]() { game.continueGame(); }},
+        {"New game", "New game", [this]() { game.openPartyCreation(); }},
+        {"Load",     "Load",     [this]() { game.openSaveScreen(false); }},
+        {"Online",   "Co-op",    [this]() { game.openOnlineMenu(); }},
+        {"Options",  "Options",  [this]() { game.openOptions(GameState::Menu); }},
+        {"Quit",     "Quit",     [this]() { game.endGame(); }},
+    };
+    // Один масштаб на все пункты: ширина считается от текста, поэтому буквы везде одного размера
+    constexpr int kButtonH = 40;
+    for (int i = 0; i < static_cast<int>(std::size(items)); ++i)
+    {
+        const TextSize ts = ResourceManager::measureText(items[i].text, font);
+        const int w = ts.h > 0 ? ts.w * kButtonH / ts.h : 0;
+        addButton(items[i].id, "Menu", {190, screen.h / 2 - 10 + i * 42, w, kButtonH},
+                  ResourceManager::getTextTexture(items[i].text, font, {0, 0, 0, 0}),
+                  items[i].onClick, hover, "ButtonPanel");
+    }
     addImage("FPS", "Menu", {10, 10, 100, 30},
              ResourceManager::getTextTexture("FPS: 0", font, {0, 0, 0, 0}));
 }
 
 void UIManager::initOptionsScene()
 {
+    // Само окно настроек рисует drawConfig(): громкость, «Back» и подсказка по управлению
     TTF_Font *font = ResourceManager::getFont("RetroByte");
-    const std::string text =
-            "Options:\nOn Map:\nFor moving use WASD or arrows\n"
-            "In Battle:\nTo select target use WASD or arrows\n"
-            "To confirm the target use SPACE or ENTER(RETURN)";
-
     addImage("OptionsBackground", "Options", screen,
              ResourceManager::getTexture("OptionsBackground"), {0, 0, 1920, 1000});
-    addImage("InstructionText", "Options",
-             {screen.w / 2 - 350, screen.h / 2 - 150, 700, 240},
-             ResourceManager::getTextTexture(text, font, {0, 0, 0, 0}, screen.w - 200));
-    addImage("Time", "Options", {screen.w - 90, 10, 80, 30},
-             ResourceManager::getTextTexture("00:00", font, {0, 0, 0, 0}));
-    addButton("BackButton", "Options",
-              {screen.w / 2 - 110, screen.h - 100, 220, 90},
-              ResourceManager::getTextTexture("Back to menu", font, {0, 0, 0, 0}),
-              [this]() { game.closeOptions(); },
-              [this]() { playSound("Menu", "ButtonHover"); });
+    addImage("FPS", "Options", {0, 0, 0, 0}, ResourceManager::getTextTexture("FPS: 0", font, {0, 0, 0, 0}));
+    addImage("Time", "Options", {0, 0, 0, 0}, ResourceManager::getTextTexture("00:00", font, {0, 0, 0, 0}));
     addMusic("OptionsTheme", "Options");
+}
+
+void UIManager::initGameMenuScene()
+{
+    // Под меню рисуется карта (drawScene), окна рисует drawGameMenu()
+    TTF_Font *font = ResourceManager::getFont("RetroByte");
+    addImage("FPS", "GameMenu", {0, 0, 0, 0}, ResourceManager::getTextTexture("FPS: 0", font, {0, 0, 0, 0}));
+    addImage("Time", "GameMenu", {0, 0, 0, 0}, ResourceManager::getTextTexture("00:00", font, {0, 0, 0, 0}));
 }
 
 void UIManager::initOnlineScene()
@@ -1426,8 +1454,26 @@ void UIManager::showBattleResults(const BattleReport& r)
     text += "Each hero earned " + std::to_string(r.expEach) + " EXP\n";
     for (const auto& up : r.levelUps)
         text += "\n" + up.name + " reached level " + std::to_string(up.newLevel) + "!";
+    if (!r.items.empty())
+        text += "\n";
+    for (const auto& item : r.items)
+        text += "\nFound " + item;
 
+    // Окно растёт под текст: уровни и трофеи могут добавить много строк
+    const int lines = static_cast<int>(std::count(text.begin(), text.end(), '\n')) + 1;
+    const int h = std::max(230, 40 + lines * 26 + 40);
+    const int top = std::max(10, screen.h / 2 - 70 - h / 2);
+    setRect("ResultWindow", "Battle", {screen.w / 2 - 230, top, 460, h});
     setText("ResultText", "Battle", text);
+    auto moveLabel = [this](const std::string& id, int y) {      // метка рисует текст по своему rect, фон по background
+        if (auto* l = dynamic_cast<Label*>(findUIObject(id, "Battle")))
+        {
+            l->background.rect.y = y;
+            l->rect.y = y + l->paddingY;
+        }
+    };
+    moveLabel("ResultText", top + 15);
+    moveLabel("ResultHint", top + h - 45);
     setEnVI("ActionPanel", "Battle", false);
     closeList();
     uiState = UIChooseState::ChooseAction;
@@ -1524,4 +1570,1223 @@ void UIManager::initBattleScene()
     addLabel("ResultHint", "Battle", {screen.w / 2 - 210, 300, 0, 0}, nullptr, "Press Enter", font,
              {255, 255, 255, 255}, 8, 4, "ResultPanel");
     setEnVI("ResultPanel", "Battle", false);
+}
+// ─────────────────────────────────────────
+// Экран сохранений
+// ─────────────────────────────────────────
+
+namespace {
+    const SDL_Color kSaveText  {255, 255, 255, 255};
+    const SDL_Color kSaveDim   {150, 160, 200, 255};             // подписи и пустые слоты
+    const SDL_Color kSaveHot   {255, 232, 120, 255};             // название выбранного слота
+    const SDL_Color kSaveBad   {255, 120, 120, 255};
+
+    std::string formatPlayTime(uint32_t seconds)
+    {
+        char buf[16];
+        std::snprintf(buf, sizeof(buf), "%02u:%02u", seconds / 3600, seconds / 60 % 60);
+        return buf;
+    }
+
+    std::string formatDate(int64_t unixTime)
+    {
+        if (unixTime <= 0) return "-";
+        const std::time_t t = static_cast<std::time_t>(unixTime);
+        std::tm local{};
+#if defined(_WIN32)
+        localtime_s(&local, &t);
+#else
+        localtime_r(&t, &local);
+#endif
+        char buf[32];
+        std::strftime(buf, sizeof(buf), "%d.%m.%Y %H:%M", &local);
+        return buf;
+    }
+}
+
+void UIManager::initSavesScene()
+{
+    TTF_Font *font = ResourceManager::getFont("RetroByte");
+    addImage("SavesBackground", "Saves", screen,
+             ResourceManager::getTexture("OptionsBackground"), {0, 0, 1920, 1000});
+    // Время и FPS обновляются в каждой сцене, поэтому они нужны и здесь; прячем под окнами
+    addImage("FPS", "Saves", {0, 0, 0, 0}, ResourceManager::getTextTexture("FPS: 0", font, {0, 0, 0, 0}));
+    addImage("Time", "Saves", {0, 0, 0, 0}, ResourceManager::getTextTexture("00:00", font, {0, 0, 0, 0}));
+}
+
+std::string UIManager::slotName(int slot)
+{
+    return slot == 0 ? "Autosave" : "Slot " + std::to_string(slot);
+}
+
+void UIManager::openSaveScreen(bool saving)
+{
+    savesSaving = saving;
+    savesRows.clear();
+    for (int i = saving ? 1 : 0; i < Game::kSaveSlots; ++i)   // в автослот вручную не пишем
+        savesRows.push_back(i);
+    for (int i = 0; i < Game::kSaveSlots; ++i)
+        slotCache[i] = game.getSlotSummary(i);
+
+    savesSelected = 0;
+    if (!saving)                                               // при загрузке сразу на самом свежем сохранении
+    {
+        int64_t latest = -1;
+        for (int r = 0; r < static_cast<int>(savesRows.size()); ++r)
+        {
+            const auto& s = slotCache[savesRows[r]];
+            if (s && !s->corrupted && s->savedAt > latest) { latest = s->savedAt; savesSelected = r; }
+        }
+    }
+    dialogSlot = -1;
+    savesNotice.clear();
+}
+
+void UIManager::showSavesNotice(const std::string& text)
+{
+    savesNotice = text;
+    savesNoticeTicks = SDL_GetTicks();
+}
+
+void UIManager::activateSlot(int slot)
+{
+    const auto& s = slotCache[slot];
+    if (savesSaving)
+    {
+        if (s)                                                 // занятый слот: сначала спросим
+        {
+            dialogSlot = slot;
+            dialogYes = false;
+            dialogLine1 = "Overwrite " + slotName(slot) + "?";
+            dialogLine2 = s->corrupted ? "It is damaged anyway" : "The old save will be lost";
+            return;
+        }
+        dialogSlot = slot;                                     // пустой слот: пишем сразу, без вопроса
+        answerDialog(true);
+        return;
+    }
+
+    if (!s)            { showSavesNotice(slotName(slot) + " is empty"); return; }
+    if (s->corrupted)  { showSavesNotice(slotName(slot) + " is damaged"); return; }
+    if (game.isGameInProgress())
+    {
+        dialogSlot = slot;
+        dialogYes = false;
+        dialogLine1 = "Load " + slotName(slot) + "?";
+        dialogLine2 = "Unsaved progress will be lost";
+        return;
+    }
+    dialogSlot = slot;
+    answerDialog(true);
+}
+
+void UIManager::answerDialog(bool yes)
+{
+    const int slot = dialogSlot;
+    dialogSlot = -1;
+    if (!yes || slot < 0) return;
+
+    if (savesSaving)
+    {
+        const bool ok = game.saveToSlot(slot);
+        slotCache[slot] = game.getSlotSummary(slot);
+        showSavesNotice(ok ? "Saved to " + slotName(slot) : "Could not save");
+        return;
+    }
+
+    if (!game.loadFromSlot(slot))                              // успех сам переводит игру на карту
+    {
+        slotCache[slot] = game.getSlotSummary(slot);
+        showSavesNotice("Could not load " + slotName(slot));
+    }
+}
+
+SDL_Rect UIManager::slotCardRect(int row) const
+{
+    constexpr int top = 80, bottom = 16, gap = 6;
+    const int n = std::max<int>(1, static_cast<int>(savesRows.size()));
+    const int h = std::min(110, (screen.h - top - bottom - gap * (n - 1)) / n);
+    return {40, top + row * (h + gap), screen.w - 80, h};
+}
+
+SDL_Rect UIManager::dialogOptionRect(bool yes) const
+{
+    const SDL_Rect win{screen.w / 2 - 200, screen.h / 2 - 75, 400, 150};
+    return {win.x + (yes ? 90 : 250), win.y + 100, 70, 30};
+}
+
+void UIManager::handleSavesEvent(const SDL_Event& e)
+{
+    const bool keyDown = e.type == SDL_KEYDOWN;
+    const SDL_Scancode k = keyDown ? e.key.keysym.scancode : SDL_SCANCODE_UNKNOWN;
+    const bool fresh = keyDown && e.key.repeat == 0;           // Enter и Esc не повторяются при удержании
+    const bool confirm = fresh && (k == SDL_SCANCODE_RETURN || k == SDL_SCANCODE_KP_ENTER || k == SDL_SCANCODE_SPACE);
+    const bool back = (fresh && k == SDL_SCANCODE_ESCAPE) ||
+                      (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT);
+    const SDL_Point mouse = e.type == SDL_MOUSEMOTION ? SDL_Point{e.motion.x, e.motion.y}
+                                                      : SDL_Point{e.button.x, e.button.y};
+    const bool click = e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT;
+
+    if (dialogSlot >= 0)                                       // вопрос «точно?» перехватывает всё
+    {
+        if (back || (fresh && k == SDL_SCANCODE_N)) { dialogSlot = -1; return; }
+        if (fresh && k == SDL_SCANCODE_Y)           { answerDialog(true); return; }
+        if (keyDown && (k == SDL_SCANCODE_LEFT || k == SDL_SCANCODE_RIGHT ||
+                        k == SDL_SCANCODE_A || k == SDL_SCANCODE_D))
+            dialogYes = !dialogYes;
+        if (confirm) { answerDialog(dialogYes); return; }
+        if (e.type == SDL_MOUSEMOTION || click)
+            for (const bool yes : {true, false})
+            {
+                const SDL_Rect r = dialogOptionRect(yes);
+                if (!SDL_PointInRect(&mouse, &r)) continue;
+                dialogYes = yes;
+                if (click) answerDialog(yes);
+                return;
+            }
+        return;
+    }
+
+    if (back) { game.closeSaveScreen(); return; }
+
+    const int n = static_cast<int>(savesRows.size());
+    if (n == 0) return;
+    if (keyDown && (k == SDL_SCANCODE_UP || k == SDL_SCANCODE_W))   savesSelected = (savesSelected - 1 + n) % n;
+    if (keyDown && (k == SDL_SCANCODE_DOWN || k == SDL_SCANCODE_S)) savesSelected = (savesSelected + 1) % n;
+    if (confirm) { activateSlot(savesRows[savesSelected]); return; }
+
+    if (e.type == SDL_MOUSEMOTION || click)
+        for (int r = 0; r < n; ++r)
+        {
+            const SDL_Rect card = slotCardRect(r);
+            if (!SDL_PointInRect(&mouse, &card)) continue;
+            savesSelected = r;
+            if (click) activateSlot(savesRows[r]);
+            return;
+        }
+}
+
+int UIManager::drawText(const std::string& text, int x, int y, SDL_Color color) const
+{
+    if (text.empty()) return 0;
+    SDL_Texture* t = ResourceManager::getTextTexture(text, ResourceManager::getFont("RetroByte"), color);
+    if (!t) return 0;
+    int w = 0, h = 0;
+    SDL_QueryTexture(t, nullptr, nullptr, &w, &h);
+    visualizer.drawTexture(t, x, y, w, h);
+    return w;
+}
+
+void UIManager::drawSavesScreen()
+{
+    SDL_Texture* skin = getWindowSkin(visualizer.getRenderer());
+    TTF_Font* font = ResourceManager::getFont("RetroByte");
+
+    // Заголовок; справа подсказка или сообщение о результате
+    const SDL_Rect title{40, 16, screen.w - 80, 52};
+    visualizer.drawNinePatch(skin, title, kWindowSkinSlice, 1);
+    drawText(savesSaving ? "Save game" : "Load game", title.x + 20, title.y + 14, kSaveText);
+    const bool noticeOn = !savesNotice.empty() && SDL_GetTicks() - savesNoticeTicks < 2500;
+    const std::string hint = noticeOn ? savesNotice : "Enter - select   Esc - back";
+    const TextSize hs = ResourceManager::measureText(hint, font);
+    drawText(hint, title.x + title.w - 20 - hs.w, title.y + 14, noticeOn ? kSaveHot : kSaveDim);
+
+    for (int r = 0; r < static_cast<int>(savesRows.size()); ++r)
+    {
+        const int slot = savesRows[r];
+        const SDL_Rect card = slotCardRect(r);
+        const bool selected = r == savesSelected;
+        visualizer.drawNinePatch(skin, card, kWindowSkinSlice, 1);
+        if (selected)
+            drawPointer(card.x - 2 - (SDL_GetTicks() / 220) % 2 * 3, card.y + card.h / 2, PIXEL_SCALE);
+
+        const int line1 = card.y + 10, line2 = card.y + card.h / 2 - 12, line3 = card.y + card.h - 34;
+        drawText(slotName(slot), card.x + 20, line1, selected ? kSaveHot : kSaveText);
+
+        const auto& s = slotCache[slot];
+        if (!s)            { drawText("Empty", card.x + 260, line2, kSaveDim); continue; }
+        if (s->corrupted)  { drawText("Damaged save", card.x + 260, line2, kSaveBad); continue; }
+
+        drawText(s->location, card.x + 20, line3, kSaveDim);
+
+        // Отряд: спрайт в масштабе 2 и уровень под ним
+        for (int i = 0; i < static_cast<int>(s->heroes.size()) && i < 4; ++i)
+        {
+            const auto& h = s->heroes[i];
+            const int cx = card.x + 290 + i * 72;
+            if (SDL_Texture* tex = ResourceManager::getTexture("Image" + std::to_string(heroLook(h.cls))))
+                visualizer.drawTexture(tex, cx - 16, card.y + 8, 32, 48, 0, 0, 16, 24);
+            const std::string lv = "Lv " + std::to_string(h.level);
+            drawText(lv, cx - ResourceManager::measureText(lv, font).w / 2, card.y + 58, kSaveText);
+        }
+
+        const int right = card.x + card.w - 210;
+        drawText("Time " + formatPlayTime(s->playSeconds), right, line1, kSaveText);
+        drawText(formatDate(s->savedAt), right, line2, kSaveDim);
+        drawText(std::to_string(s->gold) + " Gil", right, line3, kSaveText);
+    }
+
+    if (dialogSlot < 0) return;
+
+    // Вопрос поверх затемнённого экрана
+    visualizer.fillRect(screen, {0, 0, 0, 140});
+
+    const SDL_Rect win{screen.w / 2 - 200, screen.h / 2 - 75, 400, 150};
+    visualizer.drawNinePatch(skin, win, kWindowSkinSlice, 1);
+    const int w1 = ResourceManager::measureText(dialogLine1, font).w;
+    const int w2 = ResourceManager::measureText(dialogLine2, font).w;
+    drawText(dialogLine1, win.x + (win.w - w1) / 2, win.y + 18, kSaveText);
+    drawText(dialogLine2, win.x + (win.w - w2) / 2, win.y + 50, kSaveDim);
+    for (const bool yes : {true, false})
+    {
+        const SDL_Rect r = dialogOptionRect(yes);
+        drawText(yes ? "Yes" : "No", r.x + 10, r.y, yes == dialogYes ? kSaveHot : kSaveText);
+        if (yes == dialogYes) drawPointer(r.x + 4, r.y + 12, 2);
+    }
+}
+
+void UIManager::updateMenuButtons()
+{
+    // Недоступные пункты серые, а не скрытые: меню не прыгает
+    TTF_Font *font = ResourceManager::getFont("RetroByte");
+    const SDL_Color on{0, 0, 0, 0}, off{120, 120, 120, 255};
+    auto set = [&](const std::string& id, const std::string& text, bool enabled) {
+        setTexture(id, "Menu", ResourceManager::getTextTexture(text, font, enabled ? on : off));
+        setEnabled(id, "Menu", enabled);
+    };
+    set("Continue", "Continue", game.canContinue());
+    set("Load", "Load", game.canLoad());
+}
+
+// ─────────────────────────────────────────
+// Игровое меню (Esc на карте)
+// ─────────────────────────────────────────
+
+namespace {
+    const SDL_Color kGood{120, 230, 140, 255};                  // стат вырастет
+    const SDL_Color kBad {255, 120, 120, 255};                  // стат упадёт
+
+    bool keyIs(const SDL_Event& e, std::initializer_list<SDL_Scancode> keys)
+    {
+        if (e.type != SDL_KEYDOWN) return false;
+        for (SDL_Scancode k : keys) if (e.key.keysym.scancode == k) return true;
+        return false;
+    }
+    bool confirmKey(const SDL_Event& e)
+    {
+        return e.type == SDL_KEYDOWN && e.key.repeat == 0 &&
+               keyIs(e, {SDL_SCANCODE_RETURN, SDL_SCANCODE_KP_ENTER, SDL_SCANCODE_SPACE});
+    }
+    bool backKey(const SDL_Event& e)
+    {
+        return (e.type == SDL_KEYDOWN && e.key.repeat == 0 && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE) ||
+               (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT);
+    }
+    bool leftClick(const SDL_Event& e) { return e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT; }
+    SDL_Point mousePos(const SDL_Event& e)
+    {
+        return e.type == SDL_MOUSEMOTION ? SDL_Point{e.motion.x, e.motion.y} : SDL_Point{e.button.x, e.button.y};
+    }
+    bool isMouse(const SDL_Event& e) { return e.type == SDL_MOUSEMOTION || e.type == SDL_MOUSEBUTTONDOWN; }
+
+    std::string signedValue(int v) { return (v >= 0 ? "+" : "") + std::to_string(v); }
+
+    std::string elementList(const std::vector<Elemental>& list)
+    {
+        static const char* names[] = {"Fire", "Water", "Earth", "Air", "Ice", "Lava", "Dark", "Light",
+                                      "Physical", "Poison", "Lightning"};
+        std::string s;
+        for (Elemental e : list) s += (s.empty() ? "" : ", ") + std::string(names[static_cast<int>(e)]);
+        return s.empty() ? "-" : s;
+    }
+
+    // Общие окна страниц
+    constexpr SDL_Rect kHeader{24, 24, 852, 52};
+}
+
+void UIManager::openGameMenu()
+{
+    gameMenuSelected = 0;
+    menuPage = MenuPage::Main;
+    menuNotice.clear();
+}
+
+void UIManager::openMenuPage(MenuPage page)
+{
+    menuPage = page;
+    listSel = listScroll = 0;
+    if (page == MenuPage::Equip) equipSlotSel = 0;
+}
+
+void UIManager::showMenuNotice(const std::string& text)
+{
+    menuNotice = text;
+    menuNoticeTicks = SDL_GetTicks();
+}
+
+std::vector<UIManager::MenuCommand> UIManager::gameMenuCommands()
+{
+    auto pickHero = [this](MenuPage page) {
+        return [this, page]() { pickFor = page; partySel = 0; menuPage = MenuPage::PickHero; };
+    };
+    return {
+        {"Items",           true,           [this]() { openMenuPage(MenuPage::Items); }},
+        {"Magic",           true,           pickHero(MenuPage::Magic)},
+        {"Equipment",       true,           pickHero(MenuPage::Equip)},
+        {"Status",          true,           pickHero(MenuPage::Status)},
+        {"Save",            game.canSave(), [this]() { game.openSaveScreen(true); }},
+        {"Load",            game.canLoad(), [this]() { game.openSaveScreen(false); }},
+        {"Config",          true,           [this]() { game.openOptions(GameState::GameMenu); }},
+        {"Return to Title", true,           [this]() { game.returnToTitle(); }},
+    };
+}
+
+SDL_Rect UIManager::gameMenuRowRect(int row) const
+{
+    return {24 + 16, 24 + 14 + row * 40, 220 - 32, 36};
+}
+
+SDL_Rect UIManager::partyRowRect(int i) const
+{
+    const SDL_Rect party{264, 24, screen.w - 264 - 24, screen.h - 48};
+    const int rowH = (party.h - 24) / 4;
+    return {party.x + 8, party.y + 12 + i * rowH, party.w - 16, rowH};
+}
+
+SDL_Rect UIManager::targetRowRect(int i) const
+{
+    return {492, 98 + i * 90, 368, 86};                       // окно выбора цели справа: {476, 84, 400, 380}
+}
+
+// ── Список в две колонки ────────────────────────────
+
+SDL_Rect UIManager::listCellRect(const ListLayout& l, int scroll, int index)
+{
+    const int visible = index - scroll * l.cols;
+    const int row = visible / l.cols, col = visible % l.cols;
+    const int w = l.area.w / l.cols;
+    return {l.area.x + col * w, l.area.y + row * l.rowH, w - 24, l.rowH};
+}
+
+void UIManager::listNavigate(const ListLayout& l, int& sel, int& scroll, int count, SDL_Scancode k)
+{
+    if (count <= 0) { sel = scroll = 0; return; }
+    switch (k)
+    {
+        case SDL_SCANCODE_UP:    case SDL_SCANCODE_W: sel -= l.cols; break;
+        case SDL_SCANCODE_DOWN:  case SDL_SCANCODE_S: sel += l.cols; break;
+        case SDL_SCANCODE_LEFT:  case SDL_SCANCODE_A: sel -= 1; break;
+        case SDL_SCANCODE_RIGHT: case SDL_SCANCODE_D: sel += 1; break;
+        default: break;
+    }
+    sel = std::clamp(sel, 0, count - 1);
+    const int row = sel / l.cols;                                  // прокрутка за курсором
+    if (row < scroll) scroll = row;
+    if (row >= scroll + l.rows) scroll = row - l.rows + 1;
+}
+
+int UIManager::listHit(const ListLayout& l, int scroll, int count, SDL_Point p)
+{
+    for (int i = scroll * l.cols; i < count && i < (scroll + l.rows) * l.cols; ++i)
+    {
+        const SDL_Rect r = listCellRect(l, scroll, i);
+        if (SDL_PointInRect(&p, &r)) return i;
+    }
+    return -1;
+}
+
+// ── Данные для страниц ──────────────────────────────
+
+std::vector<std::pair<int, int>> UIManager::inventoryList() const
+{
+    std::vector<std::pair<int, int>> out;
+    for (const auto& [id, count] : player.getItemCounts())        // map по id: сначала расходники, потом экипировка
+        if (count > 0) out.emplace_back(id, count);
+    return out;
+}
+
+std::vector<int> UIManager::equipCandidates() const
+{
+    std::vector<int> out{0};                                       // первая строка — «снять»
+    const auto& heroes = player.getHeroes();
+    if (menuHero >= static_cast<int>(heroes.size())) return out;
+    const auto slot = static_cast<EquipSlot>(equipSlotSel);
+    for (const auto& [id, count] : player.getItemCounts())
+    {
+        const Item& item = game.getItem(id);
+        if (count > 0 && item.slot == slot && item.canEquip(heroes[menuHero].getClass()))
+            out.push_back(id);
+    }
+    return out;
+}
+
+std::string UIManager::itemDescription(const Item& item) const
+{
+    if (item.isEquipment())
+    {
+        std::string s = equipSlotName(item.slot);
+        if (item.attack)  s += "   ATK " + signedValue(item.attack);
+        if (item.defence) s += "   DEF " + signedValue(item.defence);
+        if (item.agility) s += "   AGI " + signedValue(item.agility);
+        std::string who;
+        for (auto c : item.classes)
+            who += (who.empty() ? "" : ", ") + specializationNamesString.at(c);
+        return s + "   " + (who.empty() ? "Anyone" : who);
+    }
+    switch (item.effectType)
+    {
+        case ItemEffectType::Heal:        return "Restores " + std::to_string(item.power) + " HP to one ally";
+        case ItemEffectType::RestoreMana: return "Restores " + std::to_string(item.power) + " MP to one ally";
+        case ItemEffectType::Damage:      return "Deals " + std::to_string(item.power) + " damage to an enemy. Battle only";
+        case ItemEffectType::Buff:        return "Strengthens an ally. Battle only";
+        case ItemEffectType::Debuff:      return "Weakens an enemy. Battle only";
+        default:                          return "";
+    }
+}
+
+std::string UIManager::skillDescription(const Skill& skill) const
+{
+    const std::string who = skill.targetType == TargetType::AllAllies  ? "all allies"
+                          : skill.targetType == TargetType::AllEnemies ? "all enemies"
+                          : skill.targetType == TargetType::Self       ? "self"
+                          : skill.targetType == TargetType::Ally       ? "one ally" : "one enemy";
+    switch (skill.effectType)
+    {
+        case SkillEffectType::Heal:   return "Restores " + std::to_string(skill.power) + " HP to " + who;
+        case SkillEffectType::Damage: return "Deals " + std::to_string(skill.power) + " damage to " + who + ". Battle only";
+        case SkillEffectType::Buff:   return "Strengthens " + who + ". Battle only";
+        case SkillEffectType::Debuff: return "Weakens " + who + ". Battle only";
+        default:                      return "";
+    }
+}
+
+bool UIManager::skillUsableInField(const Hero& caster, const Skill& skill) const
+{
+    return skill.effectType == SkillEffectType::Heal && caster.getCurrentHp() > 0 &&
+           caster.getCurrentMp() >= skill.manaCost && skill.targetType != TargetType::Enemy &&
+           skill.targetType != TargetType::AllEnemies;
+}
+
+bool UIManager::applyFieldEffect(Hero& target, bool restoresMp, int power)
+{
+    if (target.getCurrentHp() == 0) return false;                 // зелья и Heal не воскрешают, как в FF1
+    if (restoresMp)
+    {
+        if (target.getCurrentMp() >= target.getMaxMp()) return false;
+        target.restoreMana(static_cast<uint32_t>(power));
+        return true;
+    }
+    if (target.getCurrentHp() >= target.getMaxHp()) return false;
+    target.heal(static_cast<uint32_t>(power));
+    return true;
+}
+
+void UIManager::useItemOn(int heroIndex)
+{
+    const auto list = inventoryList();
+    if (listSel >= static_cast<int>(list.size())) { menuPage = MenuPage::Items; return; }
+    const Item& item = game.getItem(list[listSel].first);
+    auto& heroes = player.getLinkTOHeroes();
+    if (heroIndex >= static_cast<int>(heroes.size())) return;
+
+    if (!applyFieldEffect(heroes[heroIndex], item.effectType == ItemEffectType::RestoreMana, item.power))
+    {
+        showMenuNotice("No effect");
+        return;
+    }
+    player.consumeItem(item.id);
+    showMenuNotice(item.name + " used on " + heroes[heroIndex].getName());
+    if (!player.hasItem(item.id))                                  // кончились: назад к списку
+    {
+        menuPage = MenuPage::Items;
+        listSel = std::max(0, std::min(listSel, static_cast<int>(inventoryList().size()) - 1));
+    }
+}
+
+void UIManager::castOn(int heroIndex)
+{
+    auto& heroes = player.getLinkTOHeroes();
+    if (menuHero >= static_cast<int>(heroes.size())) return;
+    Hero& caster = heroes[menuHero];
+    const auto skills = caster.getAvailableSkills();
+    if (listSel >= static_cast<int>(skills.size())) return;
+    const Skill& skill = game.getSkill(skills[listSel].skillId);
+    if (!skillUsableInField(caster, skill)) { showMenuNotice("Not enough MP"); menuPage = MenuPage::Magic; return; }
+
+    // Self и AllAllies не спрашивают цель: heroIndex тогда -1
+    bool any = false;
+    if (skill.targetType == TargetType::AllAllies)
+        for (auto& h : heroes) any |= applyFieldEffect(h, false, skill.power);
+    else
+        any = applyFieldEffect(heroes[skill.targetType == TargetType::Self ? menuHero : heroIndex], false, skill.power);
+
+    if (!any) { showMenuNotice("No effect"); return; }
+    caster.spendMana(skill.manaCost);
+    showMenuNotice(caster.getName() + " cast " + skill.name);
+    if (!skillUsableInField(caster, skill)) menuPage = MenuPage::Magic;
+}
+
+void UIManager::cycleMenuHero(int dir)
+{
+    const int n = static_cast<int>(player.getHeroes().size());
+    if (n == 0) return;
+    menuHero = (menuHero + dir + n) % n;
+    listSel = listScroll = 0;
+    if (menuPage == MenuPage::EquipPick) menuPage = MenuPage::Equip;
+}
+
+// ── Ввод ─────────────────────────────────────────────
+
+void UIManager::handleGameMenuEvent(const SDL_Event& e)
+{
+    // Q/E листают героя на страницах одного героя, как LB/RB в ремастере
+    const bool heroPage = menuPage == MenuPage::Magic || menuPage == MenuPage::Equip ||
+                          menuPage == MenuPage::EquipPick || menuPage == MenuPage::Status;
+    if (heroPage && e.type == SDL_KEYDOWN && e.key.repeat == 0)
+    {
+        if (e.key.keysym.scancode == SDL_SCANCODE_Q) { cycleMenuHero(-1); return; }
+        if (e.key.keysym.scancode == SDL_SCANCODE_E) { cycleMenuHero(+1); return; }
+    }
+
+    switch (menuPage)
+    {
+        case MenuPage::Main:
+        case MenuPage::PickHero:    handleMenuMain(e); break;
+        case MenuPage::Items:
+        case MenuPage::Magic:       handleMenuList(e); break;
+        case MenuPage::ItemTarget:
+        case MenuPage::MagicTarget: handleMenuTarget(e); break;
+        case MenuPage::Equip:
+        case MenuPage::EquipPick:   handleMenuEquip(e); break;
+        case MenuPage::Status:
+            if (backKey(e) || confirmKey(e)) menuPage = MenuPage::Main;
+            break;
+    }
+}
+
+void UIManager::handleMenuMain(const SDL_Event& e)
+{
+    const int heroes = static_cast<int>(player.getHeroes().size());
+
+    if (menuPage == MenuPage::PickHero)                            // курсор на отряде
+    {
+        if (backKey(e)) { menuPage = MenuPage::Main; return; }
+        if (heroes == 0) return;
+        if (keyIs(e, {SDL_SCANCODE_UP, SDL_SCANCODE_W}))   partySel = (partySel - 1 + heroes) % heroes;
+        if (keyIs(e, {SDL_SCANCODE_DOWN, SDL_SCANCODE_S})) partySel = (partySel + 1) % heroes;
+        bool go = confirmKey(e);
+        if (isMouse(e))
+        {
+            const SDL_Point m = mousePos(e);
+            for (int i = 0; i < heroes; ++i)
+            {
+                const SDL_Rect r = partyRowRect(i);
+                if (!SDL_PointInRect(&m, &r)) continue;
+                partySel = i;
+                go = go || leftClick(e);
+            }
+        }
+        if (go)
+        {
+            menuHero = partySel;
+            openMenuPage(pickFor);
+        }
+        return;
+    }
+
+    if (backKey(e)) { game.closeGameMenu(); return; }
+
+    const auto commands = gameMenuCommands();
+    const int n = static_cast<int>(commands.size());
+    if (keyIs(e, {SDL_SCANCODE_UP, SDL_SCANCODE_W}))   gameMenuSelected = (gameMenuSelected - 1 + n) % n;
+    if (keyIs(e, {SDL_SCANCODE_DOWN, SDL_SCANCODE_S})) gameMenuSelected = (gameMenuSelected + 1) % n;
+
+    int activate = confirmKey(e) ? gameMenuSelected : -1;
+    if (isMouse(e))
+    {
+        const SDL_Point m = mousePos(e);
+        for (int r = 0; r < n; ++r)
+        {
+            const SDL_Rect rr = gameMenuRowRect(r);
+            if (!SDL_PointInRect(&m, &rr)) continue;
+            gameMenuSelected = r;
+            if (leftClick(e)) activate = r;
+        }
+    }
+    if (activate >= 0 && commands[activate].enabled)
+        commands[activate].action();
+}
+
+namespace {
+    // Items и Magic: список во всю ширину под заголовком, описание внизу
+    constexpr MenuListLayout kItemList{{44, 98, 812, 352}, 2, 8, 44};
+}
+
+void UIManager::handleMenuList(const SDL_Event& e)
+{
+    const bool items = menuPage == MenuPage::Items;
+    if (backKey(e)) { menuPage = MenuPage::Main; return; }
+
+    int count = 0;
+    if (items) count = static_cast<int>(inventoryList().size());
+    else if (menuHero < static_cast<int>(player.getHeroes().size()))
+        count = static_cast<int>(player.getHeroes()[menuHero].getAvailableSkills().size());
+
+    if (e.type == SDL_KEYDOWN) listNavigate(kItemList, listSel, listScroll, count, e.key.keysym.scancode);
+    if (e.type == SDL_MOUSEWHEEL)
+        listScroll = std::clamp(listScroll - e.wheel.y, 0, std::max(0, (count + 1) / 2 - kItemList.rows));
+
+    bool go = confirmKey(e);
+    if (isMouse(e))
+    {
+        const int hit = listHit(kItemList, listScroll, count, mousePos(e));
+        if (hit >= 0) { listSel = hit; go = go || leftClick(e); }
+    }
+    if (!go || listSel >= count) return;
+
+    if (items)
+    {
+        const Item& item = game.getItem(inventoryList()[listSel].first);
+        if (!item.usableInField())
+        {
+            showMenuNotice(item.isEquipment() ? "Equip it from the Equipment menu" : "Can only be used in battle");
+            return;
+        }
+        partySel = 0;
+        menuPage = MenuPage::ItemTarget;
+        return;
+    }
+
+    const Hero& caster = player.getHeroes()[menuHero];
+    const Skill& skill = game.getSkill(caster.getAvailableSkills()[listSel].skillId);
+    if (!skillUsableInField(caster, skill))
+    {
+        showMenuNotice(skill.effectType != SkillEffectType::Heal ? "Can only be used in battle"
+                       : caster.getCurrentHp() == 0 ? caster.getName() + " is down" : "Not enough MP");
+        return;
+    }
+    if (skill.targetType == TargetType::Ally) { partySel = menuHero; menuPage = MenuPage::MagicTarget; }
+    else castOn(-1);                                                // на себя или на всех: сразу
+}
+
+void UIManager::handleMenuTarget(const SDL_Event& e)
+{
+    const bool item = menuPage == MenuPage::ItemTarget;
+    if (backKey(e)) { menuPage = item ? MenuPage::Items : MenuPage::Magic; return; }
+    const int n = static_cast<int>(player.getHeroes().size());
+    if (n == 0) return;
+    if (keyIs(e, {SDL_SCANCODE_UP, SDL_SCANCODE_W}))   partySel = (partySel - 1 + n) % n;
+    if (keyIs(e, {SDL_SCANCODE_DOWN, SDL_SCANCODE_S})) partySel = (partySel + 1) % n;
+
+    bool go = confirmKey(e);
+    if (isMouse(e))
+    {
+        const SDL_Point m = mousePos(e);
+        for (int i = 0; i < n; ++i)
+        {
+            const SDL_Rect r = targetRowRect(i);
+            if (!SDL_PointInRect(&m, &r)) continue;
+            partySel = i;
+            go = go || leftClick(e);
+        }
+    }
+    if (!go) return;
+    if (item) useItemOn(partySel);
+    else      castOn(partySel);
+}
+
+namespace {
+    // Equipment: слоты слева, статы справа, подходящие вещи внизу
+    constexpr SDL_Rect kSlotsWin{24, 84, 420, 236};
+    constexpr SDL_Rect kStatsWin{456, 84, 420, 236};
+    constexpr SDL_Rect kCandWin {24, 328, 852, 248};
+    constexpr MenuListLayout kCandList{{44, 342, 812, 220}, 2, 5, 44};
+    SDL_Rect slotRowRect(int i) { return {kSlotsWin.x + 16, kSlotsWin.y + 14 + i * 42, kSlotsWin.w - 32, 40}; }
+}
+
+void UIManager::handleMenuEquip(const SDL_Event& e)
+{
+    auto& heroes = player.getLinkTOHeroes();
+    if (menuHero >= static_cast<int>(heroes.size())) { menuPage = MenuPage::Main; return; }
+
+    if (menuPage == MenuPage::Equip)                               // выбираем слот
+    {
+        if (backKey(e)) { menuPage = MenuPage::Main; return; }
+        if (keyIs(e, {SDL_SCANCODE_UP, SDL_SCANCODE_W}))   equipSlotSel = (equipSlotSel - 1 + kEquipSlots) % kEquipSlots;
+        if (keyIs(e, {SDL_SCANCODE_DOWN, SDL_SCANCODE_S})) equipSlotSel = (equipSlotSel + 1) % kEquipSlots;
+        bool go = confirmKey(e);
+        if (isMouse(e))
+        {
+            const SDL_Point m = mousePos(e);
+            for (int i = 0; i < kEquipSlots; ++i)
+            {
+                const SDL_Rect r = slotRowRect(i);
+                if (!SDL_PointInRect(&m, &r)) continue;
+                equipSlotSel = i;
+                go = go || leftClick(e);
+            }
+        }
+        if (go) { listSel = listScroll = 0; menuPage = MenuPage::EquipPick; }
+        return;
+    }
+
+    // Выбираем вещь для слота
+    if (backKey(e)) { menuPage = MenuPage::Equip; return; }
+    const auto cands = equipCandidates();
+    const int count = static_cast<int>(cands.size());
+    if (e.type == SDL_KEYDOWN) listNavigate(kCandList, listSel, listScroll, count, e.key.keysym.scancode);
+    bool go = confirmKey(e);
+    if (isMouse(e))
+    {
+        const int hit = listHit(kCandList, listScroll, count, mousePos(e));
+        if (hit >= 0) { listSel = hit; go = go || leftClick(e); }
+    }
+    if (!go || listSel >= count) return;
+
+    const int newId = cands[listSel];
+    const auto slot = static_cast<EquipSlot>(equipSlotSel);
+    if (newId != 0 && !player.consumeItem(newId)) return;          // вещь берём из сумки
+    const int old = heroes[menuHero].equip(slot, newId);
+    if (old != 0) player.addItem(old, 1);                          // снятое возвращается в сумку
+    game.sendPartyInfo();                                          // напарник и хост видят новую экипировку
+    menuPage = MenuPage::Equip;
+}
+
+// ── Отрисовка ────────────────────────────────────────
+
+void UIManager::drawMenuHeader(const std::string& title, const std::string& right)
+{
+    TTF_Font* font = ResourceManager::getFont("RetroByte");
+    visualizer.drawNinePatch(getWindowSkin(visualizer.getRenderer()), kHeader, kWindowSkinSlice, 1);
+    drawText(title, kHeader.x + 20, kHeader.y + 14, kSaveText);
+    const bool noticeOn = !menuNotice.empty() && SDL_GetTicks() - menuNoticeTicks < 2000;
+    const std::string text = noticeOn ? menuNotice : right;
+    drawText(text, kHeader.x + kHeader.w - 20 - ResourceManager::measureText(text, font).w, kHeader.y + 14,
+             noticeOn ? kSaveHot : kSaveDim);
+}
+
+void UIManager::drawPartyPanel(const SDL_Rect& party, int pointerRow, bool compact)
+{
+    TTF_Font* font = ResourceManager::getFont("RetroByte");
+    visualizer.drawNinePatch(getWindowSkin(visualizer.getRenderer()), party, kWindowSkinSlice, 1);
+    const auto& heroes = player.getHeroes();
+    for (int i = 0; i < static_cast<int>(heroes.size()) && i < 4; ++i)
+    {
+        const Hero& h = heroes[i];
+        const SDL_Rect row = compact ? targetRowRect(i) : partyRowRect(i);
+        const bool dead = h.getCurrentHp() == 0;
+        if (i == pointerRow)
+            drawPointer(row.x + 6 - (SDL_GetTicks() / 220) % 2 * 3, row.y + row.h / 2, PIXEL_SCALE);
+
+        const int scale = compact ? 2 : 3;
+        const std::string img = "Image" + std::to_string(heroLook(h.getClass())) + (dead ? "Dead" : "");
+        if (SDL_Texture* tex = ResourceManager::getTexture(img))
+            visualizer.drawTexture(tex, row.x + 20, row.y + (row.h - 24 * scale) / 2, 16 * scale, 24 * scale, 0, 0, 16, 24);
+
+        const int tx = row.x + 20 + 16 * scale + 20;
+        drawText(h.getName(), tx, row.y + (compact ? 8 : 14), dead ? kSaveBad : kSaveText);
+        if (!compact)
+        {
+            const auto cls = specializationNamesString.find(h.getClass());
+            drawText(cls != specializationNamesString.end() ? cls->second : "", tx, row.y + 46, kSaveDim);
+        }
+        drawText("Lv " + std::to_string(h.getLevel()), tx, row.y + (compact ? 44 : 78), kSaveText);
+
+        // HP и MP: число и полоска
+        const int bw = compact ? 170 : 230;
+        const int bx = row.x + row.w - 16 - bw;
+        auto bar = [&](int y, const char* label, uint32_t cur, uint32_t max, SDL_Color fill) {
+            drawText(label, bx, y, kSaveDim);
+            const std::string v = std::to_string(cur) + "/" + std::to_string(max);
+            drawText(v, bx + bw - ResourceManager::measureText(v, font).w, y, kSaveText);
+            const SDL_Rect back{bx, y + 28, bw, compact ? 5 : 8};
+            visualizer.fillRect(back, {10, 16, 60, 255});
+            if (max > 0)
+                visualizer.fillRect({back.x, back.y, static_cast<int>(back.w * static_cast<uint64_t>(cur) / max), back.h}, fill);
+        };
+        bar(row.y + (compact ? 4 : 14), "HP", h.getCurrentHp(), h.getMaxHp(), {96, 220, 120, 255});
+        bar(row.y + (compact ? 44 : 66), "MP", h.getCurrentMp(), h.getMaxMp(), {96, 160, 255, 255});
+    }
+}
+
+void UIManager::drawGameMenu()
+{
+    SDL_Texture* skin = getWindowSkin(visualizer.getRenderer());
+    TTF_Font* font = ResourceManager::getFont("RetroByte");
+    visualizer.fillRect(screen, {0, 0, 0, 120});                  // карта видна, но приглушена
+
+    switch (menuPage)
+    {
+        case MenuPage::Items:       drawItemsPage(); return;
+        case MenuPage::ItemTarget:  drawItemsPage(); drawTargetOverlay(); return;
+        case MenuPage::Magic:       drawMagicPage(); return;
+        case MenuPage::MagicTarget: drawMagicPage(); drawTargetOverlay(); return;
+        case MenuPage::Equip:
+        case MenuPage::EquipPick:   drawEquipPage(); return;
+        case MenuPage::Status:      drawStatusPage(); return;
+        default: break;
+    }
+
+    // Главная страница: команды
+    const auto commands = gameMenuCommands();
+    const int n = static_cast<int>(commands.size());
+    visualizer.drawNinePatch(skin, {24, 24, 220, 28 + n * 40}, kWindowSkinSlice, 1);
+    for (int r = 0; r < n; ++r)
+    {
+        const SDL_Rect rr = gameMenuRowRect(r);
+        const bool selected = r == gameMenuSelected;
+        const SDL_Color c = !commands[r].enabled ? kSaveDim : (selected ? kSaveHot : kSaveText);
+        drawText(commands[r].text, rr.x + 22, rr.y + 6, c);
+        if (selected && menuPage == MenuPage::Main)
+            drawPointer(rr.x + 16 - (SDL_GetTicks() / 220) % 2 * 2, rr.y + rr.h / 2, 2);
+    }
+
+    // Золото, время, место
+    const SDL_Rect info{24, screen.h - 24 - 132, 220, 132};
+    visualizer.drawNinePatch(skin, info, kWindowSkinSlice, 1);
+    auto row = [&](int y, const std::string& label, const std::string& value) {
+        drawText(label, info.x + 16, y, kSaveDim);
+        drawText(value, info.x + info.w - 16 - ResourceManager::measureText(value, font).w, y, kSaveText);
+    };
+    row(info.y + 14, "Gil", std::to_string(player.getPlayerGold()));
+    row(info.y + 50, "Time", formatPlayTime(game.getPlaySeconds()));
+    drawText(game.currentLocation(), info.x + 16, info.y + 86, kSaveText);
+
+    drawPartyPanel({264, 24, screen.w - 264 - 24, screen.h - 48},
+                   menuPage == MenuPage::PickHero ? partySel : -1, false);
+}
+
+void UIManager::drawItemsPage()
+{
+    SDL_Texture* skin = getWindowSkin(visualizer.getRenderer());
+    TTF_Font* font = ResourceManager::getFont("RetroByte");
+    drawMenuHeader("Items", "Gil " + std::to_string(player.getPlayerGold()));
+
+    visualizer.drawNinePatch(skin, {24, 84, 852, 380}, kWindowSkinSlice, 1);
+    const auto list = inventoryList();
+    if (list.empty()) drawText("No items", kItemList.area.x + 22, kItemList.area.y + 8, kSaveDim);
+    const int last = std::min<int>(static_cast<int>(list.size()), (listScroll + kItemList.rows) * kItemList.cols);
+    for (int i = listScroll * kItemList.cols; i < last; ++i)
+    {
+        const Item& item = game.getItem(list[i].first);
+        const SDL_Rect cell = listCellRect(kItemList, listScroll, i);
+        const bool sel = i == listSel;
+        const SDL_Color c = item.usableInField() ? (sel ? kSaveHot : kSaveText) : kSaveDim;
+        drawText(item.name, cell.x + 22, cell.y + 8, c);
+        const std::string cnt = "x" + std::to_string(list[i].second);
+        drawText(cnt, cell.x + cell.w - ResourceManager::measureText(cnt, font).w, cell.y + 8, c);
+        if (sel && menuPage == MenuPage::Items)
+            drawPointer(cell.x + 16 - (SDL_GetTicks() / 220) % 2 * 2, cell.y + cell.h / 2, 2);
+    }
+
+    visualizer.drawNinePatch(skin, {24, 472, 852, 104}, kWindowSkinSlice, 1);
+    if (listSel < static_cast<int>(list.size()))
+    {
+        const Item& item = game.getItem(list[listSel].first);
+        drawText(item.name, 44, 488, kSaveText);
+        drawText(itemDescription(item), 44, 524, kSaveDim);
+    }
+}
+
+void UIManager::drawMagicPage()
+{
+    SDL_Texture* skin = getWindowSkin(visualizer.getRenderer());
+    TTF_Font* font = ResourceManager::getFont("RetroByte");
+    const auto& heroes = player.getHeroes();
+    if (menuHero >= static_cast<int>(heroes.size())) return;
+    const Hero& hero = heroes[menuHero];
+    drawMenuHeader("Magic - " + hero.getName(),
+                   "MP " + std::to_string(hero.getCurrentMp()) + "/" + std::to_string(hero.getMaxMp()) + "   Q/E hero");
+
+    visualizer.drawNinePatch(skin, {24, 84, 852, 380}, kWindowSkinSlice, 1);
+    const auto skills = hero.getAvailableSkills();
+    if (skills.empty()) drawText("No spells", kItemList.area.x + 22, kItemList.area.y + 8, kSaveDim);
+    const int last = std::min<int>(static_cast<int>(skills.size()), (listScroll + kItemList.rows) * kItemList.cols);
+    for (int i = listScroll * kItemList.cols; i < last; ++i)
+    {
+        const Skill& skill = game.getSkill(skills[i].skillId);
+        const SDL_Rect cell = listCellRect(kItemList, listScroll, i);
+        const bool sel = i == listSel;
+        const SDL_Color c = skillUsableInField(hero, skill) ? (sel ? kSaveHot : kSaveText) : kSaveDim;
+        drawText(skill.name, cell.x + 22, cell.y + 8, c);
+        const std::string cost = std::to_string(skill.manaCost) + " MP";
+        drawText(cost, cell.x + cell.w - ResourceManager::measureText(cost, font).w, cell.y + 8, c);
+        if (sel && menuPage == MenuPage::Magic)
+            drawPointer(cell.x + 16 - (SDL_GetTicks() / 220) % 2 * 2, cell.y + cell.h / 2, 2);
+    }
+
+    visualizer.drawNinePatch(skin, {24, 472, 852, 104}, kWindowSkinSlice, 1);
+    if (listSel < static_cast<int>(skills.size()))
+    {
+        const Skill& skill = game.getSkill(skills[listSel].skillId);
+        drawText(skill.name, 44, 488, kSaveText);
+        drawText(skillDescription(skill), 44, 524, kSaveDim);
+    }
+}
+
+void UIManager::drawTargetOverlay()
+{
+    drawPartyPanel({476, 84, 400, 380}, partySel, true);
+}
+
+void UIManager::drawEquipPage()
+{
+    SDL_Texture* skin = getWindowSkin(visualizer.getRenderer());
+    TTF_Font* font = ResourceManager::getFont("RetroByte");
+    const auto& heroes = player.getHeroes();
+    if (menuHero >= static_cast<int>(heroes.size())) return;
+    const Hero& hero = heroes[menuHero];
+    drawMenuHeader("Equipment - " + hero.getName(), "Q/E hero   Esc back");
+
+    // Слоты
+    visualizer.drawNinePatch(skin, kSlotsWin, kWindowSkinSlice, 1);
+    for (int i = 0; i < kEquipSlots; ++i)
+    {
+        const SDL_Rect r = slotRowRect(i);
+        const bool sel = i == equipSlotSel;
+        drawText(equipSlotName(static_cast<EquipSlot>(i)), r.x + 22, r.y + 6, kSaveDim);
+        const int id = hero.getEquipped(static_cast<EquipSlot>(i));
+        drawText(id ? game.getItem(id).name : "-", r.x + 130, r.y + 6, sel ? kSaveHot : kSaveText);
+        if (sel)
+            drawPointer(r.x + 16 - (menuPage == MenuPage::Equip ? (SDL_GetTicks() / 220) % 2 * 2 : 0), r.y + r.h / 2, 2);
+    }
+
+    // Статы: сейчас и, если выбираем вещь, что станет
+    const auto cands = equipCandidates();
+    Hero preview = hero;
+    const bool previewing = menuPage == MenuPage::EquipPick && listSel < static_cast<int>(cands.size());
+    if (previewing) preview.equip(static_cast<EquipSlot>(equipSlotSel), cands[listSel]);
+
+    visualizer.drawNinePatch(skin, kStatsWin, kWindowSkinSlice, 1);
+    const struct { const char* name; uint32_t now, then; } stats[] = {
+        {"Attack",  hero.getAttackPower(nullptr), preview.getAttackPower(nullptr)},
+        {"Defense", hero.getDefense(),            preview.getDefense()},
+        {"Agility", hero.getSpeed(),              preview.getSpeed()},
+    };
+    for (int i = 0; i < 3; ++i)
+    {
+        const int y = kStatsWin.y + 28 + i * 60;
+        drawText(stats[i].name, kStatsWin.x + 24, y, kSaveDim);
+        const std::string now = std::to_string(stats[i].now);
+        drawText(now, kStatsWin.x + 220 - ResourceManager::measureText(now, font).w, y, kSaveText);
+        if (!previewing) continue;
+        const SDL_Color c = stats[i].then > stats[i].now ? kGood : stats[i].then < stats[i].now ? kBad : kSaveText;
+        drawText(">", kStatsWin.x + 250, y, kSaveDim);
+        const std::string then = std::to_string(stats[i].then);
+        drawText(then, kStatsWin.x + 380 - ResourceManager::measureText(then, font).w, y, c);
+    }
+
+    // Что можно надеть в выбранный слот (при выборе слота — приглушённый предпросмотр)
+    visualizer.drawNinePatch(skin, kCandWin, kWindowSkinSlice, 1);
+    const int last = std::min<int>(static_cast<int>(cands.size()), (listScroll + kCandList.rows) * kCandList.cols);
+    for (int i = listScroll * kCandList.cols; i < last; ++i)
+    {
+        const SDL_Rect cell = listCellRect(kCandList, listScroll, i);
+        const bool sel = previewing && i == listSel;
+        const SDL_Color c = menuPage != MenuPage::EquipPick ? kSaveDim : (sel ? kSaveHot : kSaveText);
+        if (cands[i] == 0) { drawText("Remove", cell.x + 22, cell.y + 8, c); }
+        else
+        {
+            const Item& item = game.getItem(cands[i]);
+            drawText(item.name, cell.x + 22, cell.y + 8, c);
+            const std::string cnt = "x" + std::to_string(player.getItemCounts().at(cands[i]));
+            drawText(cnt, cell.x + cell.w - ResourceManager::measureText(cnt, font).w, cell.y + 8, c);
+        }
+        if (sel) drawPointer(cell.x + 16 - (SDL_GetTicks() / 220) % 2 * 2, cell.y + cell.h / 2, 2);
+    }
+    if (cands.size() == 1)
+        drawText("Nothing else fits this slot", kCandList.area.x + 22, kCandList.area.y + kCandList.rowH + 8, kSaveDim);
+}
+
+void UIManager::drawStatusPage()
+{
+    SDL_Texture* skin = getWindowSkin(visualizer.getRenderer());
+    TTF_Font* font = ResourceManager::getFont("RetroByte");
+    const auto& heroes = player.getHeroes();
+    if (menuHero >= static_cast<int>(heroes.size())) return;
+    const Hero& h = heroes[menuHero];
+    drawMenuHeader("Status", "Q/E hero   Esc back");
+
+    const SDL_Rect win{24, 84, 852, 492};
+    visualizer.drawNinePatch(skin, win, kWindowSkinSlice, 1);
+
+    const bool dead = h.getCurrentHp() == 0;
+    const std::string img = "Image" + std::to_string(heroLook(h.getClass())) + (dead ? "Dead" : "");
+    if (SDL_Texture* tex = ResourceManager::getTexture(img))
+        visualizer.drawTexture(tex, win.x + 40, win.y + 20, 64, 96, 0, 0, 16, 24);
+    drawText(h.getName(), win.x + 130, win.y + 30, dead ? kSaveBad : kSaveText);
+    const auto cls = specializationNamesString.find(h.getClass());
+    drawText((cls != specializationNamesString.end() ? cls->second : "") + "   Lv " + std::to_string(h.getLevel()),
+             win.x + 130, win.y + 64, kSaveDim);
+
+    auto line = [&](int x, int y, int right, const std::string& label, const std::string& value, SDL_Color c) {
+        drawText(label, x, y, kSaveDim);
+        drawText(value, right - ResourceManager::measureText(value, font).w, y, c);
+    };
+    const int top = win.y + 140;
+    line(win.x + 40, top,       win.x + 380, "HP",  std::to_string(h.getCurrentHp()) + "/" + std::to_string(h.getMaxHp()), kSaveText);
+    line(win.x + 40, top + 34,  win.x + 380, "MP",  std::to_string(h.getCurrentMp()) + "/" + std::to_string(h.getMaxMp()), kSaveText);
+    line(win.x + 40, top + 68,  win.x + 380, "EXP", std::to_string(h.getExperience()), kSaveText);
+    line(win.x + 40, top + 102, win.x + 380, "Next level",
+         std::to_string(h.getXpToNextLevel() > h.getExperience() ? h.getXpToNextLevel() - h.getExperience() : 0), kSaveText);
+
+    // Итог и вклад экипировки в скобках
+    auto stat = [&](int y, const char* name, uint32_t total, uint32_t base) {
+        const int bonus = static_cast<int>(total) - static_cast<int>(base);
+        line(win.x + 450, y, win.x + 700, name, std::to_string(total), kSaveText);
+        if (bonus != 0) drawText("(" + signedValue(bonus) + ")", win.x + 716, y, bonus > 0 ? kGood : kBad);
+    };
+    stat(top,      "Attack",  h.getAttackPower(nullptr), h.getBaseAttack());
+    stat(top + 34, "Defense", h.getDefense(),            h.getBaseDefense());
+    stat(top + 68, "Agility", h.getSpeed(),              h.getBaseSpeed());
+
+    // Экипировка и стихии
+    const int eq = win.y + 300;
+    drawText("Equipment", win.x + 40, eq, kSaveText);
+    for (int i = 0; i < kEquipSlots; ++i)
+    {
+        const int id = h.getEquipped(static_cast<EquipSlot>(i));
+        drawText(equipSlotName(static_cast<EquipSlot>(i)), win.x + 40, eq + 34 + i * 30, kSaveDim);
+        drawText(id ? game.getItem(id).name : "-", win.x + 160, eq + 34 + i * 30, kSaveText);
+    }
+    drawText("Resists", win.x + 450, eq, kSaveText);
+    drawText(elementList(h.getResists()), win.x + 450, eq + 34, kSaveDim);
+    drawText("Weak to", win.x + 450, eq + 80, kSaveText);
+    drawText(elementList(h.getVulnerabilities()), win.x + 450, eq + 114, kSaveDim);
+}
+
+// ─────────────────────────────────────────
+// Настройки: громкость и подсказка по управлению
+// ─────────────────────────────────────────
+
+namespace {
+    constexpr int kConfigRows = 3;                                 // музыка, звуки, «Back»
+    SDL_Rect configWindow(const SDL_Rect& screen) { return {120, 50, screen.w - 240, screen.h - 100}; }
+}
+
+SDL_Rect UIManager::configRowRect(int row) const
+{
+    const SDL_Rect win = configWindow(screen);
+    return {win.x + 30, win.y + 76 + row * 56, win.w - 60, 40};
+}
+
+SDL_Rect UIManager::volumeBarRect(int row) const
+{
+    const SDL_Rect r = configRowRect(row);
+    return {r.x + 170, r.y + 10, AudioManager::kVolumeSteps * 30 - 4, 20};
+}
+
+void UIManager::changeVolume(int row, int level)
+{
+    if (row == 0)
+    {
+        if (level == AudioManager::getMusicVolume()) return;
+        AudioManager::setMusicVolume(level);
+    }
+    else if (row == 1)
+    {
+        if (level == AudioManager::getSoundVolume()) return;
+        AudioManager::setSoundVolume(level);
+        int channel = -1;                                         // образец, чтобы было слышно новую громкость
+        if (Mix_Chunk* sample = ResourceManager::getSound("ButtonHover"))
+            AudioManager::playSound(channel, sample);
+    }
+}
+
+void UIManager::handleConfigEvent(const SDL_Event& e)
+{
+    const bool keyDown = e.type == SDL_KEYDOWN;
+    const SDL_Scancode k = keyDown ? e.key.keysym.scancode : SDL_SCANCODE_UNKNOWN;
+    const bool fresh = keyDown && e.key.repeat == 0;
+
+    if ((fresh && k == SDL_SCANCODE_ESCAPE) || (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT))
+    {
+        game.closeOptions();
+        return;
+    }
+
+    if (keyDown && (k == SDL_SCANCODE_UP || k == SDL_SCANCODE_W))
+        configSelected = (configSelected - 1 + kConfigRows) % kConfigRows;
+    if (keyDown && (k == SDL_SCANCODE_DOWN || k == SDL_SCANCODE_S))
+        configSelected = (configSelected + 1) % kConfigRows;
+
+    const int current = configSelected == 0 ? AudioManager::getMusicVolume() : AudioManager::getSoundVolume();
+    if (keyDown && (k == SDL_SCANCODE_LEFT || k == SDL_SCANCODE_A))  changeVolume(configSelected, current - 1);
+    if (keyDown && (k == SDL_SCANCODE_RIGHT || k == SDL_SCANCODE_D)) changeVolume(configSelected, current + 1);
+
+    if (fresh && (k == SDL_SCANCODE_RETURN || k == SDL_SCANCODE_KP_ENTER || k == SDL_SCANCODE_SPACE) && configSelected == 2)
+    {
+        game.closeOptions();
+        return;
+    }
+
+    // Мышь: наведение выбирает строку, клик или протяжка по полоске ставит громкость
+    if (e.type == SDL_MOUSEBUTTONUP) draggingVolume = false;
+    const bool press = e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT;
+    if (e.type != SDL_MOUSEMOTION && !press) return;
+
+    const SDL_Point m = e.type == SDL_MOUSEMOTION ? SDL_Point{e.motion.x, e.motion.y}
+                                                  : SDL_Point{e.button.x, e.button.y};
+    if (draggingVolume && configSelected < 2)
+    {
+        const SDL_Rect bar = volumeBarRect(configSelected);
+        changeVolume(configSelected, std::clamp((m.x - bar.x + 15) / 30, 0, AudioManager::kVolumeSteps));
+        return;
+    }
+    for (int r = 0; r < kConfigRows; ++r)
+    {
+        const SDL_Rect rr = configRowRect(r);
+        if (!SDL_PointInRect(&m, &rr)) continue;
+        configSelected = r;
+        if (!press) return;
+        if (r == 2) { game.closeOptions(); return; }
+
+        const SDL_Rect bar = volumeBarRect(r);
+        if (m.x >= bar.x - 15)                                    // левее полоски — по подписи, громкость не трогаем
+        {
+            draggingVolume = true;
+            changeVolume(r, std::clamp((m.x - bar.x + 15) / 30, 0, AudioManager::kVolumeSteps));
+        }
+        return;
+    }
+}
+
+void UIManager::drawConfig()
+{
+    SDL_Texture* skin = getWindowSkin(visualizer.getRenderer());
+    const SDL_Rect win = configWindow(screen);
+    visualizer.drawNinePatch(skin, win, kWindowSkinSlice, 1);
+    drawText("Config", win.x + 30, win.y + 20, kSaveText);
+
+    const char* labels[kConfigRows] = {"Music", "Sound", "Back"};
+    const int levels[2] = {AudioManager::getMusicVolume(), AudioManager::getSoundVolume()};
+    for (int r = 0; r < kConfigRows; ++r)
+    {
+        const SDL_Rect rr = configRowRect(r);
+        const bool selected = r == configSelected;
+        drawText(labels[r], rr.x + 22, rr.y + 8, selected ? kSaveHot : kSaveText);
+        if (selected) drawPointer(rr.x + 16 - (SDL_GetTicks() / 220) % 2 * 2, rr.y + rr.h / 2, 2);
+        if (r == 2) continue;
+
+        // Полоска из десяти делений и число справа
+        const SDL_Rect bar = volumeBarRect(r);
+        for (int s = 0; s < AudioManager::kVolumeSteps; ++s)
+        {
+            const SDL_Rect seg{bar.x + s * 30, bar.y, 26, bar.h};
+            visualizer.fillRect(seg, s < levels[r] ? (selected ? kSaveHot : kSaveText) : SDL_Color{20, 30, 100, 255});
+        }
+        drawText(std::to_string(levels[r] * 10) + "%", bar.x + bar.w + 20, rr.y + 8, kSaveText);
+    }
+
+    // Подсказка по управлению
+    const int helpY = configRowRect(kConfigRows - 1).y + 70;
+    drawText("Controls", win.x + 30, helpY, kSaveText);
+    const char* help[] = {
+        "Map: WASD or arrows - move, E - talk",
+        "Esc - game menu",
+        "Battle: arrows - target, Enter - confirm",
+        "Esc or right click - back",
+    };
+    for (int i = 0; i < static_cast<int>(std::size(help)); ++i)
+        drawText(help[i], win.x + 50, helpY + 34 + i * 28, kSaveDim);
 }

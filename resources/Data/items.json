@@ -1,7 +1,45 @@
 [
-  { "id": 1, "name": "Health Potion", "cost": 5,  "power": 15, "consumable": true, "effectType": "Heal",        "targetType": "Self"  },
-  { "id": 2, "name": "Mana Potion",   "cost": 5,  "power": 20, "consumable": true, "effectType": "RestoreMana", "targetType": "Self"  },
+  // Расходники. "start" — сколько отряд получает в новой игре
+  { "id": 1, "name": "Health Potion", "cost": 5,  "power": 15, "consumable": true, "effectType": "Heal",        "targetType": "Self", "start": 3 },
+  { "id": 2, "name": "Mana Potion",   "cost": 5,  "power": 20, "consumable": true, "effectType": "RestoreMana", "targetType": "Self", "start": 2 },
   { "id": 3, "name": "Bomb",          "cost": 10, "power": 25, "consumable": true, "effectType": "Damage",      "targetType": "Enemy" },
   { "id": 4, "name": "Attack Scroll", "cost": 8,  "power": 10, "consumable": true, "effectType": "Buff",        "targetType": "Self"  },
-  { "id": 5, "name": "Weaken Scroll", "cost": 8,  "power": 10, "consumable": true, "effectType": "Debuff",      "targetType": "Enemy" }
+  { "id": 5, "name": "Weaken Scroll", "cost": 8,  "power": 10, "consumable": true, "effectType": "Debuff",      "targetType": "Enemy" },
+
+  // Экипировка: "slot" — Weapon, Shield, Head, Body или Arms; "classes" — кто может надеть (нет поля — все)
+  // Оружие
+  { "id": 101, "name": "Knife",          "cost": 5,   "slot": "Weapon", "attack": 5 },
+  { "id": 102, "name": "Dagger",         "cost": 20,  "slot": "Weapon", "attack": 8,  "classes": ["Warrior", "Thief", "Archer"] },
+  { "id": 103, "name": "Rapier",         "cost": 50,  "slot": "Weapon", "attack": 12, "classes": ["Warrior", "Thief"] },
+  { "id": 104, "name": "Long Sword",     "cost": 150, "slot": "Weapon", "attack": 18, "classes": ["Warrior"] },
+  { "id": 105, "name": "Mythril Sword",  "cost": 500, "slot": "Weapon", "attack": 26, "classes": ["Warrior", "Thief"] },
+  { "id": 106, "name": "Short Bow",      "cost": 40,  "slot": "Weapon", "attack": 10, "classes": ["Archer"] },
+  { "id": 107, "name": "Long Bow",       "cost": 150, "slot": "Weapon", "attack": 18, "classes": ["Archer"] },
+  { "id": 108, "name": "Mythril Bow",    "cost": 500, "slot": "Weapon", "attack": 26, "agility": 2, "classes": ["Archer"] },
+  { "id": 109, "name": "Staff",          "cost": 10,  "slot": "Weapon", "attack": 4,  "classes": ["Magician"] },
+  { "id": 110, "name": "Rod",            "cost": 120, "slot": "Weapon", "attack": 7,  "agility": 1, "classes": ["Magician"] },
+
+  // Щиты
+  { "id": 121, "name": "Buckler",        "cost": 25,  "slot": "Shield", "defence": 3,  "classes": ["Warrior", "Thief", "Archer"] },
+  { "id": 122, "name": "Iron Shield",    "cost": 100, "slot": "Shield", "defence": 6,  "classes": ["Warrior"] },
+  { "id": 123, "name": "Mythril Shield", "cost": 400, "slot": "Shield", "defence": 10, "classes": ["Warrior"] },
+
+  // Голова
+  { "id": 131, "name": "Leather Cap",    "cost": 15,  "slot": "Head", "defence": 2 },
+  { "id": 132, "name": "Iron Helm",      "cost": 100, "slot": "Head", "defence": 5,  "classes": ["Warrior"] },
+  { "id": 133, "name": "Mythril Helm",   "cost": 400, "slot": "Head", "defence": 8,  "classes": ["Warrior", "Thief", "Archer"] },
+
+  // Тело
+  { "id": 141, "name": "Clothes",        "cost": 10,  "slot": "Body", "defence": 2 },
+  { "id": 142, "name": "Leather Armor",  "cost": 50,  "slot": "Body", "defence": 5,  "classes": ["Warrior", "Thief", "Archer"] },
+  { "id": 143, "name": "Chain Mail",     "cost": 200, "slot": "Body", "defence": 10, "agility": -1, "classes": ["Warrior"] },
+  { "id": 144, "name": "Mythril Mail",   "cost": 800, "slot": "Body", "defence": 16, "classes": ["Warrior"] },
+  { "id": 145, "name": "Robe",           "cost": 30,  "slot": "Body", "defence": 4,  "classes": ["Magician"] },
+  { "id": 146, "name": "Black Robe",     "cost": 300, "slot": "Body", "defence": 8,  "agility": 1, "classes": ["Magician"] },
+
+  // Руки
+  { "id": 151, "name": "Leather Gloves", "cost": 15,  "slot": "Arms", "defence": 1,  "agility": 1 },
+  { "id": 152, "name": "Bronze Bracers", "cost": 80,  "slot": "Arms", "defence": 3 },
+  { "id": 153, "name": "Power Gauntlet", "cost": 600, "slot": "Arms", "attack": 6,  "defence": 2, "classes": ["Warrior", "Thief", "Archer"] },
+  { "id": 154, "name": "Silver Bracers", "cost": 500, "slot": "Arms", "defence": 6,  "agility": 2 }
 ]

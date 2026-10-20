@@ -16,6 +16,8 @@ void InputController::chooseInput(SDL_Event event, Game& game, Battle& battle, P
         case GameState::Options:    optionsInput(event, game, uiManager); break;
         case GameState::Online:     onlineInput(event, game, uiManager); break;
         case GameState::CreatePlayer: createInput(event, game, uiManager); break;
+        case GameState::Saves:      uiManager.handleSavesEvent(event); break;
+        case GameState::GameMenu:   uiManager.handleGameMenuEvent(event); break;
         default: ;
     }
 }
@@ -58,10 +60,7 @@ Direction InputController::readMoveDirection() {       // последняя н�
 void InputController::mapInput(Game& game)
 {
     if (input.isKeyPressed(SDL_SCANCODE_ESCAPE))
-    {
-        game.setPreviousGameState(GameState::Map);
-        game.setGameState(GameState::Menu);
-    }
+        game.openGameMenu();                          // стартовое меню теперь только до игры и после «Return to Title»
 }
 
 void InputController::menuInput(SDL_Event event, Game& game, UIManager& manager)
@@ -117,8 +116,7 @@ void InputController::onlineInput(SDL_Event event, Game& game, UIManager& manage
 }
 
 void InputController::optionsInput(SDL_Event event, Game &game, UIManager &uiManager) {
-    if (input.isKeyReleased(SDL_SCANCODE_ESCAPE))
-        game.closeOptions();
+    uiManager.handleConfigEvent(event);               // Esc и «Back» обрабатывает сам экран
 }
 
 

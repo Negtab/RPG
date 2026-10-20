@@ -80,6 +80,22 @@ enum class ItemEffectType
     None
 };
 
+// Слоты экипировки как в FF1: оружие, щит, голова, тело, руки
+enum class EquipSlot { Weapon, Shield, Head, Body, Arms, None };
+constexpr int kEquipSlots = 5;
+inline const char* equipSlotName(EquipSlot s)
+{
+    switch (s)
+    {
+    case EquipSlot::Weapon: return "Weapon";
+    case EquipSlot::Shield: return "Shield";
+    case EquipSlot::Head:   return "Head";
+    case EquipSlot::Body:   return "Body";
+    case EquipSlot::Arms:   return "Arms";
+    default:                return "";
+    }
+}
+
 struct Item
 {
     int id{0};
@@ -89,6 +105,27 @@ struct Item
     bool consumable{true};
     ItemEffectType effectType{ItemEffectType::None};
     TargetType targetType{TargetType::Self};
+
+    // Экипировка: slot != None. Бонусы складываются со статами героя
+    EquipSlot slot{EquipSlot::None};
+    int32_t attack{0}, defence{0}, agility{0};
+    std::vector<SpecializationNames> classes;              // кто может надеть; пусто — все
+    int startCount{0};                                     // сколько выдаётся в новой игре
+
+    [[nodiscard]] bool isEquipment() const { return slot != EquipSlot::None; }
+    [[nodiscard]] bool canEquip(SpecializationNames c) const
+    {
+        if (!isEquipment()) return false;
+        if (classes.empty()) return true;
+        for (auto k : classes) if (k == c) return true;
+        return false;
+    }
+    // Можно применить вне боя: лечение и мана на своего героя
+    [[nodiscard]] bool usableInField() const
+    {
+        return !isEquipment() && (effectType == ItemEffectType::Heal || effectType == ItemEffectType::RestoreMana);
+    }
+    [[nodiscard]] bool usableInBattle() const { return !isEquipment() && effectType != ItemEffectType::None; }
 };
 
 struct Specialization {
@@ -105,6 +142,7 @@ struct BattleReport
     uint32_t expEach = 0;      // каждому живому герою
     uint32_t gold = 0;         // этому игроку
     std::vector<LevelUpInfo> levelUps;
+    std::vector<std::string> items;   // трофеи, уже с количеством: "Health Potion x2"
 };
 
 inline int heroLook(SpecializationNames c)        // номер картинки ImageN и анимации HeroNAnimation
@@ -130,8 +168,8 @@ inline std::string sanitizeHeroName(const std::string& raw)   // только п
     return s;
 }
 
-enum class GameState { CreatePlayer, Menu, Battle, Inventory, Options, Map, Online};
-const std::unordered_map<GameState, std::string> gameStateString =  {{GameState::CreatePlayer, "CreatePlayer"}, {GameState::Menu, "Menu"}, {GameState::Battle, "Battle"}, {GameState::Inventory, "Inventory"}, {GameState::Map, "Map"}, {GameState::Options, "Options"}, {GameState::Online, "Online"}};
+enum class GameState { CreatePlayer, Menu, Battle, Inventory, Options, Map, Online, Saves, GameMenu };
+const std::unordered_map<GameState, std::string> gameStateString =  {{GameState::CreatePlayer, "CreatePlayer"}, {GameState::Menu, "Menu"}, {GameState::Battle, "Battle"}, {GameState::Inventory, "Inventory"}, {GameState::Map, "Map"}, {GameState::Options, "Options"}, {GameState::Online, "Online"}, {GameState::Saves, "Saves"}, {GameState::GameMenu, "GameMenu"}};
 
 
 #endif

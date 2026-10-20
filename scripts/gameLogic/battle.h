@@ -39,6 +39,7 @@ public:
     [[nodiscard]] bool isPlayerChoosing() const;
 
     void startPlayerChoose();
+    void skipDeadHeroes();                             // к следующему живому герою; если таких нет, выбор окончен
     void confirmAction(const Action& action);
 
     void tryEscape();

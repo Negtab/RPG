@@ -1,7 +1,9 @@
 #ifndef PROJECT_NAME_GAME_H
 #define PROJECT_NAME_GAME_H
 
+#include <filesystem>
 #include <map>
+#include <optional>
 #include <vector>
 #include <string>
 #include <memory>
@@ -51,7 +53,29 @@ class Game {
         Skill& getSkill(const int &id);
 
         void startGame();
+        void continueGame();                          // вернуться в игру или загрузить последнее сохранение
         void endGame();
+
+        // ── Игровое меню (Esc на карте) ──
+        void openGameMenu();
+        void closeGameMenu();
+        void returnToTitle();                         // автосохранение и выход на стартовый экран
+        [[nodiscard]] std::string currentLocation() const;
+        [[nodiscard]] uint32_t getPlaySeconds() const { return static_cast<uint32_t>(playSeconds); }
+        [[nodiscard]] const Player& getLocalPlayer() const { return players.at(0); }
+        void saveSettings() const;
+
+        // ── Сохранения: слот 0 — автосохранение при выходе, 1..4 — ручные ──
+        static constexpr int kSaveSlots = 5;
+        void openSaveScreen(bool saving);
+        void closeSaveScreen();
+        bool saveToSlot(int slot);
+        bool loadFromSlot(int slot);
+        [[nodiscard]] std::optional<SaveSummary> getSlotSummary(int slot) const;
+        [[nodiscard]] bool canSave() const;
+        [[nodiscard]] bool canLoad() const;
+        [[nodiscard]] bool canContinue() const { return gameInProgress || latestSaveSlot >= 0; }
+        [[nodiscard]] bool isGameInProgress() const { return gameInProgress; }
 
         void openOptions(const GameState &prevGame);
         void closeOptions();
@@ -102,6 +126,14 @@ class Game {
     private:
 
         void loadMaps();
+        [[nodiscard]] std::string slotPath(int slot) const;
+        void placePlayerAfterLoad(bool positionRestored);
+        void refreshLatestSave();
+        void migrateOldSave();
+
+        bool gameInProgress = false;                  // отряд на карте: можно сохраняться, «Continue» возвращает в игру
+        float playSeconds = 0.0f;                     // время игры текущего прохождения
+        int latestSaveSlot = -1;                      // самый свежий слот для «Continue», -1 — сохранений нет
         bool applyMapChange(int mapId, int x, int y);
         void followPortal(const Portal& portal);
         void sendMapChange(int mapId, int x, int y);
@@ -160,7 +192,7 @@ class Game {
         std::vector<Player> players;
         std::vector<NotGamePerson> npss;
         std::vector<Quest> quests;
-        std::string pathToSave;
+        std::filesystem::path saveDir;
 
         std::unique_ptr<Battle> battle;
         std::unique_ptr<AudioManager> audioManager;

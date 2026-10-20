@@ -1,0 +1,118 @@
+[
+  // Трофеи: за каждого побеждённого врага каждая строка бросается отдельно, chance в процентах
+  { "enemy": 1, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 106, "chance": 5 }, { "item": 131, "chance": 5 }] },  // Goblin
+  { "enemy": 2, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 103, "chance": 5 }, { "item": 131, "chance": 5 }] },  // Goblin Guard
+  { "enemy": 3, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 142, "chance": 5 }, { "item": 145, "chance": 5 }] },  // Wolf
+  { "enemy": 4, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 142, "chance": 5 }, { "item": 110, "chance": 5 }] },  // Crazy Horse
+  { "enemy": 5, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 145, "chance": 5 }, { "item": 152, "chance": 5 }] },  // Skeleton
+  { "enemy": 6, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 106, "chance": 5 }, { "item": 142, "chance": 5 }] },  // Black Widow
+  { "enemy": 7, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 152, "chance": 5 }, { "item": 106, "chance": 5 }] },  // Gigas Worm
+  { "enemy": 8, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 142, "chance": 5 }, { "item": 110, "chance": 5 }] },  // Warg Wolf
+  { "enemy": 9, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 131, "chance": 5 }, { "item": 145, "chance": 5 }] },  // Werewolf
+  { "enemy": 10, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 103, "chance": 5 }, { "item": 142, "chance": 5 }] },  // Zombie
+  { "enemy": 11, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 131, "chance": 5 }, { "item": 122, "chance": 5 }] },  // Ghoul
+  { "enemy": 12, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 131, "chance": 5 }, { "item": 110, "chance": 5 }] },  // Garland
+  { "enemy": 13, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 131, "chance": 5 }, { "item": 106, "chance": 5 }] },  // Cobra
+  { "enemy": 14, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 107, "chance": 5 }, { "item": 143, "chance": 5 }] },  // Ogre
+  { "enemy": 15, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 132, "chance": 5 }, { "item": 104, "chance": 5 }] },  // Ogre Chief
+  { "enemy": 16, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 146, "chance": 5 }, { "item": 132, "chance": 5 }] },  // Lizard
+  { "enemy": 17, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 122, "chance": 5 }, { "item": 131, "chance": 5 }] },  // Pirate
+  { "enemy": 18, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 110, "chance": 5 }, { "item": 103, "chance": 5 }] },  // Sahagin
+  { "enemy": 19, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 103, "chance": 5 }, { "item": 122, "chance": 5 }] },  // Sahagin Chief
+  { "enemy": 20, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 110, "chance": 5 }, { "item": 131, "chance": 5 }] },  // Buccaneer
+  { "enemy": 21, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 110, "chance": 5 }, { "item": 132, "chance": 5 }] },  // Shark
+  { "enemy": 22, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 106, "chance": 5 }, { "item": 102, "chance": 5 }] },  // Bigeyes
+  { "enemy": 23, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 131, "chance": 5 }, { "item": 151, "chance": 5 }] },  // Tarantula
+  { "enemy": 24, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 122, "chance": 5 }, { "item": 131, "chance": 5 }] },  // Ghast
+  { "enemy": 25, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 152, "chance": 5 }, { "item": 122, "chance": 5 }] },  // Scorpion
+  { "enemy": 26, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 142, "chance": 5 }, { "item": 152, "chance": 5 }] },  // Shadow
+  { "enemy": 27, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 121, "chance": 5 }, { "item": 141, "chance": 5 }] },  // Green Slime
+  { "enemy": 28, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 102, "chance": 5 }, { "item": 141, "chance": 5 }] },  // Crawler
+  { "enemy": 29, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 108, "chance": 5 }, { "item": 123, "chance": 5 }] },  // Gray Ooze
+  { "enemy": 30, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 145, "chance": 5 }, { "item": 131, "chance": 5 }] },  // Gargoyle
+  { "enemy": 31, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 104, "chance": 5 }, { "item": 132, "chance": 5 }] },  // Bloodbones
+  { "enemy": 32, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 108, "chance": 5 }, { "item": 146, "chance": 5 }] },  // Piscodemon
+  { "enemy": 33, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 123, "chance": 5 }, { "item": 153, "chance": 5 }] },  // Astos
+  { "enemy": 34, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 153, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Mummy
+  { "enemy": 35, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 146, "chance": 5 }, { "item": 152, "chance": 5 }] },  // Wraith
+  { "enemy": 36, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 146, "chance": 5 }, { "item": 104, "chance": 5 }] },  // Anaconda
+  { "enemy": 37, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 107, "chance": 5 }, { "item": 143, "chance": 5 }] },  // Hyenadon
+  { "enemy": 38, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 152, "chance": 5 }, { "item": 132, "chance": 5 }] },  // Lesser Tiger
+  { "enemy": 39, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 132, "chance": 5 }, { "item": 110, "chance": 5 }] },  // Minotaur
+  { "enemy": 40, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 146, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Hill Gigas
+  { "enemy": 41, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 154, "chance": 5 }, { "item": 123, "chance": 5 }] },  // Earth Elemental
+  { "enemy": 42, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 107, "chance": 5 }, { "item": 104, "chance": 5 }] },  // Troll
+  { "enemy": 43, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 104, "chance": 5 }, { "item": 110, "chance": 5 }] },  // Wight
+  { "enemy": 45, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 131, "chance": 5 }, { "item": 109, "chance": 5 }] },  // Cockatrice
+  { "enemy": 46, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 108, "chance": 5 }, { "item": 133, "chance": 5 }] },  // Vampire
+  { "enemy": 50, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 146, "chance": 5 }, { "item": 154, "chance": 5 }] },  // Ankheg
+  { "enemy": 55, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 107, "chance": 5 }, { "item": 122, "chance": 5 }] },  // Ochu
+  { "enemy": 56, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 105, "chance": 5 }, { "item": 133, "chance": 5 }] },  // Neochu
+  { "enemy": 59, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 132, "chance": 5 }, { "item": 104, "chance": 5 }] },  // Pyrolisk
+  { "enemy": 60, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 144, "chance": 5 }, { "item": 123, "chance": 5 }] },  // Fire Elemental
+  { "enemy": 61, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 122, "chance": 5 }, { "item": 107, "chance": 5 }] },  // Fire Hydra
+  { "enemy": 62, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 123, "chance": 5 }, { "item": 105, "chance": 5 }] },  // Lava Worm
+  { "enemy": 63, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 146, "chance": 5 }, { "item": 133, "chance": 5 }] },  // Hellhound
+  { "enemy": 64, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 146, "chance": 5 }, { "item": 105, "chance": 5 }] },  // Fire Lizard
+  { "enemy": 65, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 154, "chance": 5 }, { "item": 123, "chance": 5 }] },  // Fire Gigas
+  { "enemy": 66, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 108, "chance": 5 }, { "item": 123, "chance": 5 }] },  // Red Dragon
+  { "enemy": 68, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 146, "chance": 5 }, { "item": 153, "chance": 5 }] },  // White Dragon
+  { "enemy": 69, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 104, "chance": 5 }, { "item": 122, "chance": 5 }] },  // Winter Wolf
+  { "enemy": 70, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 102, "chance": 5 }, { "item": 106, "chance": 5 }] },  // Mindflayer
+  { "enemy": 71, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 153, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Ice Gigas
+  { "enemy": 74, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 107, "chance": 5 }, { "item": 110, "chance": 5 }] },  // Dark Wizard
+  { "enemy": 75, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 146, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Evil Eye
+  { "enemy": 76, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 153, "chance": 5 }, { "item": 133, "chance": 5 }] },  // Desert Baretta
+  { "enemy": 77, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 143, "chance": 5 }, { "item": 110, "chance": 5 }] },  // Sabertooth
+  { "enemy": 78, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 133, "chance": 5 }, { "item": 105, "chance": 5 }] },  // Wyvern
+  { "enemy": 79, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 123, "chance": 5 }, { "item": 133, "chance": 5 }] },  // Wyrm
+  { "enemy": 80, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 143, "chance": 5 }, { "item": 132, "chance": 5 }] },  // Manticore
+  { "enemy": 81, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 146, "chance": 5 }, { "item": 123, "chance": 5 }] },  // Baretta
+  { "enemy": 82, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 123, "chance": 5 }, { "item": 154, "chance": 5 }] },  // Basilisk
+  { "enemy": 83, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 146, "chance": 5 }, { "item": 154, "chance": 5 }] },  // Allosaurus
+  { "enemy": 84, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 144, "chance": 5 }, { "item": 154, "chance": 5 }] },  // Weretiger
+  { "enemy": 85, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 133, "chance": 5 }, { "item": 153, "chance": 5 }] },  // Sand Worm
+  { "enemy": 86, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 105, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Minotaur Zombie
+  { "enemy": 87, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 123, "chance": 5 }, { "item": 153, "chance": 5 }] },  // King Mummy
+  { "enemy": 88, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 152, "chance": 5 }, { "item": 107, "chance": 5 }] },  // Medusa
+  { "enemy": 89, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 107, "chance": 5 }, { "item": 152, "chance": 5 }] },  // Rakshasa
+  { "enemy": 90, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 133, "chance": 5 }, { "item": 153, "chance": 5 }] },  // Clay Golem
+  { "enemy": 91, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 108, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Nightmare
+  { "enemy": 92, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 154, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Dragon Zombie
+  { "enemy": 93, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 146, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Sahagin Prince
+  { "enemy": 94, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 123, "chance": 5 }, { "item": 105, "chance": 5 }] },  // White Shark
+  { "enemy": 95, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 123, "chance": 5 }, { "item": 133, "chance": 5 }] },  // Deepeyes
+  { "enemy": 96, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 153, "chance": 5 }, { "item": 123, "chance": 5 }] },  // Sea Snake
+  { "enemy": 97, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 133, "chance": 5 }, { "item": 146, "chance": 5 }] },  // Sea Scorpion
+  { "enemy": 98, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 153, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Sea Troll
+  { "enemy": 99, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 154, "chance": 5 }, { "item": 133, "chance": 5 }] },  // Ghost
+  { "enemy": 100, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 123, "chance": 5 }, { "item": 133, "chance": 5 }] },  // Water Elemental
+  { "enemy": 101, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 142, "chance": 5 }, { "item": 145, "chance": 5 }] },  // Water Naga
+  { "enemy": 102, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 123, "chance": 5 }, { "item": 153, "chance": 5 }] },  // Kraken
+  { "enemy": 103, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 146, "chance": 5 }, { "item": 153, "chance": 5 }] },  // Tyrannosaur
+  { "enemy": 104, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 105, "chance": 5 }, { "item": 154, "chance": 5 }] },  // Black Knight
+  { "enemy": 105, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 153, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Chimera
+  { "enemy": 106, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 122, "chance": 5 }, { "item": 104, "chance": 5 }] },  // Guardian
+  { "enemy": 107, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 133, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Blue Dragon
+  { "enemy": 108, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 123, "chance": 5 }, { "item": 153, "chance": 5 }] },  // Green Dragon
+  { "enemy": 109, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 144, "chance": 5 }, { "item": 108, "chance": 5 }] },  // Stone Golem
+  { "enemy": 110, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 154, "chance": 5 }, { "item": 146, "chance": 5 }] },  // Air Elemental
+  { "enemy": 111, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 109, "chance": 5 }, { "item": 106, "chance": 5 }] },  // Spirit Naga
+  { "enemy": 112, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 146, "chance": 5 }, { "item": 154, "chance": 5 }] },  // Death Knight
+  { "enemy": 113, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 103, "chance": 5 }, { "item": 152, "chance": 5 }] },  // Earth Medusa
+  { "enemy": 114, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 133, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Black Flan
+  { "enemy": 115, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 144, "chance": 5 }, { "item": 108, "chance": 5 }] },  // Soldier
+  { "enemy": 116, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 144, "chance": 5 }, { "item": 105, "chance": 5 }] },  // Vampire Lord
+  { "enemy": 117, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 133, "chance": 5 }, { "item": 108, "chance": 5 }] },  // Dark Fighter
+  { "enemy": 118, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 123, "chance": 5 }, { "item": 146, "chance": 5 }] },  // Warmech
+  { "enemy": 119, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 144, "chance": 5 }, { "item": 108, "chance": 5 }] },  // Tiamat
+  { "enemy": 120, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 133, "chance": 5 }, { "item": 108, "chance": 5 }] },  // Rhyos
+  { "enemy": 121, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 108, "chance": 5 }, { "item": 146, "chance": 5 }] },  // Death Eye
+  { "enemy": 122, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 133, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Purple Worm
+  { "enemy": 123, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 105, "chance": 5 }, { "item": 123, "chance": 5 }] },  // Iron Golem
+  { "enemy": 124, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 144, "chance": 5 }, { "item": 146, "chance": 5 }] },  // Lich
+  { "enemy": 125, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 133, "chance": 5 }, { "item": 108, "chance": 5 }] },  // Marilith
+  { "enemy": 126, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 105, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Kraken
+  { "enemy": 127, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 105, "chance": 5 }, { "item": 144, "chance": 5 }] },  // Tiamat
+  { "enemy": 128, "drops": [{ "item": 1, "chance": 20 }, { "item": 2, "chance": 8 }, { "item": 133, "chance": 5 }, { "item": 146, "chance": 5 }] }  // Chaos
+]

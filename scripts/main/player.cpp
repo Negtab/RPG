@@ -79,7 +79,12 @@ std::vector<int> Player::getAvailableItems() const
 
 
 void Player::addDiscoveredEnemy(const std::string& enemy) { discoveredEnemies.push_back(enemy); }
-void Player::addItem(int itemId, uint8_t count) { itemIds[itemId] += count; }
+void Player::addItem(int itemId, uint8_t count)
+{
+    if (itemId == 0 || count == 0) return;
+    auto& n = itemIds[itemId];
+    n = static_cast<uint8_t>(std::min(99, n + count));      // как в FF: не больше 99 штук, и uint8_t не переполнится
+}
 bool Player::hasItem(int itemId) const
 {
     auto it = itemIds.find(itemId);

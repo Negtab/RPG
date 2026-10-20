@@ -1,3 +1,5 @@
 cmake-build-*/
 save.bin
 build_maps/
+saves/
+settings.ini

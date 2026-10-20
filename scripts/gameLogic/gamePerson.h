@@ -115,6 +115,9 @@ public:
 
     void setName(std::string n) { name = std::move(n); }
 
+    [[nodiscard]] const std::vector<Elemental>& getResists() const { return resists; }
+    [[nodiscard]] const std::vector<Elemental>& getVulnerabilities() const { return vulnerability; }
+
 protected:
     std::string name;
     uint32_t attack{0}, defence{0}, agility{0};

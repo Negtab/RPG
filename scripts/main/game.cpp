@@ -58,37 +58,11 @@ void Game::run()
 
     srand(static_cast<unsigned int>(time(nullptr)));
 
-    pathToSave = std::filesystem::current_path().remove_filename().string() + "save.bin";
-    bool positionRestored = false;
-    if (resourceManager->isPlayerNew(pathToSave))
-        uiManager->setEnVI("Continue", "Menu", false);
-    else
-    {
-        try
-        {
-            positionRestored = resourceManager->loadPlayer(pathToSave, players.at(0));
-            uiManager->setEnVI("Continue", "Menu", true);
-        }
-        catch (const std::exception& e)
-        {
-            SDL_Log("Save is unreadable (%s), starting a new game", e.what());
-            std::error_code ec;
-            std::filesystem::rename(pathToSave, pathToSave + ".bad", ec);   // не удаляем: можно посмотреть
-            uiManager->setEnVI("Continue", "Menu", false);
-        }
-    }
-
-    Player& me = players.at(0);
-    const Point c = me.getPlayerCoords();
-    const auto mapIt = maps.find(me.getMove().mapId);
-    if (positionRestored && mapIt != maps.end() && mapIt->second.isWalkable(c.x, c.y))
-        currentMap = &mapIt->second;                         // продолжаем там, где сохранились (город, подземелье)
-    else
-    {
-        currentMap = &maps.at(0);
-        me.getMove().mapId = 0;
-        me.setPlayerCoords(currentMap->spawn);
-    }
+    // Сохранение грузится по «Continue» или с экрана загрузки, а не при запуске
+    saveDir = std::filesystem::current_path().remove_filename() / "saves";
+    migrateOldSave();
+    refreshLatestSave();
+    AudioManager::loadSettings((saveDir.parent_path() / "settings.ini").string());
 
     while (this->isRunning)
     {
@@ -111,7 +85,172 @@ void Game::run()
 
         updateFPS();
     }
-    resourceManager->savePlayer(pathToSave, players.at(0));
+    if (gameInProgress)                                      // из главного меню без игры автосейв не перезаписываем
+        saveToSlot(0);
+}
+
+// ─────────────────────────────────────────
+// Сохранения
+// ─────────────────────────────────────────
+
+std::string Game::slotPath(int slot) const
+{
+    return (saveDir / (slot == 0 ? std::string("auto.bin") : "slot" + std::to_string(slot) + ".bin")).string();
+}
+
+void Game::migrateOldSave()
+{
+    // Раньше было одно сохранение save.bin рядом с ресурсами: становится автосохранением
+    const auto old = saveDir.parent_path() / "save.bin";
+    std::error_code ec;
+    if (!std::filesystem::is_regular_file(old, ec) || std::filesystem::exists(slotPath(0), ec)) return;
+    std::filesystem::create_directories(saveDir, ec);
+    std::filesystem::rename(old, slotPath(0), ec);
+    if (ec) SDL_Log("Cannot move save.bin to saves/: %s", ec.message().c_str());
+}
+
+void Game::refreshLatestSave()
+{
+    latestSaveSlot = -1;
+    int64_t latest = -1;
+    for (int i = 0; i < kSaveSlots; ++i)
+    {
+        const auto s = getSlotSummary(i);
+        if (!s || s->corrupted) continue;
+        if (s->savedAt > latest) { latest = s->savedAt; latestSaveSlot = i; }   // старые файлы без даты: 0, но тоже годятся
+    }
+}
+
+std::optional<SaveSummary> Game::getSlotSummary(int slot) const
+{
+    if (slot < 0 || slot >= kSaveSlots) return std::nullopt;
+    return resourceManager->readSaveSummary(slotPath(slot));
+}
+
+std::string Game::currentLocation() const
+{
+    const Point c = players.at(0).getMove().cell;
+    if (const Zone* z = currentMap->zoneAt(c.x, c.y); z && !z->name.empty())
+        return z->name;
+    std::string name = currentMap->name.empty() ? "World" : currentMap->name;
+    name[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(name[0])));
+    return name;
+}
+
+bool Game::canSave() const
+{
+    // Клиент в кооперативе стоит на карте хоста: такую позицию без хоста не восстановить
+    return gameInProgress && state != GameState::Battle && !(isConnected() && !isHost());
+}
+
+bool Game::canLoad() const
+{
+    return latestSaveSlot >= 0 && !isConnected();             // загрузка посреди коопа рассинхронизирует отряды
+}
+
+bool Game::saveToSlot(int slot)
+{
+    if (slot < 0 || slot >= kSaveSlots) return false;
+    const SaveMeta meta{currentLocation(), static_cast<uint32_t>(playSeconds)};
+    const bool ok = resourceManager->savePlayer(slotPath(slot), players.at(0), meta);
+    if (ok) refreshLatestSave();
+    return ok;
+}
+
+bool Game::loadFromSlot(int slot)
+{
+    if (slot < 0 || slot >= kSaveSlots || isConnected()) return false;
+    try
+    {
+        SaveMeta meta;
+        const bool positionRestored = resourceManager->loadPlayer(slotPath(slot), players.at(0), &meta);
+        playSeconds = static_cast<float>(meta.playSeconds);
+        placePlayerAfterLoad(positionRestored);
+    }
+    catch (const std::exception& e)
+    {
+        SDL_Log("Cannot load slot %d: %s", slot, e.what());
+        return false;
+    }
+    startGame();
+    return true;
+}
+
+void Game::placePlayerAfterLoad(bool positionRestored)
+{
+    Player& me = players.at(0);
+    if (me.getHeroes().empty())                               // сохранения до версии 3 без отряда: даём классический
+        for (SpecializationNames cls : {SpecializationNames::Warrior, SpecializationNames::Thief,
+                                        SpecializationNames::Archer, SpecializationNames::Magician})
+        {
+            me.getLinkTOHeroes().emplace_back(Specialization(cls));
+            me.getLinkTOHeroes().back().equipStarting();
+        }
+
+    const Point c = me.getPlayerCoords();
+    const auto mapIt = maps.find(me.getMove().mapId);
+    if (positionRestored && mapIt != maps.end() && mapIt->second.isWalkable(c.x, c.y))
+        currentMap = &mapIt->second;                         // продолжаем там, где сохранились (город, подземелье)
+    else
+    {
+        currentMap = &maps.at(0);
+        me.getMove().mapId = 0;
+        me.setPlayerCoords(currentMap->spawn);
+    }
+    stepsSinceBattle = 0;
+}
+
+void Game::continueGame()
+{
+    if (gameInProgress) { startGame(); return; }
+    if (latestSaveSlot >= 0 && loadFromSlot(latestSaveSlot)) return;
+    refreshLatestSave();                                      // слот испортился с момента проверки: кнопка погаснет
+}
+
+void Game::openSaveScreen(bool saving)
+{
+    if (saving ? !canSave() : !canLoad()) return;
+    setPreviousGameState(state);                              // назад вернёмся туда, откуда пришли: титул или игровое меню
+    setGameState(GameState::Saves);
+    uiManager->openSaveScreen(saving);
+}
+
+void Game::closeSaveScreen()
+{
+    setGameState(prevState == GameState::GameMenu ? GameState::GameMenu : GameState::Menu);
+}
+
+// ─────────────────────────────────────────
+// Игровое меню
+// ─────────────────────────────────────────
+
+void Game::openGameMenu()
+{
+    settle(players.at(0).getMove());                          // не уходим в меню посреди шага между клетками
+    if (localPlayerId != 0) sendLocalPlayerState();
+    setPreviousGameState(GameState::Map);
+    setGameState(GameState::GameMenu);
+    uiManager->openGameMenu();
+}
+
+void Game::closeGameMenu()
+{
+    setGameState(GameState::Map);
+}
+
+void Game::returnToTitle()
+{
+    saveToSlot(0);                                            // как при выходе из игры: прогресс не теряется
+    if (isConnected() || isHost())
+        onConnectionLost("Returned to title");               // выходим из коопа тем же путём, что и при обрыве
+    gameInProgress = false;
+    setPreviousGameState(GameState::GameMenu);
+    setGameState(GameState::Menu);
+}
+
+void Game::saveSettings() const
+{
+    AudioManager::saveSettings((saveDir.parent_path() / "settings.ini").string());
 }
 
 float Game::getDeltaTime()
@@ -270,6 +409,8 @@ void Game::sendPartyInfo()
         p.heroes[i].currentMp = static_cast<int32_t>(heroes[i].getCurrentMp());
         std::strncpy(p.heroes[i].name, heroes[i].getName().c_str(), 12);
         p.heroes[i].name[12] = '\0';
+        for (int s = 0; s < kEquipSlots; ++s)
+            p.heroes[i].equipment[s] = heroes[i].getEquipped(static_cast<EquipSlot>(s));
     }
     client.send(reinterpret_cast<const char*>(&p), sizeof(p));
 }
@@ -304,6 +445,8 @@ void Game::applyPartyInfo(const PartyInfoPacket& p)
         }
         const std::string cleaned = sanitizeHeroName(p.heroes[i].name);
         if (!cleaned.empty()) hero.setName(cleaned);
+        for (int s = 0; s < kEquipSlots; ++s)                    // equip сам отбросит чужой слот, класс и неизвестный id
+            hero.equip(static_cast<EquipSlot>(s), p.heroes[i].equipment[s]);
         rebuilt.push_back(std::move(hero));
     }
     heroes = std::move(rebuilt);
@@ -634,6 +777,12 @@ void Game::handleInput(const SDL_Event &event)
 
 void Game::update(float dt)
 {
+    if (state == GameState::Map || state == GameState::Battle || state == GameState::Inventory)
+    {
+        gameInProgress = true;                           // сюда попадают и из «New game», и из загрузки, и из коопа
+        playSeconds += dt;                               // меню и экраны сохранений время не тратят
+    }
+
     if (state == GameState::Battle)
         battle->update();
 
@@ -739,6 +888,7 @@ void Game::openOptions(const GameState &preGame) {
 }
 
 void Game::closeOptions() {
+    saveSettings();                                           // громкость переживает перезапуск
     this->setGameState(this->getPrevGameState());
     this->setPreviousGameState(GameState::Options);
 }
@@ -1215,6 +1365,7 @@ void Game::buildParty(const std::vector<SpecializationNames>& classes, const std
 {
     Player& me = players.at(0);
     me.resetProgress();
+    playSeconds = 0.0f;
     currentMap = &maps.at(0);
     me.setPlayerCoords(currentMap->spawn);
     me.getMove().mapId = 0;
@@ -1227,8 +1378,13 @@ void Game::buildParty(const std::vector<SpecializationNames>& classes, const std
             const std::string name = sanitizeHeroName(names[i]);
             if (!name.empty()) hero.setName(name);
         }
+        hero.equipStarting();
         me.getLinkTOHeroes().push_back(std::move(hero));
     }
+
+    for (const auto& [id, item] : GameData::instance().items())        // стартовые зелья из items.json
+        if (item.startCount > 0)
+            me.addItem(id, static_cast<uint8_t>(item.startCount));
 }
 
 void Game::createParty(const std::vector<SpecializationNames>& classes, const std::vector<std::string>& names)

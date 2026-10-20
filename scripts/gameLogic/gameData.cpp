@@ -29,6 +29,10 @@ const std::vector<std::pair<std::string, ItemEffectType>> kItemEffects = {
     {"Heal", ItemEffectType::Heal}, {"Damage", ItemEffectType::Damage}, {"Buff", ItemEffectType::Buff},
     {"Debuff", ItemEffectType::Debuff}, {"RestoreMana", ItemEffectType::RestoreMana}, {"None", ItemEffectType::None}};
 
+const std::vector<std::pair<std::string, EquipSlot>> kSlots = {
+    {"Weapon", EquipSlot::Weapon}, {"Shield", EquipSlot::Shield}, {"Head", EquipSlot::Head},
+    {"Body", EquipSlot::Body}, {"Arms", EquipSlot::Arms}};
+
 const std::vector<std::pair<std::string, SpecializationNames>> kClasses = {
     {"Archer", SpecializationNames::Archer}, {"Magician", SpecializationNames::Magician},
     {"Warrior", SpecializationNames::Warrior}, {"Thief", SpecializationNames::Thief}};
@@ -137,6 +141,7 @@ void GameData::loadAll(const fs::path& dir)
     loadEnemies(dir / "enemies.json");
     loadEncounters(dir / "encounters.json");     // после врагов: формации ссылаются на их id
     loadHeroes(dir / "heroes.json");
+    loadDrops(dir / "drops.json");
 }
 
 void GameData::loadSkills(const fs::path& path)
@@ -165,10 +170,22 @@ void GameData::loadItems(const fs::path& path)
         it.id         = getInt(e, "id", 1, 100000);
         it.name       = e.at("name").get<std::string>();
         it.cost       = getInt(e, "cost", 0, 1000000);
-        it.power      = getInt(e, "power", 0, 1000000);
+        it.power      = getIntOr(e, "power", 0, 1000000, 0);      // у экипировки силы эффекта нет
         it.consumable = e.value("consumable", true);
-        it.effectType = getEnum(e, "effectType", kItemEffects);
-        it.targetType = getEnum(e, "targetType", kTargets);
+        it.effectType = e.contains("effectType") ? getEnum(e, "effectType", kItemEffects) : ItemEffectType::None;
+        it.targetType = e.contains("targetType") ? getEnum(e, "targetType", kTargets) : TargetType::Self;
+        if (e.contains("slot"))                                  // экипировка
+        {
+            it.slot       = getEnum(e, "slot", kSlots);
+            it.consumable = false;
+            it.attack     = getIntOr(e, "attack", -1000, 100000, 0);
+            it.defence    = getIntOr(e, "defence", -1000, 100000, 0);
+            it.agility    = getIntOr(e, "agility", -1000, 100000, 0);
+            if (e.contains("classes"))
+                for (const auto& c : e.at("classes"))
+                    it.classes.push_back(parseEnum(c.get<std::string>(), kClasses, "classes"));
+        }
+        it.startCount = getIntOr(e, "start", 0, 99, 0);
         if (!itemMap.emplace(it.id, it).second)
             throw runtime_error("duplicate item id " + std::to_string(it.id));
     });
@@ -282,6 +299,15 @@ void GameData::loadHeroes(const fs::path& path)
         c.resists         = getElementals(e, "resists");
         c.vulnerabilities = getElementals(e, "vulnerabilities");
         c.skills          = getIdList(e, "skills", skillMap);
+        if (e.contains("startEquipment"))
+            for (const auto& v : e.at("startEquipment"))
+            {
+                const int id = v.get<int>();
+                const auto it = itemMap.find(id);
+                if (it == itemMap.end() || !it->second.canEquip(c.id))
+                    throw runtime_error("item " + std::to_string(id) + " in 'startEquipment' is not equipment for " + c.name);
+                c.startEquipment.push_back(id);
+            }
 
         c.xpToFirstLevel = static_cast<uint32_t>(getIntOr(e, "xpToFirstLevel", 1, 1000000000, 100));
         c.xpGrowth       = e.value("xpGrowth", 1.3f);
@@ -295,6 +321,30 @@ void GameData::loadHeroes(const fs::path& path)
     for (const auto& [name, id] : kClasses)
         if (!heroMap.contains(id))
             throw runtime_error(path.filename().string() + ": class '" + name + "' is missing");
+}
+
+void GameData::loadDrops(const fs::path& path)
+{
+    dropMap.clear();
+    if (!fs::exists(path)) return;                               // трофеи необязательны
+    forEachEntry(path, [&](const json& e) {
+        const int enemyId = getInt(e, "enemy", 0, 255);
+        if (!enemyMap.contains(enemyId)) throw runtime_error("unknown enemy id " + std::to_string(enemyId));
+        auto& list = dropMap[enemyId];
+        for (const auto& d : e.at("drops"))
+        {
+            Drop drop{getInt(d, "item", 1, 100000), getInt(d, "chance", 1, 100)};
+            if (!itemMap.contains(drop.itemId)) throw runtime_error("unknown item id " + std::to_string(drop.itemId));
+            list.push_back(drop);
+        }
+    });
+}
+
+const std::vector<Drop>& GameData::drops(int enemyId) const
+{
+    static const std::vector<Drop> none;
+    const auto it = dropMap.find(enemyId);
+    return it != dropMap.end() ? it->second : none;
 }
 
 const EnemyDef* GameData::enemy(int id) const
