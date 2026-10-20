@@ -10,6 +10,8 @@
 class Visualizer;
 
 class MusicPlayer {
+    static Mix_Music*& nowPlaying() { static Mix_Music* m = nullptr; return m; }   // общий для всех сцен
+
 public:
     std::map<std::string, Mix_Music*>  music;
     std::map<std::string, Mix_Chunk*>  sound;
@@ -20,14 +22,16 @@ public:
             SDL_Log("MusicPlayer::playMusic: '%s' not found", musicId.c_str());
             return;
         }
-        // Не перезапускаем если уже играет тот же трек
-        if (currentMusicId == musicId && Mix_PlayingMusic())
+        // Не перезапускаем, если уже играет тот же трек. Сверяем с тем, что играет на самом деле:
+        // у каждой сцены свой MusicPlayer, и его currentMusicId мог устареть, пока играла другая сцена
+        if (nowPlaying() == it->second && Mix_PlayingMusic())
             return;
 
         if (Mix_PlayingMusic())
             v.stopMusic();
 
         v.playMusic(it->second);
+        nowPlaying() = it->second;
         currentMusicId = musicId;
     }
 
