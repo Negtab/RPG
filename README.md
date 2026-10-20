@@ -65,6 +65,16 @@ cmake --build cmake-build-debug
 
 Исполняемый файл собирается статически; рядом с ним должны лежать `SDL2*.dll` и папка `resources/`.
 
+### Установщик
+
+Нужен [Inno Setup 6](https://jrsoftware.org/isinfo.php) (`winget install JRSoftware.InnoSetup`). Скрипт соберёт Release и упакует его в `installer/Output/RPG-Setup-<версия>.exe`:
+
+```bash
+powershell -ExecutionPolicy Bypass -File installer/build_installer.ps1 -Version 1.0.0
+```
+
+Игра ставится без прав администратора в `%LOCALAPPDATA%\Programs\RPG`; сохранения и `settings.ini` лежат там же и при удалении не стираются.
+
 ## 📁 Структура проекта
 
 ```
