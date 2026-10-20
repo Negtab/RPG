@@ -269,6 +269,7 @@ void ResourceManager::initialize()
     addTexture(pathToCharacters.string() + "Image4Dead.png");
 
     addTexturesFromDirectory(pathToEnemies.string());
+    addTexturesFromDirectory((mainPath / "resources" / "Images" / "Vehicles").string());   // Ship, Canoe, Airship
 
     addTexture(pathToBackgrounds.string() + "WhiteBox.jpg");
     addTexture(pathToBackgrounds.string() + "MenuBackground.png");
@@ -294,7 +295,7 @@ void ResourceManager::initialize()
 }
 
 constexpr uint32_t kSaveMagic   = 0x504C5952;   // 'PLYR'
-constexpr uint32_t kSaveVersion = 5;            // 2: координаты в клетках + mapId; 3: герои; 4: локация, время игры, дата; 5: экипировка
+constexpr uint32_t kSaveVersion = 6;            // 2: координаты в клетках + mapId; 3: герои; 4: локация, время игры, дата; 5: экипировка; 6: транспорт
 constexpr uint64_t kMaxString   = 1024;
 constexpr uint64_t kMaxCount    = 100000;
 
@@ -348,6 +349,9 @@ struct SaveData
     std::string location;
     uint32_t playSeconds = 0;
     int64_t savedAt = 0;
+    uint8_t riding = 0;
+    std::array<VehicleState, kVehicleKinds> vehicles{};
+    bool hasVehicles = false;                            // до версии 6 транспорта не было: Game расставит его сам
 };
 
 // Бросает std::runtime_error, если файл не открыть или он испорчен
@@ -423,6 +427,23 @@ SaveData readSaveFile(const std::string& path)
         readPod(in, d.playSeconds);
         readPod(in, d.savedAt);
     }
+
+    if (version >= 6)
+    {
+        readPod(in, d.riding);
+        if (d.riding > static_cast<uint8_t>(Vehicle::Airship)) throw std::runtime_error("save file is corrupted (vehicle)");
+        for (auto& v : d.vehicles)
+        {
+            uint8_t available = 0, dir = 0;
+            int32_t x = 0, y = 0;
+            readPod(in, available); readPod(in, v.mapId); readPod(in, x); readPod(in, y); readPod(in, dir);
+            if (dir > static_cast<uint8_t>(Direction::Right)) throw std::runtime_error("save file is corrupted (vehicle)");
+            v.available = available != 0;
+            v.cell = {x, y};
+            v.dir = static_cast<Direction>(dir);
+        }
+        d.hasVehicles = true;
+    }
     return d;
 }
 }
@@ -491,6 +512,16 @@ bool ResourceManager::savePlayer(const std::string& path, const Player& player, 
         writePod<uint32_t>(out, meta.playSeconds);
         writePod<int64_t>(out, static_cast<int64_t>(std::time(nullptr)));
 
+        writePod<uint8_t>(out, static_cast<uint8_t>(player.getRiding()));
+        for (const auto& v : player.getVehicles())
+        {
+            writePod<uint8_t>(out, v.available ? 1 : 0);
+            writePod<uint16_t>(out, v.mapId);
+            writePod<int32_t>(out, v.cell.x);
+            writePod<int32_t>(out, v.cell.y);
+            writePod<uint8_t>(out, static_cast<uint8_t>(v.dir));
+        }
+
         out.flush();
         if (!out)
         {
@@ -549,10 +580,17 @@ bool ResourceManager::loadPlayer(const std::string& path, Player& player, SaveMe
         heroes.push_back(std::move(hero));
     }
 
+    if (d.hasVehicles)
+    {
+        player.setRiding(static_cast<Vehicle>(d.riding));
+        player.getVehicles() = d.vehicles;
+    }
+
     if (meta)
     {
         meta->location = d.location;
         meta->playSeconds = d.playSeconds;
+        meta->hasVehicles = d.hasVehicles;
     }
     return d.hasPosition;
 }

@@ -129,6 +129,7 @@ public:
 
     // ── Игровое меню и настройки ───────────────────────
     void openGameMenu();
+    void showMapNotice(const std::string& text);
     void handleGameMenuEvent(const SDL_Event& event);
     void handleConfigEvent(const SDL_Event& event);
 
@@ -144,6 +145,7 @@ private:
     // ── Отрисовка ──────────────────────────────────────
     void drawMapWorld();
     void drawActor(const Player& p, int cellScreenX, int cellScreenY);
+    bool drawVehicle(Vehicle v, Direction dir, int cellScreenX, int cellScreenY, bool flying);   // false: нет спрайта
     MapRenderer* rendererFor(const MapData& map);
     std::unordered_map<int, std::unique_ptr<MapRenderer>> mapRenderers;
 
@@ -267,6 +269,14 @@ private:
     [[nodiscard]] SDL_Rect configRowRect(int row) const;
     [[nodiscard]] SDL_Rect volumeBarRect(int row) const;
     void changeVolume(int row, int level);
+    [[nodiscard]] std::vector<std::string> optionLabels(int row) const;   // варианты строки Encounters/Minimap
+    [[nodiscard]] int optionValue(int row) const;
+    void setOption(int row, int index);
+    [[nodiscard]] SDL_Rect optionRect(int row, int index) const;
+    void drawMinimap();
+    int lastCamX = 0, lastCamY = 0;
+    std::string mapNotice;                                     // короткая надпись над картой (H: бои вкл/выкл)
+    Uint32 mapNoticeTicks = 0;                             // камера последнего кадра карты: рамка на мини-карте
     int gameMenuSelected = 0;
     int configSelected = 0;                                    // 0 музыка, 1 звуки, 2 «Back»
     bool draggingVolume = false;

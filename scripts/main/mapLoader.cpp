@@ -111,6 +111,7 @@ MapData loadMap(const std::string& path)
                 z.encounterRate = prop<int>(o, "encounterRate", 8);
                 z.enemies       = parseList(prop<std::string>(o, "enemies", ""));
                 z.encounter = prop<std::string>(o, "encounter", "");
+                z.river     = prop<bool>(o, "river", false);   // по воде здесь ходит каноэ
                 m.zones.push_back(std::move(z));
             }
         }
@@ -130,11 +131,22 @@ MapData loadMap(const std::string& path)
         else if (type == "objectgroup" && name == "markers")
         {
             for (const auto& o : L.at("objects"))
-                if (o.value("name", std::string{}) == "spawn")
+            {
+                const std::string marker = o.value("name", std::string{});
+                const Point at{ cellOf(o.value("x", 0.0), tw), cellOf(o.value("y", 0.0), th) };
+                if (marker == "spawn")
                 {
-                    m.spawn = { cellOf(o.value("x", 0.0), tw), cellOf(o.value("y", 0.0), th) };
+                    m.spawn = at;
                     haveSpawn = true;
                 }
+                // Стоянки транспорта: точки canoe, ship, airship
+                for (Vehicle v : {Vehicle::Canoe, Vehicle::Ship, Vehicle::Airship})
+                {
+                    std::string lower = vehicleName(v);
+                    for (char& c : lower) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+                    if (marker == lower) m.vehicleMarkers[vehicleIndex(v)] = at;
+                }
+            }
         }
     }
 

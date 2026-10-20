@@ -26,12 +26,16 @@ public:
     // Блики на воде поверх draw(): гребни волн и искры. ticks — SDL_GetTicks()
     void drawWater(SDL_Renderer* renderer, int camX, int camY, int viewW, int viewH, int scale, Uint32 ticks) const;
 
+    // Мини-карта: пиксель на клетку, цвет — средний по клетке
+    [[nodiscard]] SDL_Texture* minimap() const { return minimapTex; }
+
     void clear();
     [[nodiscard]] int width()  const { return imgW; }
     [[nodiscard]] int height() const { return imgH; }
 
 private:
     void findWater(const SDL_Surface* rgba);
+    void buildMinimap(SDL_Renderer* renderer, const SDL_Surface* rgba);
 
     struct Chunk { SDL_Texture* tex; int x, y, w, h; };   // x, y, w, h в пикселях картинки
     std::vector<Chunk> chunks;
@@ -41,6 +45,7 @@ private:
     static constexpr int kTile = 16;
     std::vector<uint8_t> water;
     int waterW = 0, waterH = 0;
+    SDL_Texture* minimapTex = nullptr;
 };
 
 

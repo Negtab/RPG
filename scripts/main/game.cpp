@@ -2,6 +2,8 @@
 
 #include <chrono>
 #include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <algorithm>
 #include <cstring>
 #include <SDL.h>
@@ -9,6 +11,8 @@
 
 #include "inputController.h"
 #include "mapLoader.h"
+#include "terrain.h"
+#include <SDL_image.h>
 #include "../gameLogic/gameData.h"
 
 
@@ -62,7 +66,7 @@ void Game::run()
     saveDir = std::filesystem::current_path().remove_filename() / "saves";
     migrateOldSave();
     refreshLatestSave();
-    AudioManager::loadSettings((saveDir.parent_path() / "settings.ini").string());
+    loadSettings();
 
     while (this->isRunning)
     {
@@ -165,6 +169,7 @@ bool Game::loadFromSlot(int slot)
         SaveMeta meta;
         const bool positionRestored = resourceManager->loadPlayer(slotPath(slot), players.at(0), &meta);
         playSeconds = static_cast<float>(meta.playSeconds);
+        if (!meta.hasVehicles) resetVehicles();
         placePlayerAfterLoad(positionRestored);
     }
     catch (const std::exception& e)
@@ -189,15 +194,150 @@ void Game::placePlayerAfterLoad(bool positionRestored)
 
     const Point c = me.getPlayerCoords();
     const auto mapIt = maps.find(me.getMove().mapId);
-    if (positionRestored && mapIt != maps.end() && mapIt->second.isWalkable(c.x, c.y))
+    const bool validCell = mapIt != maps.end() &&
+        (me.getRiding() == Vehicle::None ? mapIt->second.isWalkable(c.x, c.y)
+                                         : vehicleCanMove(mapIt->second, me.getRiding(), c.x, c.y));
+    if (positionRestored && validCell)
         currentMap = &mapIt->second;                         // продолжаем там, где сохранились (город, подземелье)
     else
     {
         currentMap = &maps.at(0);
         me.getMove().mapId = 0;
         me.setPlayerCoords(currentMap->spawn);
+        me.setRiding(Vehicle::None);                       // корабль посреди суши не оставляем
     }
     stepsSinceBattle = 0;
+    stepFrom = me.getPlayerCoords();
+}
+
+// ─────────────────────────────────────────
+// Транспорт
+// ─────────────────────────────────────────
+
+void Game::computeWater(MapData& m)
+{
+    if (m.backgroundPath.empty()) return;
+    SDL_Surface* raw = IMG_Load(m.backgroundPath.c_str());
+    if (!raw) { SDL_Log("Map '%s': no image for water: %s", m.name.c_str(), IMG_GetError()); return; }
+    SDL_Surface* rgba = SDL_ConvertSurfaceFormat(raw, SDL_PIXELFORMAT_RGBA32, 0);
+    SDL_FreeSurface(raw);
+    if (!rgba) return;
+
+    int cw = 0, ch = 0;
+    const auto coverage = waterCoverage(rgba, TILE_PX, cw, ch);
+    SDL_FreeSurface(rgba);
+
+    // Хотя бы половина клетки — вода: так корабль подходит вплотную к берегу
+    m.water.assign(static_cast<size_t>(m.w) * m.h, 0);
+    for (int y = 0; y < std::min(ch, m.h); ++y)
+        for (int x = 0; x < std::min(cw, m.w); ++x)
+            m.water[static_cast<size_t>(y) * m.w + x] = coverage[static_cast<size_t>(y) * cw + x] >= TILE_PX * TILE_PX / 2;
+}
+
+void Game::resetVehicles()
+{
+    auto& vehicles = players.at(0).getVehicles();
+    vehicles = {};
+    const MapData& world = maps.at(0);
+
+    auto nearLand = [&](int x, int y) {
+        return world.isWalkable(x + 1, y) || world.isWalkable(x - 1, y) ||
+               world.isWalkable(x, y + 1) || world.isWalkable(x, y - 1);
+    };
+    auto taken = [&](int x, int y) {
+        for (const auto& v : vehicles) if (v.available && v.cell.x == x && v.cell.y == y) return true;
+        return x == world.spawn.x && y == world.spawn.y;
+    };
+    // Запасное место, если маркера в Tiled нет: ближайшая к точке появления подходящая клетка
+    auto nearest = [&](auto&& fits) -> std::optional<Point> {
+        std::optional<Point> best;
+        int bestD = INT32_MAX;
+        for (int y = 0; y < world.h; ++y)
+            for (int x = 0; x < world.w; ++x)
+            {
+                const int d = (x - world.spawn.x) * (x - world.spawn.x) + (y - world.spawn.y) * (y - world.spawn.y);
+                if (d < bestD && !taken(x, y) && fits(x, y)) { bestD = d; best = Point{x, y}; }
+            }
+        return best;
+    };
+
+    for (Vehicle v : {Vehicle::Ship, Vehicle::Canoe, Vehicle::Airship})
+    {
+        std::optional<Point> at = world.vehicleMarkers[vehicleIndex(v)];
+        if (!at)
+        {
+            if (v == Vehicle::Airship)
+                at = nearest([&](int x, int y) { return world.isWalkable(x, y) && !world.portalAt(x, y); });
+            else if (v == Vehicle::Ship || world.hasRivers())        // каноэ без размеченных рек ставить некуда
+                at = nearest([&](int x, int y) { return vehicleCanMove(world, v, x, y) && nearLand(x, y); });
+        }
+        if (!at) { SDL_Log("No place for the %s on the world map", vehicleName(v)); continue; }
+        vehicles[vehicleIndex(v)] = {true, static_cast<uint16_t>(world.mapId), *at, Direction::Down};
+    }
+}
+
+void Game::parkVehicle(Point at, uint16_t mapId)
+{
+    Player& me = players.at(0);
+    const Vehicle riding = me.getRiding();
+    if (riding == Vehicle::None) return;
+    auto& v = me.getVehicles()[vehicleIndex(riding)];
+    v.available = true;
+    v.mapId = mapId;
+    v.cell = at;
+    v.dir = me.getMove().dir;
+    me.setRiding(Vehicle::None);
+}
+
+bool Game::updateVehicleAfterStep(Point from)
+{
+    Player& me = players.at(0);
+    const MoveState& m = me.getMove();
+    const Vehicle riding = me.getRiding();
+
+    if (riding == Vehicle::Ship || riding == Vehicle::Canoe)
+    {
+        if (vehicleCanMove(*currentMap, riding, m.cell.x, m.cell.y)) return false;
+        parkVehicle(from, m.mapId);                          // шагнули на берег: лодка остаётся у берега
+        return true;
+    }
+    if (riding != Vehicle::None) return false;
+
+    for (int i = 0; i < kVehicleKinds; ++i)                  // зашли на стоящий транспорт: садимся
+    {
+        const VehicleState& v = me.getVehicles()[i];
+        if (v.available && v.mapId == m.mapId && v.cell.x == m.cell.x && v.cell.y == m.cell.y)
+        {
+            me.setRiding(static_cast<Vehicle>(i + 1));
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Game::canLandAirship() const
+{
+    const Player& me = players.at(0);
+    if (state != GameState::Map || me.getRiding() != Vehicle::Airship || me.getMove().moving) return false;
+    const Point c = me.getMove().cell;
+    if (!currentMap->isWalkable(c.x, c.y) || currentMap->portalAt(c.x, c.y)) return false;   // не в город и не на вход
+    for (int i = 0; i < kVehicleKinds; ++i)                  // на другой стоящий транспорт не садимся
+    {
+        const VehicleState& v = me.getVehicles()[i];
+        if (i != vehicleIndex(Vehicle::Airship) && v.available && v.mapId == me.getMove().mapId &&
+            v.cell.x == c.x && v.cell.y == c.y)
+            return false;
+    }
+    return true;
+}
+
+void Game::vehicleAction()
+{
+    if (!canLandAirship()) return;
+    const MoveState& m = players.at(0).getMove();
+    parkVehicle(m.cell, m.mapId);
+    stepsSinceBattle = 0;
+    if (localPlayerId != 0) sendLocalPlayerState();
 }
 
 void Game::continueGame()
@@ -248,9 +388,50 @@ void Game::returnToTitle()
     setGameState(GameState::Menu);
 }
 
+void Game::loadSettings()
+{
+    // Формат «ключ=значение» по строке: файл можно поправить руками. Нет файла — всё по умолчанию
+    std::ifstream in((saveDir.parent_path() / "settings.ini").string());
+    std::string line;
+    int music = AudioManager::getMusicVolume(), sound = AudioManager::getSoundVolume();
+    while (std::getline(in, line))
+    {
+        const auto eq = line.find('=');
+        if (eq == std::string::npos) continue;
+        const std::string key = line.substr(0, eq);
+        int value = 0;
+        if (!(std::istringstream(line.substr(eq + 1)) >> value)) continue;
+        if (key == "music")      music = value;
+        if (key == "sound")      sound = value;
+        if (key == "encounters") encounters = value != 0;
+        if (key == "minimap")    setMinimapZoom(value);       // старый файл: 1 = вкл, это и есть x1
+    }
+    AudioManager::setMusicVolume(music);                      // заодно применяем и зажимаем в 0..10
+    AudioManager::setSoundVolume(sound);
+}
+
+void Game::cycleMinimap()
+{
+    setMinimapZoom((minimapZoom + 1) % (kMinimapZoomMax + 1));
+    saveSettings();
+}
+
+void Game::toggleEncounters()
+{
+    encounters = !encounters;
+    saveSettings();
+    uiManager->showMapNotice(encounters ? "Encounters: On" : "Encounters: Off");
+}
+
 void Game::saveSettings() const
 {
-    AudioManager::saveSettings((saveDir.parent_path() / "settings.ini").string());
+    const std::string path = (saveDir.parent_path() / "settings.ini").string();
+    std::ofstream out(path, std::ios::trunc);
+    out << "music=" << AudioManager::getMusicVolume() << "\n"
+        << "sound=" << AudioManager::getSoundVolume() << "\n"
+        << "encounters=" << (encounters ? 1 : 0) << "\n"
+        << "minimap=" << minimapZoom << "\n";
+    if (!out) SDL_Log("Cannot write settings to %s", path.c_str());
 }
 
 float Game::getDeltaTime()
@@ -319,6 +500,7 @@ void Game::loadMaps()
         try
         {
             MapData m = loadMap(entry.path().string());
+            computeWater(m);
             if (maps.contains(m.mapId))
             {
                 SDL_Log("Map '%s': mapId %d already used, skipped", m.name.c_str(), m.mapId);
@@ -373,6 +555,12 @@ bool Game::applyMapChange(int mapId, int x, int y)
         SDL_Log("applyMapChange: bad target map %d (%d,%d)", mapId, x, y);
         return false;
     }
+
+    // Через портал идут пешком: транспорт остаётся там, где стоял игрок
+    Player& me = players.at(0);
+    if (me.getRiding() != Vehicle::None)
+        parkVehicle(me.getMove().moving ? me.getMove().target : me.getMove().cell, me.getMove().mapId);
+    for (auto& entry : remotePlayers) entry.second.setRiding(Vehicle::None);
 
     currentMap = &it->second;
 
@@ -504,6 +692,7 @@ void Game::sendLocalPlayerState() {
     p.targetX   = static_cast<int16_t>(m.target.x); p.targetY = static_cast<int16_t>(m.target.y);
     p.direction = static_cast<uint8_t>(m.dir);
     p.moving    = m.moving ? 1 : 0;
+    p.vehicle   = static_cast<uint8_t>(players[0].getRiding());
     client.send(reinterpret_cast<const char*>(&p), sizeof(p));
 }
 
@@ -533,6 +722,7 @@ Player& Game::ensureRemote(uint32_t id) {
 void Game::processMovePacket(const PlayerMovePacket& p) {
     if (p.playerId == localPlayerId) return;
     if (p.direction > static_cast<uint8_t>(Direction::Idle)) return;           // мусорное значение
+    if (p.vehicle > static_cast<uint8_t>(Vehicle::Airship)) return;
     const int dx = p.targetX - p.cellX, dy = p.targetY - p.cellY;
     if (p.moving && std::abs(dx) + std::abs(dy) != 1) return;                  // шаг ровно на одну клетку
 
@@ -544,6 +734,7 @@ void Game::processMovePacket(const PlayerMovePacket& p) {
     m.moving = p.moving != 0;
     m.progress = 0.f;
     m.mapId  = p.mapId;
+    ensureRemote(p.playerId).setRiding(static_cast<Vehicle>(p.vehicle));
 }
 
 void Game::processPacket(const char* data)
@@ -791,7 +982,12 @@ void Game::update(float dt)
         MoveState& m = me.getMove();
         const Direction oldDir = m.dir;
 
-        const MoveResult r = updateLocal(m, *currentMap, inputController->readMoveDirection(), dt);
+        // Проходимость зависит от транспорта: пешком суша, на корабле море, в воздухе всё
+        const Vehicle riding = me.getRiding();
+        auto passable = [&](Point t) { return canEnter(*currentMap, riding, t.x, t.y, me.getVehicles(), m.mapId); };
+        const Point finishedFrom = stepFrom;           // новый шаг может начаться в этом же кадре и затереть его
+        const MoveResult r = updateLocal(m, passable, inputController->readMoveDirection(), dt, vehicleSpeed(riding));
+        if (r.stepStarted) stepFrom = m.cell;
         uiManager->updateRemoteAnimation(me.animPlayer, me);   // название историческое: работает для любого игрока
         me.animPlayer.update(dt);
 
@@ -799,12 +995,12 @@ void Game::update(float dt)
             sendLocalPlayerState();                       // только по событиям, не каждый кадр
 
         for (auto& [id, remote] : remotePlayers) {
-            advance(remote.getMove(), dt);
+            advance(remote.getMove(), dt, vehicleSpeed(remote.getRiding()));
             uiManager->updateRemoteAnimation(remote.animPlayer, remote);
             remote.animPlayer.update(dt);
         }
 
-        if (r.stepFinished) onStepFinished();             // последним: может сменить состояние на Battle
+        if (r.stepFinished) onStepFinished(finishedFrom); // последним: может сменить состояние на Battle
     }
 
     updateNetwork();
@@ -819,13 +1015,18 @@ void Game::render()
     SDL_RenderPresent(renderer);
 }
 
-void Game::onStepFinished()
+void Game::onStepFinished(Point from)
 {
+    if (updateVehicleAfterStep(from) && localPlayerId != 0)
+        sendLocalPlayerState();                          // напарник должен увидеть корабль, а не героя
+
     if (isConnected() && !isHost()) return;              // порталы и бои ведёт хост (или офлайн)
 
     const Point c = players.at(0).getMove().cell;
+    const Vehicle riding = players.at(0).getRiding();
+    if (riding == Vehicle::Airship) return;              // в воздухе ни порталов, ни боёв
 
-    if (const Portal* portal = currentMap->portalAt(c.x, c.y))
+    if (const Portal* portal = currentMap->portalAt(c.x, c.y); portal && riding == Vehicle::None)
     {
         followPortal(*portal);
         return;
@@ -834,6 +1035,7 @@ void Game::onStepFinished()
     const Zone* zone = currentMap->zoneAt(c.x, c.y);
     if (zone && zone->safe) { stepsSinceBattle = 0; return; }
 
+    if (!encounters) return;                             // бои выключены в Config
     if (++stepsSinceBattle < 6) return;
     if (rand() % 100 >= (zone ? zone->encounterRate : kDefaultEncounterRate)) return;
 
@@ -1365,6 +1567,7 @@ void Game::buildParty(const std::vector<SpecializationNames>& classes, const std
 {
     Player& me = players.at(0);
     me.resetProgress();
+    resetVehicles();
     playSeconds = 0.0f;
     currentMap = &maps.at(0);
     me.setPlayerCoords(currentMap->spawn);

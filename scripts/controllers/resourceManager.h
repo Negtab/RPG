@@ -34,6 +34,7 @@ struct SaveSummary {
 struct SaveMeta {
     std::string location;                   // зона или карта, где сохранились
     uint32_t playSeconds = 0;
+    bool hasVehicles = true;                // при загрузке: false — файл старше версии 6, транспорт надо расставить
 };
 
 class ResourceManager

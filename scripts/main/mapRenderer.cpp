@@ -1,4 +1,5 @@
 #include "mapRenderer.h"
+#include "terrain.h"
 
 #include <algorithm>
 #include <cmath>
@@ -46,14 +47,12 @@ bool MapRenderer::load(SDL_Renderer* renderer, SDL_Surface* image, int chunkSize
         }
 
     findWater(src);
+    buildMinimap(renderer, src);
     SDL_FreeSurface(src);
     return true;
 }
 
 namespace {
-    // Океан FF1: синий #5522ff и близкие оттенки
-    bool isWaterPixel(const Uint8* p) { return p[2] >= 0xC0 && p[0] <= 0x80 && p[1] <= 0x50; }
-
     Uint32 hash(Uint32 a, Uint32 b, Uint32 c = 0)          // одинаковый для клетки при каждом запуске
     {
         Uint32 h = a * 0x9E3779B1u ^ (b + 0x7F4A7C15u) * 0x85EBCA77u ^ (c + 0x165667B1u) * 0xC2B2AE3Du;
@@ -64,26 +63,37 @@ namespace {
 
 void MapRenderer::findWater(const SDL_Surface* src)
 {
-    waterW = imgW / kTile;
-    waterH = imgH / kTile;
-    water.assign(static_cast<size_t>(waterW) * waterH, 0);
-    const auto* pixels = static_cast<const Uint8*>(src->pixels);
+    const auto coverage = waterCoverage(src, kTile, waterW, waterH);
+    water.resize(coverage.size());
+    for (size_t i = 0; i < coverage.size(); ++i)
+        water[i] = coverage[i] >= kTile * kTile - 4;                      // пара чужих пикселей — ещё вода, берег уже нет
+}
 
-    for (int cy = 0; cy < waterH; ++cy)
-        for (int cx = 0; cx < waterW; ++cx)
+void MapRenderer::buildMinimap(SDL_Renderer* renderer, const SDL_Surface* src)
+{
+    const int cw = imgW / kTile, ch = imgH / kTile;
+    if (cw <= 0 || ch <= 0) return;
+    SDL_Surface* small = SDL_CreateRGBSurfaceWithFormat(0, cw, ch, 32, SDL_PIXELFORMAT_RGBA32);
+    if (!small) return;
+
+    const auto* in = static_cast<const Uint8*>(src->pixels);
+    auto* out = static_cast<Uint8*>(small->pixels);
+    for (int cy = 0; cy < ch; ++cy)
+        for (int cx = 0; cx < cw; ++cx)
         {
-            int count = 0;
+            unsigned r = 0, g = 0, b = 0;
             for (int y = 0; y < kTile; ++y)
             {
-                const Uint8* row = pixels + (cy * kTile + y) * src->pitch + cx * kTile * 4;
-                for (int x = 0; x < kTile; ++x)
-                    count += isWaterPixel(row + x * 4);
+                const Uint8* row = in + (cy * kTile + y) * src->pitch + cx * kTile * 4;
+                for (int x = 0; x < kTile; ++x) { r += row[x * 4]; g += row[x * 4 + 1]; b += row[x * 4 + 2]; }
             }
-            water[cy * waterW + cx] = count >= kTile * kTile - 4;   // пара чужих пикселей — ещё вода
+            Uint8* p = out + cy * small->pitch + cx * 4;
+            constexpr unsigned n = kTile * kTile;
+            p[0] = static_cast<Uint8>(r / n); p[1] = static_cast<Uint8>(g / n); p[2] = static_cast<Uint8>(b / n); p[3] = 255;
         }
 
-    const auto cells = std::count(water.begin(), water.end(), 1);
-    SDL_Log("MapRenderer: water in %d of %d cells", static_cast<int>(cells), waterW * waterH);
+    minimapTex = SDL_CreateTextureFromSurface(renderer, small);
+    SDL_FreeSurface(small);
 }
 
 void MapRenderer::drawWater(SDL_Renderer* renderer, int camX, int camY, int viewW, int viewH, int scale, Uint32 ticks) const
@@ -175,4 +185,5 @@ void MapRenderer::clear()
     imgW = imgH = 0;
     water.clear();
     waterW = waterH = 0;
+    if (minimapTex) { SDL_DestroyTexture(minimapTex); minimapTex = nullptr; }
 }

@@ -72,6 +72,12 @@ public:
     [[nodiscard]] Point getPlayerCoords() const noexcept { return move.cell; }
     void setPlayerCoords(Point p) noexcept { move.cell = move.target = p; move.moving = false; move.progress = 0.f; }
 
+    // Транспорт: на чём едет игрок и где стоят остальные. Пока на транспорте едут, его клетка — клетка игрока
+    [[nodiscard]] Vehicle getRiding() const noexcept { return riding; }
+    void setRiding(Vehicle v) noexcept { riding = v; }
+    [[nodiscard]] std::array<VehicleState, kVehicleKinds>& getVehicles() noexcept { return vehicles; }
+    [[nodiscard]] const std::array<VehicleState, kVehicleKinds>& getVehicles() const noexcept { return vehicles; }
+
     AnimPlayer animPlayer;
 
 private:
@@ -88,6 +94,9 @@ private:
     std::vector<Hero> heroes;
     std::vector<std::string> discoveredEnemies;
     std::map<int, uint8_t> itemIds;
+
+    Vehicle riding{Vehicle::None};
+    std::array<VehicleState, kVehicleKinds> vehicles{};
 };
 
 

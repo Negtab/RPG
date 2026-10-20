@@ -168,6 +168,29 @@ inline std::string sanitizeHeroName(const std::string& raw)   // только п
     return s;
 }
 
+// Транспорт на карте мира. Порядок совпадает с индексом в Player::vehicles (минус 1)
+enum class Vehicle : uint8_t { None, Canoe, Ship, Airship };
+constexpr int kVehicleKinds = 3;
+inline int vehicleIndex(Vehicle v) { return static_cast<int>(v) - 1; }
+inline const char* vehicleName(Vehicle v)          // совпадает с именем PNG и маркера в Tiled (в нижнем регистре)
+{
+    switch (v)
+    {
+    case Vehicle::Canoe:   return "Canoe";
+    case Vehicle::Ship:    return "Ship";
+    case Vehicle::Airship: return "Airship";
+    default:               return "";
+    }
+}
+
+struct VehicleState                                 // где стоит транспорт, пока на нём не едут
+{
+    bool      available{false};                     // есть на карте (маркер или запасное место нашлось)
+    uint16_t  mapId{0};
+    Point     cell{};
+    Direction dir{Direction::Down};
+};
+
 enum class GameState { CreatePlayer, Menu, Battle, Inventory, Options, Map, Online, Saves, GameMenu };
 const std::unordered_map<GameState, std::string> gameStateString =  {{GameState::CreatePlayer, "CreatePlayer"}, {GameState::Menu, "Menu"}, {GameState::Battle, "Battle"}, {GameState::Inventory, "Inventory"}, {GameState::Map, "Map"}, {GameState::Options, "Options"}, {GameState::Online, "Online"}, {GameState::Saves, "Saves"}, {GameState::GameMenu, "GameMenu"}};
 

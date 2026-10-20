@@ -9,7 +9,7 @@ void InputController::chooseInput(SDL_Event event, Game& game, Battle& battle, P
     GameState state = game.getGameState();
     switch (state)
     {
-        case GameState::Map:        mapInput(game); break;
+        case GameState::Map:        mapInput(event, game); break;
         case GameState::Menu:       menuInput(event, game, uiManager); break;
         case GameState::Battle:     battleInput(event, game, battle, uiManager); break;
         case GameState::Inventory:  inventoryInput(player); break;
@@ -57,10 +57,18 @@ Direction InputController::readMoveDirection() {       // последняя н�
     return lastMoveDir = Direction::Idle;
 }
 
-void InputController::mapInput(Game& game)
+void InputController::mapInput(const SDL_Event& event, Game& game)
 {
     if (input.isKeyPressed(SDL_SCANCODE_ESCAPE))
-        game.openGameMenu();                          // стартовое меню теперь только до игры и после «Return to Title»
+        game.openGameMenu();
+    if (input.isKeyPressed(SDL_SCANCODE_E))
+        game.vehicleAction();                         // посадить дирижабль
+    // Переключатель ловим по событию, а не по состоянию за кадр: иначе два события в кадре переключат дважды
+    if (event.type == SDL_KEYDOWN && event.key.repeat == 0)
+    {
+        if (event.key.keysym.scancode == SDL_SCANCODE_M) game.cycleMinimap();       // Off → x1 → x2 → x3
+        if (event.key.keysym.scancode == SDL_SCANCODE_H) game.toggleEncounters();   // случайные бои вкл/выкл
+    }                          // стартовое меню теперь только до игры и после «Return to Title»
 }
 
 void InputController::menuInput(SDL_Event event, Game& game, UIManager& manager)

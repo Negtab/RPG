@@ -11,6 +11,8 @@ void Player::resetProgress()
     itemIds.clear();
     discoveredEnemies.clear();
     move = MoveState{};
+    riding = Vehicle::None;
+    vehicles = {};
 }
 
 uint32_t Player::getNetworkId() const noexcept

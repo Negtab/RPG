@@ -54,6 +54,7 @@ struct PlayerMovePacket {
     int16_t  cellX, cellY, targetX, targetY;
     uint8_t  direction;
     uint8_t  moving;
+    uint8_t  vehicle;     // Vehicle: на чём едет игрок, чтобы напарник рисовал корабль, а не героя
 };
 
 struct EnemyData

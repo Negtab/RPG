@@ -24,7 +24,7 @@ private:
     Direction lastMoveDir{Direction::Idle};
     void onlineInput(SDL_Event event, Game &game, UIManager& manager);
     void createInput(SDL_Event event, Game& game, UIManager& manager);
-    void mapInput(Game& game);
+    void mapInput(const SDL_Event& event, Game& game);
     void menuInput(SDL_Event event, Game& game, UIManager& manager);
     void battleInput(SDL_Event event, Game& game, Battle& battle, UIManager& uiManager);
     void optionsInput(SDL_Event event, Game& game, UIManager& uiManager);

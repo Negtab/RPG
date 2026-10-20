@@ -28,8 +28,6 @@ public:
     [[nodiscard]] static int getMusicVolume() { return musicVolume; }
     [[nodiscard]] static int getSoundVolume() { return soundVolume; }
 
-    static void loadSettings(const std::string& path);   // нет файла: громкость по умолчанию
-    static bool saveSettings(const std::string& path);
 
 private:
     static int musicVolume;

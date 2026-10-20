@@ -396,8 +396,110 @@ SDL_Texture* idleFrame(Direction d)     // стоячий кадр = первы�
 }
 }
 
+void UIManager::showMapNotice(const std::string& text)
+{
+    mapNotice = text;
+    mapNoticeTicks = SDL_GetTicks();
+}
+
+void UIManager::drawMinimap()
+{
+    const MapData& map = game.getMap();
+    MapRenderer* r = rendererFor(map);
+    if (!r || !r->minimap() || map.w <= 0 || map.h <= 0) return;
+
+    // Окно — карта целиком, вписанная в 180x180 с сохранением пропорций; в правом верхнем углу под часами.
+    // При приближении окно то же, а в нём видна часть карты вокруг игрока
+    constexpr int kBox = 180, kPad = 6, kMargin = 16, kTop = 46;
+    const int zoom = game.getMinimapZoom();
+    const float fit = std::min(static_cast<float>(kBox) / map.w, static_cast<float>(kBox) / map.h);
+    const int w = std::max(1, px(map.w * fit)), h = std::max(1, px(map.h * fit));
+    const SDL_Rect frame{screen.w - kMargin - w - 2 * kPad, kTop, w + 2 * kPad, h + 2 * kPad};
+    const SDL_Rect inner{frame.x + kPad, frame.y + kPad, w, h};
+    visualizer.drawNinePatch(getWindowSkin(visualizer.getRenderer()), frame, kWindowSkinSlice, 1);
+
+    const Vec2f me = visualCell(player.getMove());
+    const int srcW = std::max(1, map.w / zoom), srcH = std::max(1, map.h / zoom);   // клеток в окне
+    const int srcX = std::clamp(px(me.x + 0.5f) - srcW / 2, 0, map.w - srcW);     // игрок в центре, но не за краем
+    const int srcY = std::clamp(px(me.y + 0.5f) - srcH / 2, 0, map.h - srcH);
+    visualizer.drawTexture(r->minimap(), inner.x, inner.y, inner.w, inner.h, srcX, srcY, srcW, srcH);
+
+    const float fx = static_cast<float>(inner.w) / srcW, fy = static_cast<float>(inner.h) / srcH;
+    auto toMini = [&](float cx, float cy) { return SDL_Point{inner.x + px((cx - srcX) * fx), inner.y + px((cy - srcY) * fy)}; };
+    auto dot = [&](SDL_Point p, int size, SDL_Color c) {
+        if (p.x < inner.x || p.y < inner.y || p.x >= inner.x + inner.w || p.y >= inner.y + inner.h) return;   // вне окна
+        visualizer.fillRect({p.x - size / 2 - 1, p.y - size / 2 - 1, size + 2, size + 2}, {0, 0, 0, 255});
+        visualizer.fillRect({p.x - size / 2, p.y - size / 2, size, size}, c);
+    };
+
+    // Что сейчас видно на экране
+    const SDL_Point v0 = toMini(static_cast<float>(lastCamX) / CELL_PX, static_cast<float>(lastCamY) / CELL_PX);
+    const int vw = px(static_cast<float>(screen.w) / CELL_PX * fx), vh = px(static_cast<float>(screen.h) / CELL_PX * fy);
+    SDL_Rect view{std::max(inner.x, v0.x), std::max(inner.y, v0.y), 0, 0};
+    view.w = std::min(inner.x + inner.w, v0.x + vw) - view.x;
+    view.h = std::min(inner.y + inner.h, v0.y + vh) - view.y;
+    if (view.w > 0 && view.h > 0)                                      // контур: Visualizer::drawRect заливает
+    {
+        SDL_Renderer* rr = visualizer.getRenderer();
+        SDL_SetRenderDrawBlendMode(rr, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(rr, 255, 255, 255, 170);
+        SDL_RenderDrawRect(rr, &view);
+    }
+
+    // Стоящий транспорт, напарники, игрок (мигает)
+    static const SDL_Color vehicleColor[kVehicleKinds] = {{220, 170, 110, 255}, {170, 100, 50, 255}, {240, 210, 80, 255}};
+    for (int i = 0; i < kVehicleKinds; ++i)
+    {
+        const VehicleState& vs = player.getVehicles()[i];
+        if (vs.available && vs.mapId == player.getMove().mapId && player.getRiding() != static_cast<Vehicle>(i + 1))
+            dot(toMini(vs.cell.x + 0.5f, vs.cell.y + 0.5f), 3, vehicleColor[i]);
+    }
+    for (const auto& [id, remote] : game.getRemotePlayers())
+        if (remote.getMove().mapId == player.getMove().mapId)
+        {
+            const Vec2f p = visualCell(remote.getMove());
+            dot(toMini(p.x + 0.5f, p.y + 0.5f), 4, {90, 160, 255, 255});
+        }
+    const bool blink = (SDL_GetTicks() / 300) % 2 == 0;
+    dot(toMini(me.x + 0.5f, me.y + 0.5f), 4, blink ? SDL_Color{255, 60, 60, 255} : SDL_Color{255, 255, 255, 255});
+}
+
+bool UIManager::drawVehicle(Vehicle v, Direction dir, int cellScreenX, int cellScreenY, bool flying)
+{
+    // Лист спрайта: 4 колонки по направлениям (Up, Down, Left, Right, как в enum Direction) и 2 строки-кадра
+    SDL_Texture* tex = ResourceManager::getTexture(vehicleName(v));
+    if (!tex) return false;
+    int tw = 0, th = 0;
+    SDL_QueryTexture(tex, nullptr, nullptr, &tw, &th);
+    const int fw = tw / 4, fh = th / 2;
+    if (fw <= 0 || fh <= 0) return false;
+
+    const Uint32 ticks = SDL_GetTicks();
+    const int col = std::clamp(static_cast<int>(dir), 0, 3);
+    const int frame = v == Vehicle::Airship ? (flying ? (ticks / 90) % 2 : 0)     // винты крутятся только в полёте
+                                            : (ticks / 400) % 2;                      // лодка покачивается всегда
+    const SDL_Rect src{col * fw, frame * fh, fw, fh};
+
+    const int footX = cellScreenX + CELL_PX / 2, footY = cellScreenY + CELL_PX;
+    int lift = 0;
+    if (flying)
+    {
+        // Тень на земле и сам дирижабль выше неё, с лёгким покачиванием
+        const int sw = fw * PIXEL_SCALE * 3 / 4, sh = 3 * PIXEL_SCALE;
+        visualizer.fillRect({footX - sw / 2, footY - sh - PIXEL_SCALE, sw, sh}, {0, 0, 0, 90});
+        visualizer.fillRect({footX - sw / 2 + PIXEL_SCALE, footY - sh - 2 * PIXEL_SCALE, sw - 2 * PIXEL_SCALE, sh + 2 * PIXEL_SCALE}, {0, 0, 0, 50});
+        lift = 10 * PIXEL_SCALE + static_cast<int>(std::lround(std::sin(ticks / 400.0) * PIXEL_SCALE));
+    }
+    visualizer.drawSprite(tex, footX, footY - lift, PIXEL_SCALE, &src);
+    return true;
+}
+
 void UIManager::drawActor(const Player& p, int cellScreenX, int cellScreenY)
 {
+    if (p.getRiding() != Vehicle::None &&
+        drawVehicle(p.getRiding(), p.getMove().dir, cellScreenX, cellScreenY, p.getRiding() == Vehicle::Airship))
+        return;                                                   // на транспорте героя не видно
+
     SDL_Texture* tex = nullptr;
 
     const AnimPlayer& ap = p.animPlayer;
@@ -427,11 +529,21 @@ void UIManager::drawMapWorld()
 
     const int camX = camAxis(px(lp.x * CELL_PX) - (scr.w - CELL_PX) / 2, map.w * CELL_PX, scr.w);
     const int camY = camAxis(px(lp.y * CELL_PX) - (scr.h - CELL_PX) / 2, map.h * CELL_PX, scr.h);
+    lastCamX = camX;
+    lastCamY = camY;
 
     if (MapRenderer* r = rendererFor(map))
     {
         r->draw(visualizer.getRenderer(), camX, camY, scr.w, scr.h, PIXEL_SCALE);
         r->drawWater(visualizer.getRenderer(), camX, camY, scr.w, scr.h, PIXEL_SCALE, SDL_GetTicks());
+    }
+
+    // Стоящий транспорт лежит на земле и воде, поэтому рисуется до героев
+    for (int i = 0; i < kVehicleKinds; ++i)
+    {
+        const VehicleState& v = player.getVehicles()[i];
+        if (!v.available || v.mapId != localMove.mapId || player.getRiding() == static_cast<Vehicle>(i + 1)) continue;
+        drawVehicle(static_cast<Vehicle>(i + 1), v.dir, v.cell.x * CELL_PX - camX, v.cell.y * CELL_PX - camY, false);
     }
 
     struct Actor { const Player* p; Vec2f pos; };
@@ -441,10 +553,26 @@ void UIManager::drawMapWorld()
         if (remote.getMove().mapId == localMove.mapId)           // игроки с другой карты не видны
             actors.push_back({ &remote, visualCell(remote.getMove()) });
 
-    std::sort(actors.begin(), actors.end(), [](const Actor& a, const Actor& b) { return a.pos.y < b.pos.y; });
+    // Сверху вниз по экрану, но летящий дирижабль всегда поверх остальных
+    std::sort(actors.begin(), actors.end(), [](const Actor& a, const Actor& b) {
+        const bool fa = a.p->getRiding() == Vehicle::Airship, fb = b.p->getRiding() == Vehicle::Airship;
+        return fa != fb ? fb : a.pos.y < b.pos.y;
+    });
 
     for (const Actor& a : actors)
         drawActor(*a.p, px(a.pos.x * CELL_PX) - camX, px(a.pos.y * CELL_PX) - camY);
+
+    // Надпись по H (бои вкл/выкл): сверху по центру, гаснет за последние полсекунды
+    if (!mapNotice.empty() && SDL_GetTicks() - mapNoticeTicks < 1800)
+    {
+        const Uint32 age = SDL_GetTicks() - mapNoticeTicks;
+        const Uint8 alpha = age < 1300 ? 255 : static_cast<Uint8>(255 * (1800 - age) / 500);
+        drawOutlinedText(mapNotice, scr.w / 2, 16, {255, 232, 120, 255}, alpha);
+    }
+
+    if (game.canLandAirship())                                       // подсказка над дирижаблем
+        drawOutlinedText("E - land", px(lp.x * CELL_PX) - camX + CELL_PX / 2,
+                         px(lp.y * CELL_PX) - camY - 12 * PIXEL_SCALE - 20, {255, 255, 255, 255}, 255);
 }
 
 void UIManager::drawScene(const std::string &sceneId)
@@ -466,6 +594,8 @@ void UIManager::drawScene(const std::string &sceneId)
     else
         scene->draw(visualizer, game.getScreenRect());
 
+    if (sceneId == "Map" && game.minimapEnabled())
+        drawMinimap();                                // поверх интерфейса карты
     if (sceneId == "GameMenu")
         drawGameMenu();
     if (sceneId == "Options")
@@ -506,6 +636,7 @@ void UIManager::updateSceneData(const std::string &sceneId, Scene &scene)
         updateBattleData(scene);
     else if (sceneId == "Menu")
         updateMenuButtons();
+
 }
 
 void UIManager::updateBattleData(Scene &scene)
@@ -2663,30 +2794,33 @@ void UIManager::drawStatusPage()
 // ─────────────────────────────────────────
 
 namespace {
-    constexpr int kConfigRows = 3;                                 // музыка, звуки, «Back»
+    // Строки окна: две полоски громкости, два переключателя и «Back»
+    enum ConfigRow { kRowMusic, kRowSound, kRowEncounters, kRowMinimap, kRowBack, kConfigRows };
+    bool isVolumeRow(int r) { return r == kRowMusic || r == kRowSound; }
+    bool isToggleRow(int r) { return r == kRowEncounters || r == kRowMinimap; }
     SDL_Rect configWindow(const SDL_Rect& screen) { return {120, 50, screen.w - 240, screen.h - 100}; }
 }
 
 SDL_Rect UIManager::configRowRect(int row) const
 {
     const SDL_Rect win = configWindow(screen);
-    return {win.x + 30, win.y + 76 + row * 56, win.w - 60, 40};
+    return {win.x + 30, win.y + 70 + row * 46, win.w - 60, 40};
 }
 
 SDL_Rect UIManager::volumeBarRect(int row) const
 {
     const SDL_Rect r = configRowRect(row);
-    return {r.x + 170, r.y + 10, AudioManager::kVolumeSteps * 30 - 4, 20};
+    return {r.x + 190, r.y + 10, AudioManager::kVolumeSteps * 30 - 4, 20};
 }
 
 void UIManager::changeVolume(int row, int level)
 {
-    if (row == 0)
+    if (row == kRowMusic)
     {
         if (level == AudioManager::getMusicVolume()) return;
         AudioManager::setMusicVolume(level);
     }
-    else if (row == 1)
+    else if (row == kRowSound)
     {
         if (level == AudioManager::getSoundVolume()) return;
         AudioManager::setSoundVolume(level);
@@ -2694,6 +2828,44 @@ void UIManager::changeVolume(int row, int level)
         if (Mix_Chunk* sample = ResourceManager::getSound("ButtonHover"))
             AudioManager::playSound(channel, sample);
     }
+}
+
+std::vector<std::string> UIManager::optionLabels(int row) const
+{
+    if (row == kRowEncounters) return {"On", "Off"};
+    if (row == kRowMinimap)    return {"Off", "x1", "x2", "x3"};
+    return {};
+}
+
+int UIManager::optionValue(int row) const
+{
+    if (row == kRowEncounters) return game.encountersEnabled() ? 0 : 1;
+    if (row == kRowMinimap)    return game.getMinimapZoom();
+    return 0;
+}
+
+void UIManager::setOption(int row, int index)
+{
+    const int n = static_cast<int>(optionLabels(row).size());
+    if (n == 0) return;
+    index = (index % n + n) % n;                                      // по кругу в обе стороны
+    if (row == kRowEncounters) game.setEncountersEnabled(index == 0);
+    if (row == kRowMinimap)    game.setMinimapZoom(index);
+}
+
+SDL_Rect UIManager::optionRect(int row, int index) const
+{
+    TTF_Font* font = ResourceManager::getFont("RetroByte");
+    const SDL_Rect rr = configRowRect(row);
+    int x = volumeBarRect(row).x;
+    const auto labels = optionLabels(row);
+    for (int i = 0; i < static_cast<int>(labels.size()); ++i)
+    {
+        const int w = ResourceManager::measureText(labels[i], font).w;
+        if (i == index) return {x - 8, rr.y, w + 16, rr.h};
+        x += w + 36;
+    }
+    return {};
 }
 
 void UIManager::handleConfigEvent(const SDL_Event& e)
@@ -2713,24 +2885,35 @@ void UIManager::handleConfigEvent(const SDL_Event& e)
     if (keyDown && (k == SDL_SCANCODE_DOWN || k == SDL_SCANCODE_S))
         configSelected = (configSelected + 1) % kConfigRows;
 
-    const int current = configSelected == 0 ? AudioManager::getMusicVolume() : AudioManager::getSoundVolume();
-    if (keyDown && (k == SDL_SCANCODE_LEFT || k == SDL_SCANCODE_A))  changeVolume(configSelected, current - 1);
-    if (keyDown && (k == SDL_SCANCODE_RIGHT || k == SDL_SCANCODE_D)) changeVolume(configSelected, current + 1);
+    const bool left  = keyDown && (k == SDL_SCANCODE_LEFT || k == SDL_SCANCODE_A);
+    const bool right = keyDown && (k == SDL_SCANCODE_RIGHT || k == SDL_SCANCODE_D);
+    const bool enter = fresh && (k == SDL_SCANCODE_RETURN || k == SDL_SCANCODE_KP_ENTER || k == SDL_SCANCODE_SPACE);
 
-    if (fresh && (k == SDL_SCANCODE_RETURN || k == SDL_SCANCODE_KP_ENTER || k == SDL_SCANCODE_SPACE) && configSelected == 2)
+    if (isVolumeRow(configSelected))
+    {
+        const int current = configSelected == kRowMusic ? AudioManager::getMusicVolume() : AudioManager::getSoundVolume();
+        if (left)  changeVolume(configSelected, current - 1);
+        if (right) changeVolume(configSelected, current + 1);
+    }
+    if (isToggleRow(configSelected))
+    {
+        if (fresh && left)           setOption(configSelected, optionValue(configSelected) - 1);
+        if ((fresh && right) || enter) setOption(configSelected, optionValue(configSelected) + 1);
+    }
+    if (enter && configSelected == kRowBack)
     {
         game.closeOptions();
         return;
     }
 
-    // Мышь: наведение выбирает строку, клик или протяжка по полоске ставит громкость
+    // Мышь: наведение выбирает строку, клик переключает, клик или протяжка по полоске ставит громкость
     if (e.type == SDL_MOUSEBUTTONUP) draggingVolume = false;
     const bool press = e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT;
     if (e.type != SDL_MOUSEMOTION && !press) return;
 
     const SDL_Point m = e.type == SDL_MOUSEMOTION ? SDL_Point{e.motion.x, e.motion.y}
                                                   : SDL_Point{e.button.x, e.button.y};
-    if (draggingVolume && configSelected < 2)
+    if (draggingVolume && isVolumeRow(configSelected))
     {
         const SDL_Rect bar = volumeBarRect(configSelected);
         changeVolume(configSelected, std::clamp((m.x - bar.x + 15) / 30, 0, AudioManager::kVolumeSteps));
@@ -2742,7 +2925,17 @@ void UIManager::handleConfigEvent(const SDL_Event& e)
         if (!SDL_PointInRect(&m, &rr)) continue;
         configSelected = r;
         if (!press) return;
-        if (r == 2) { game.closeOptions(); return; }
+        if (r == kRowBack)  { game.closeOptions(); return; }
+        if (isToggleRow(r))                                       // клик по варианту выбирает его
+        {
+            for (int i = 0; i < static_cast<int>(optionLabels(r).size()); ++i)
+            {
+                const SDL_Rect o = optionRect(r, i);
+                if (SDL_PointInRect(&m, &o)) { setOption(r, i); return; }
+            }
+            setOption(r, optionValue(r) + 1);                     // мимо вариантов: следующий
+            return;
+        }
 
         const SDL_Rect bar = volumeBarRect(r);
         if (m.x >= bar.x - 15)                                    // левее полоски — по подписи, громкость не трогаем
@@ -2761,7 +2954,7 @@ void UIManager::drawConfig()
     visualizer.drawNinePatch(skin, win, kWindowSkinSlice, 1);
     drawText("Config", win.x + 30, win.y + 20, kSaveText);
 
-    const char* labels[kConfigRows] = {"Music", "Sound", "Back"};
+    const char* labels[kConfigRows] = {"Music", "Sound", "Encounters", "Minimap", "Back"};
     const int levels[2] = {AudioManager::getMusicVolume(), AudioManager::getSoundVolume()};
     for (int r = 0; r < kConfigRows; ++r)
     {
@@ -2769,10 +2962,23 @@ void UIManager::drawConfig()
         const bool selected = r == configSelected;
         drawText(labels[r], rr.x + 22, rr.y + 8, selected ? kSaveHot : kSaveText);
         if (selected) drawPointer(rr.x + 16 - (SDL_GetTicks() / 220) % 2 * 2, rr.y + rr.h / 2, 2);
-        if (r == 2) continue;
+
+        const SDL_Rect bar = volumeBarRect(r);
+        if (isToggleRow(r))
+        {
+            // Варианты в ряд: выбранный яркий, остальные приглушены
+            const auto labels = optionLabels(r);
+            const int value = optionValue(r);
+            for (int i = 0; i < static_cast<int>(labels.size()); ++i)
+            {
+                const SDL_Rect o = optionRect(r, i);
+                drawText(labels[i], o.x + 8, rr.y + 8, i == value ? (selected ? kSaveHot : kSaveText) : kSaveDim);
+            }
+            continue;
+        }
+        if (!isVolumeRow(r)) continue;
 
         // Полоска из десяти делений и число справа
-        const SDL_Rect bar = volumeBarRect(r);
         for (int s = 0; s < AudioManager::kVolumeSteps; ++s)
         {
             const SDL_Rect seg{bar.x + s * 30, bar.y, 26, bar.h};
@@ -2782,14 +2988,14 @@ void UIManager::drawConfig()
     }
 
     // Подсказка по управлению
-    const int helpY = configRowRect(kConfigRows - 1).y + 70;
+    const int helpY = configRowRect(kConfigRows - 1).y + 58;
     drawText("Controls", win.x + 30, helpY, kSaveText);
     const char* help[] = {
-        "Map: WASD or arrows - move, E - talk",
-        "Esc - game menu",
+        "Map: WASD or arrows - move, E - land airship",
+        "M - minimap zoom, H - encounters, Esc - menu",
         "Battle: arrows - target, Enter - confirm",
         "Esc or right click - back",
     };
     for (int i = 0; i < static_cast<int>(std::size(help)); ++i)
-        drawText(help[i], win.x + 50, helpY + 34 + i * 28, kSaveDim);
+        drawText(help[i], win.x + 50, helpY + 32 + i * 26, kSaveDim);
 }

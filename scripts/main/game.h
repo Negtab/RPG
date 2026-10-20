@@ -63,7 +63,18 @@ class Game {
         [[nodiscard]] std::string currentLocation() const;
         [[nodiscard]] uint32_t getPlaySeconds() const { return static_cast<uint32_t>(playSeconds); }
         [[nodiscard]] const Player& getLocalPlayer() const { return players.at(0); }
+        void loadSettings();                          // settings.ini: громкость, бои, мини-карта
         void saveSettings() const;
+
+        [[nodiscard]] bool encountersEnabled() const { return encounters; }
+        void setEncountersEnabled(bool on) { encounters = on; }
+        // Мини-карта: 0 — выключена, 1..3 — приближение (1 — вся карта)
+        static constexpr int kMinimapZoomMax = 3;
+        [[nodiscard]] bool minimapEnabled() const { return minimapZoom > 0; }
+        [[nodiscard]] int getMinimapZoom() const { return minimapZoom; }
+        void setMinimapZoom(int zoom) { minimapZoom = std::clamp(zoom, 0, kMinimapZoomMax); }
+        void cycleMinimap();                          // M: Off → x1 → x2 → x3 → Off
+        void toggleEncounters();                      // H: с подсказкой на карте
 
         // ── Сохранения: слот 0 — автосохранение при выходе, 1..4 — ручные ──
         static constexpr int kSaveSlots = 5;
@@ -116,6 +127,10 @@ class Game {
 
         [[nodiscard]] const MapData& getMap() const { return *currentMap; }
 
+        // ── Транспорт ──
+        void vehicleAction();                         // E на карте: посадить дирижабль
+        [[nodiscard]] bool canLandAirship() const;
+
         void sendPartyInfo();
         void openPartyCreation();
         void closePartyCreation();
@@ -131,6 +146,8 @@ class Game {
         void refreshLatestSave();
         void migrateOldSave();
 
+        bool encounters = true;                       // случайные бои (выключаются в Config)
+        int minimapZoom = 1;
         bool gameInProgress = false;                  // отряд на карте: можно сохраняться, «Continue» возвращает в игру
         float playSeconds = 0.0f;                     // время игры текущего прохождения
         int latestSaveSlot = -1;                      // самый свежий слот для «Continue», -1 — сохранений нет
@@ -148,7 +165,12 @@ class Game {
 
         void updateNetwork();
 
-        void onStepFinished();
+        void onStepFinished(Point from);
+        bool updateVehicleAfterStep(Point from);     // посадка и высадка; true, если что-то сменилось
+        void computeWater(MapData& m);
+        void resetVehicles();                         // транспорт на стоянки: маркеры Tiled или ближайшее подходящее место
+        void parkVehicle(Point at, uint16_t mapId);   // слезть с транспорта, оставив его в клетке at
+        Point stepFrom{};                             // откуда начался текущий шаг: туда ставим корабль при высадке
         void beginBattle(const Zone* zone = nullptr);
         Player& ensureRemote(uint32_t id);
         int stepsSinceBattle = 0;

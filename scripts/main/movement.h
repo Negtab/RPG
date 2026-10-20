@@ -1,7 +1,9 @@
 #ifndef PROJECT_NAME_MOVEMENT_H
 #define PROJECT_NAME_MOVEMENT_H
 
+#include <array>
 #include <cstdint>
+#include <optional>
 #include <vector>
 #include "../controllers/visualizer.h"
 #include "types.h"
@@ -18,6 +20,7 @@ struct Zone {
     int encounterRate = 8;
     std::string encounter;// % на шаг
     std::vector<int> enemies;
+    bool river = false;                       // по воде в этой зоне ходит каноэ, а не корабль
 };
 
 struct Portal {
@@ -35,6 +38,8 @@ struct MapData {
     std::vector<uint8_t> solid;                        // w*h, 1 = стена (позже грузим из Tiled)
     std::vector<Zone> zones;
     std::vector<Portal> portals;
+    std::vector<uint8_t> water;                        // w*h, 1 = клетка хотя бы наполовину вода (считается по картинке)
+    std::array<std::optional<Point>, kVehicleKinds> vehicleMarkers;   // маркеры canoe, ship, airship из Tiled
 
     // Временная карта без стен. 256x277 клеток = 4096x4432 px, как твоя картинка
     static MapData openField(int w, int h) {
@@ -55,7 +60,56 @@ struct MapData {
         for (const auto& p : portals) if (p.x == x && p.y == y) return &p;
         return nullptr;
     }
+    [[nodiscard]] bool inside(int x, int y) const { return x >= 0 && y >= 0 && x < w && y < h; }
+    [[nodiscard]] bool isWater(int x, int y) const {
+        return inside(x, y) && !water.empty() && water[static_cast<size_t>(y) * w + x];
+    }
+    [[nodiscard]] bool isRiver(int x, int y) const {
+        for (const auto& z : zones)
+            if (z.river && x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1) return true;
+        return false;
+    }
+    [[nodiscard]] bool hasRivers() const {
+        for (const auto& z : zones) if (z.river) return true;
+        return false;
+    }
 };
+
+// ── Транспорт ────────────────────────────────────────
+
+inline float vehicleSpeed(Vehicle v)                   // множитель к CELLS_PER_SEC
+{
+    switch (v)
+    {
+    case Vehicle::Ship:    return 1.25f;
+    case Vehicle::Airship: return 2.25f;
+    default:               return 1.0f;
+    }
+}
+
+// Плывёт ли транспорт по клетке (без высадки): корабль — море, каноэ — реки, дирижабль — где угодно
+inline bool vehicleCanMove(const MapData& map, Vehicle v, int x, int y)
+{
+    switch (v)
+    {
+    case Vehicle::Ship:    return map.isWater(x, y) && !map.isRiver(x, y);
+    case Vehicle::Canoe:   return map.isWater(x, y) && map.isRiver(x, y);
+    case Vehicle::Airship: return map.inside(x, y);
+    default:               return false;
+    }
+}
+
+// Можно ли шагнуть в клетку. Корабль и каноэ высаживают на сушу; пешком можно зайти на стоящий транспорт
+inline bool canEnter(const MapData& map, Vehicle riding, int x, int y,
+                     const std::array<VehicleState, kVehicleKinds>& parked, uint16_t mapId)
+{
+    if (riding != Vehicle::None)
+        return vehicleCanMove(map, riding, x, y) || (riding != Vehicle::Airship && map.isWalkable(x, y));
+    if (map.isWalkable(x, y)) return true;
+    for (const auto& v : parked)
+        if (v.available && v.mapId == mapId && v.cell.x == x && v.cell.y == y) return true;
+    return false;
+}
 
 struct MoveState {
     Point     cell{};
@@ -80,9 +134,9 @@ inline Point stepTo(Point c, Direction d) {
     }
 }
 
-inline void advance(MoveState& m, float dt) {
+inline void advance(MoveState& m, float dt, float speed = 1.0f) {
     if (!m.moving) return;
-    m.progress += dt * CELLS_PER_SEC;
+    m.progress += dt * CELLS_PER_SEC * speed;
     if (m.progress >= 1.f) { m.cell = m.target; m.moving = false; m.progress = 0.f; }
 }
 
@@ -96,15 +150,17 @@ inline Vec2f visualCell(const MoveState& m) {          // дробная поз�
     return { m.cell.x + (m.target.x - m.cell.x) * t, m.cell.y + (m.target.y - m.cell.y) * t };
 }
 
-inline MoveResult updateLocal(MoveState& m, const MapData& map, Direction want, float dt) {
+// passable(Point) решает, можно ли шагнуть в клетку: пешком, на корабле и в воздухе правила разные
+template <class Passable>
+inline MoveResult updateLocal(MoveState& m, Passable&& passable, Direction want, float dt, float speed = 1.0f) {
     MoveResult r;
     const bool was = m.moving;
-    advance(m, dt);
+    advance(m, dt, speed);
     r.stepFinished = was && !m.moving;
     if (!m.moving && want != Direction::Idle) {
         m.dir = want;                                  // поворот даже при упоре в стену
         const Point t = stepTo(m.cell, want);
-        if (map.isWalkable(t.x, t.y)) { m.target = t; m.moving = true; m.progress = 0.f; r.stepStarted = true; }
+        if (passable(t)) { m.target = t; m.moving = true; m.progress = 0.f; r.stepStarted = true; }
     }
     r.stopped = r.stepFinished && !m.moving;
     return r;

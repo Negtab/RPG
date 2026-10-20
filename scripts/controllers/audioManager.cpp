@@ -1,8 +1,6 @@
 #include "audioManager.h"
 
 #include <algorithm>
-#include <fstream>
-#include <sstream>
 
 #include <SDL_log.h>
 
@@ -40,31 +38,4 @@ void AudioManager::setSoundVolume(int level)
 {
     soundVolume = std::clamp(level, 0, kVolumeSteps);
     Mix_Volume(-1, toMixer(soundVolume));
-}
-
-void AudioManager::loadSettings(const std::string& path)
-{
-    // Формат «ключ=значение» по строке: файл можно поправить руками
-    std::ifstream in(path);
-    std::string line;
-    while (std::getline(in, line))
-    {
-        const auto eq = line.find('=');
-        if (eq == std::string::npos) continue;
-        const std::string key = line.substr(0, eq);
-        int value = 0;
-        if (!(std::istringstream(line.substr(eq + 1)) >> value)) continue;
-        if (key == "music") musicVolume = value;
-        if (key == "sound") soundVolume = value;
-    }
-    setMusicVolume(musicVolume);                                   // заодно применяем и зажимаем в 0..10
-    setSoundVolume(soundVolume);
-}
-
-bool AudioManager::saveSettings(const std::string& path)
-{
-    std::ofstream out(path, std::ios::trunc);
-    out << "music=" << musicVolume << "\n" << "sound=" << soundVolume << "\n";
-    if (!out) SDL_Log("Cannot write settings to %s", path.c_str());
-    return static_cast<bool>(out);
 }
