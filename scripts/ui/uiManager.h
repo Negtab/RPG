@@ -111,6 +111,7 @@ public:
     void moveSelectorToPrevious();
     void moveSelector();
     void confirmTarget();
+    void cancelChoice();                       // Esc: шаг назад (цель -> список -> команды)
 
     void setState(const UIChooseState& state);
     [[nodiscard]] UIChooseState getState() const;
@@ -152,9 +153,26 @@ private:
 
     void initMagic();
     void initItems();
+    void closeList();
+    void setListEntry(int i, const std::string& name, const std::string& info,
+                      bool usable, std::function<void()> onClick);
+    [[nodiscard]] bool hasUsableSkill() const;
+    [[nodiscard]] bool hasItems() const;
 
     void snapSelectorToTarget();
     [[nodiscard]] int getTargetCount(TargetType type) const;
+    [[nodiscard]] SDL_Rect selectedTargetRect() const;
+
+    // ── Поверх сцены боя: указатели, имя цели, всплывающие числа ──
+    struct Popup { int x, y; std::string text; SDL_Color color; Uint32 start; };
+    void drawBattleOverlay();
+    void drawPointer(int x, int y, int scale) const;          // белая стрелка вправо, (x, y) — её острие
+    void drawOutlinedText(const std::string& text, int x, int y, SDL_Color color, Uint8 alpha) const;
+    void trackHp(int& last, int hp, const SDL_Rect& slot);
+    void resetHpTracking();
+    std::vector<Popup> popups;
+    std::array<int, 4> lastEnemyHp{}, lastHeroHp{}, lastRemoteHp{};
+    std::array<SDL_Rect, 8> listRect{};                        // строки списка: для стрелки под мышью
 
     void initCreateScene();
     void refreshPartySlot(int slot);

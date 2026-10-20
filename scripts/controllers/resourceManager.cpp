@@ -67,8 +67,11 @@ bool ResourceManager::addTextTexture(const std::string& name, const std::string&
 
 SDL_Texture* ResourceManager::getTextTexture(const std::string& text, TTF_Font* font, SDL_Color color, uint32_t wrapWidth)
 {
-    if (textCache.contains(text))
-        return textCache[text];
+    // Один и тот же текст бывает разного цвета (например, серое недоступное умение), поэтому цвет входит в ключ
+    const std::string key = text + '\x1f' + std::to_string(color.r) + ',' + std::to_string(color.g) + ','
+                            + std::to_string(color.b) + ',' + std::to_string(color.a) + ',' + std::to_string(wrapWidth);
+    if (auto it = textCache.find(key); it != textCache.end())
+        return it->second;
 
     SDL_Surface* textSurface;
     if (wrapWidth <= 0)
@@ -80,8 +83,7 @@ SDL_Texture* ResourceManager::getTextTexture(const std::string& text, TTF_Font* 
     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
     SDL_FreeSurface(textSurface);
 
-    if (!textCache.contains(text))
-        textCache[text] = textTexture;
+    textCache[key] = textTexture;
 
     return textTexture;
 }

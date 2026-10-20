@@ -103,6 +103,7 @@ private:
     bool firstTurnIsPlayer = false;
     bool isWin = false;
     bool isAnimationsStarted = false;
+    uint32_t animStartTicks = 0;                       // когда начался показ действия: у врагов анимации нет, держим паузу
 
     bool escapeUsed = false;
     int escapeChance = 40;

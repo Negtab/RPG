@@ -1,11 +1,13 @@
+#include <algorithm>
 #include <cmath>
 
 #include "UIManager.h"
 #include "../main/game.h"
 #include "../gameLogic/gameData.h"
+#include "windowSkin.h"
 #include <SDL_log.h>
 
-constexpr int ENV_BUTTON_COUNT = 16;
+constexpr int ENV_BUTTON_COUNT = 8;                 // список умений и предметов: 2 колонки по 4 строки
 
 // ─────────────────────────────────────────
 // State
@@ -339,6 +341,26 @@ void UIManager::handleClickEvent(const SDL_Event &event, const std::string &scen
     if (sceneId == "Battle" && !isAnimationFinished("Battle"))
         return;
 
+    if (sceneId == "Battle" && uiState == UIChooseState::ChooseTarget && event.button.button == SDL_BUTTON_LEFT)
+    {
+        // Клик прямо по живой цели выбирает её
+        const SDL_Point m{event.button.x, event.button.y};
+        const int max = std::min(getTargetCount(currentType), 4);
+        for (int i = 0; i < max; ++i)
+        {
+            const bool alive = currentType == TargetType::Enemy
+                    ? game.getBattle()->getEnemies().at(i).getIsAlive()
+                    : player.getHeroes().at(i).getIsAlive();
+            const SDL_Rect r = currentType == TargetType::Enemy ? enemySlotRect[i] : heroSlotRect[i];
+            if (alive && SDL_PointInRect(&m, &r))
+            {
+                selectedTargetIndex = i;
+                confirmTarget();
+                return;
+            }
+        }
+    }
+
     Scene *scene = findScene(sceneId);
     if (!scene) return;
     scene->handleClick(event.button.x, event.button.y);
@@ -429,6 +451,8 @@ void UIManager::drawScene(const std::string &sceneId)
         drawMapWorld();                               // под интерфейсом
 
     scene->draw(visualizer, game.getScreenRect());
+    if (sceneId == "Battle")
+        drawBattleOverlay();                          // поверх окон: стрелки и числа урона
     scene->musicPlayer.playMusic(audioManager, sceneId + "Theme");
 }
 // ─────────────────────────────────────────
@@ -461,7 +485,6 @@ void UIManager::updateSceneData(const std::string &sceneId, Scene &scene)
 void UIManager::updateBattleData(Scene &scene)
 {
     const SDL_Rect scr = game.getScreenRect();
-    const int enemyCount = static_cast<int>(game.getBattle()->getEnemies().size());
     const int heroCount = static_cast<int>(player.getHeroes().size());
 
     // Герои напарников
@@ -479,38 +502,73 @@ void UIManager::updateBattleData(Scene &scene)
             const std::string img = "Image" + std::to_string(heroLook(hero.getClass()))
                                     + (hero.getCurrentHp() <= 0 ? "Dead" : "");
             setTexture("RemoteHero" + std::to_string(slot + 1), "Battle", ResourceManager::getTexture(img));
+            trackHp(lastRemoteHp[slot], static_cast<int>(hero.getCurrentHp()), remoteSlotRect[slot]);
         }
     }
-    setVisible("RemoteWindow", "Battle", slot > 0);
+    const bool coop = slot > 0;                                     // slot посчитан в блоке «Герои напарников»
+    setVisible("RemoteWindow", "Battle", coop);
+    setRect("EnemiesWindow", "Battle",
+            {scr.w - 400, 452, coop ? 200 : 400, scr.h - 452});
     setText("RemoteHerosStatus", "Battle", remoteHeroText);
 
-    // Свои герои
+    // Свои герои. Тот, кто сейчас выбирает действие, выходит на шаг вперёд
+    const bool choosing = game.getBattle()->isPlayerChoosing();
+    const int active = choosing ? game.getBattle()->getCurrentHeroIndex() : -1;
     std::string heroText;
     for (int i = 0; i < heroCount && i < 4; i++)
     {
         const auto &hero = player.getHeroes().at(i);
         heroText += hero.getName() + " " + std::to_string(hero.getCurrentHp()) + "/"
                     + std::to_string(hero.getMaxHp()) + "\n";
+        const std::string id = "Hero" + std::to_string(i + 1);
         const std::string img = "Image" + std::to_string(heroLook(hero.getClass()))
                                 + (hero.getCurrentHp() <= 0 ? "Dead" : "");
-        setTexture("Hero" + std::to_string(i + 1), "Battle", ResourceManager::getTexture(img));
+        setTexture(id, "Battle", ResourceManager::getTexture(img));
+        SDL_Rect r = heroSlotRect[i];
+        if (i == active) r.x -= 8 * PIXEL_SCALE;
+        setRect(id, "Battle", r);
+        trackHp(lastHeroHp[i], static_cast<int>(hero.getCurrentHp()), heroSlotRect[i]);
     }
     setText("HerosStatus", "Battle", heroText);
 
-    // Враги
-    std::string enemyText;
-    for (int i = 0; i < enemyCount; i++)
+    // Кто ходит и сколько у него маны: в свободной части командного окна
+    std::string actorText;
+    if (active >= 0 && active < heroCount)
     {
-        const auto &enemy = game.getBattle()->getEnemies().at(i);
-        if (!enemy.getIsAlive())
-            setTexture("Enemy" + std::to_string(i + 1), "Battle", nullptr);
-        enemyText += enemy.getName() + " "
-                + std::to_string(enemy.getCurrentHp()) + "/"
-                + std::to_string(enemy.getMaxHp()) + "\n";
+        const auto &hero = player.getHeroes().at(active);
+        actorText = hero.getName() + "\nMP " + std::to_string(hero.getCurrentMp()) + "/"
+                    + std::to_string(hero.getMaxMp());
     }
-    SDL_Rect eRect = getRect("EnemiesStatus", "Battle");
-    eRect.h = enemyCount * 22;
-    setRect("EnemiesStatus", "Battle", eRect);
+    setText("ActorInfo", "Battle", actorText);
+
+    // Пустые команды серые: открыть пустой список нельзя
+    TTF_Font *font = ResourceManager::getFont("RetroByte");
+    const SDL_Color white{255, 255, 255, 255}, gray{120, 128, 168, 255};
+    setTexture("ItemsButton", "Battle", ResourceManager::getTextTexture("Items", font, hasItems() ? white : gray));
+    setTexture("MagicButton", "Battle",
+               ResourceManager::getTextTexture("Magic", font, choosing && hasUsableSkill() ? white : gray));
+
+    // Враги
+    const auto& enemies = game.getBattle()->getEnemies();
+    for (int i = 0; i < static_cast<int>(enemies.size()) && i < 4; ++i)
+    {
+        trackHp(lastEnemyHp[i], static_cast<int>(enemies[i].getCurrentHp()), enemySlotRect[i]);
+        if (!enemies[i].getIsAlive())
+            setTexture("Enemy" + std::to_string(i + 1), "Battle", nullptr);
+    }
+
+    std::vector<std::pair<std::string, int>> groups;                // имя и сколько таких живых
+    for (const auto& enemy : enemies)
+    {
+        if (!enemy.getIsAlive()) continue;
+        auto it = std::find_if(groups.begin(), groups.end(),
+                               [&](const auto& g) { return g.first == enemy.getName(); });
+        if (it == groups.end()) groups.push_back({enemy.getName(), 1});
+        else ++it->second;
+    }
+    std::string enemyText;
+    for (const auto& [name, count] : groups)
+        enemyText += name + (count > 1 ? " x" + std::to_string(count) : "") + "\n";
     setText("EnemiesStatus", "Battle", enemyText);
 }
 
@@ -621,6 +679,9 @@ void UIManager::addEnemys()
                    i < static_cast<int>(enemies.size())
                        ? ResourceManager::getTexture(enemies[i].getTextureName()) : nullptr);
     layoutBattle();                            // сначала враги, потому что addCharacters использует позиции героев
+    resetHpTracking();                         // новый бой: первый кадр только запоминает HP
+    closeList();
+    uiState = UIChooseState::ChooseAction;
 }
 
 void UIManager::addCharacters()
@@ -660,8 +721,31 @@ void UIManager::addCharacters()
 // Battle UI — action flow
 // ─────────────────────────────────────────
 
+namespace {
+    const SDL_Color kWhite{255, 255, 255, 255};
+    const SDL_Color kGray {120, 128, 168, 255};             // недоступная строка: синевато-серая, под цвет окна
+}
+
+bool UIManager::hasUsableSkill() const
+{
+    const int i = game.getBattle()->getCurrentHeroIndex();
+    if (i < 0 || i >= static_cast<int>(player.getHeroes().size())) return false;
+    const Hero& hero = player.getHeroes()[i];
+    for (const auto& s : hero.getAvailableSkills())
+        if (hero.canCast(game.getSkill(s.skillId))) return true;
+    return false;
+}
+
+bool UIManager::hasItems() const
+{
+    for (const auto& [id, count] : player.getItemCounts())
+        if (count > 0) return true;
+    return false;
+}
+
 void UIManager::onActionButton(ActionType type)
 {
+    closeList();                                           // кнопку другой команды нажали при открытом списке
     pendingAction = Action{};
     currentHeroIndex = game.getBattle()->getCurrentHeroIndex();
     if (currentHeroIndex > 3)
@@ -675,23 +759,21 @@ void UIManager::onActionButton(ActionType type)
             pendingAction.targetType = TargetType::Enemy;
             uiState = UIChooseState::ChooseTarget;
             moveSelector();
-            setEnVI("ActionPanel", "Battle", false); // ← только здесь
-            setEnVI("ActorSelector", "Battle", true);
-            setEnVI("TargetSelector", "Battle", true);
+            setEnVI("ActionPanel", "Battle", false);
             break;
 
         case ActionType::Magic:
+            if (!hasUsableSkill()) return;                 // пустой список не открываем, кнопка и так серая
             uiState = UIChooseState::ChooseSkill;
             initMagic();
             setEnVI("EnvironmentPanel", "Battle", true);
-            // ActionPanel НЕ скрываем — текст внизу остаётся
             break;
 
         case ActionType::Item:
+            if (!hasItems()) return;
             uiState = UIChooseState::ChooseItem;
             initItems();
             setEnVI("EnvironmentPanel", "Battle", true);
-            // ActionPanel НЕ скрываем — текст внизу остаётся
             break;
 
         case ActionType::Skip:
@@ -702,35 +784,69 @@ void UIManager::onActionButton(ActionType type)
     }
 }
 
+void UIManager::setListEntry(int i, const std::string& name, const std::string& info,
+                             bool usable, std::function<void()> onClick)
+{
+    TTF_Font* font = ResourceManager::getFont("RetroByte");
+    const SDL_Color c = usable ? kWhite : kGray;
+    const std::string n = std::to_string(i + 1);
+
+    const SDL_Rect cell = listRect[i];
+    SDL_Texture* nameTex = ResourceManager::getTextTexture(name, font, c);
+    SDL_Texture* infoTex = info.empty() ? nullptr : ResourceManager::getTextTexture(info, font, c);
+    int nw = 0, nh = 0, iw = 0, ih = 0;
+    if (nameTex) SDL_QueryTexture(nameTex, nullptr, nullptr, &nw, &nh);
+    if (infoTex) SDL_QueryTexture(infoTex, nullptr, nullptr, &iw, &ih);
+
+    // Текст в родном размере: раньше он растягивался в 60x25, и длинные названия сплющивались
+    setRect("EnButton" + n, "Battle", {cell.x, cell.y + (cell.h - nh) / 2, nw, nh});
+    setRect("EnInfo" + n, "Battle", {cell.x + cell.w - iw, cell.y + (cell.h - ih) / 2, iw, ih});
+    setTexture("EnButton" + n, "Battle", nameTex);
+    setTexture("EnInfo" + n, "Battle", infoTex);
+    setOnClick("EnButton" + n, "Battle", usable ? onClick : nullptr);
+    setOnClick("EnInfo" + n, "Battle", usable ? std::move(onClick) : nullptr);
+    setEnVI("EnButton" + n, "Battle", true);
+    setEnVI("EnInfo" + n, "Battle", true);
+}
+
+void UIManager::closeList()
+{
+    setEnVI("EnvironmentPanel", "Battle", false);
+    for (int i = 0; i < ENV_BUTTON_COUNT; ++i)                // строки прошлого списка не должны пережить смену списка
+    {
+        const std::string n = std::to_string(i + 1);
+        setTexture("EnButton" + n, "Battle", nullptr);
+        setTexture("EnInfo" + n, "Battle", nullptr);
+        setOnClick("EnButton" + n, "Battle", nullptr);
+        setOnClick("EnInfo" + n, "Battle", nullptr);
+    }
+}
+
 void UIManager::initMagic()
 {
-    const auto &skills = player.getHeroes().at(currentHeroIndex).getAvailableSkills();
-    for (int i = 0; i < (int) skills.size() && i < ENV_BUTTON_COUNT; i++)
+    closeList();
+    const Hero& hero = player.getHeroes().at(currentHeroIndex);
+    const auto skills = hero.getAvailableSkills();
+    for (int i = 0; i < static_cast<int>(skills.size()) && i < ENV_BUTTON_COUNT; i++)
     {
-        const std::string btnId = "EnButton" + std::to_string(i + 1);
-        const std::string name = game.getSkill(skills.at(i).skillId).name;
-        setTexture(btnId, "Battle",
-                   ResourceManager::getTextTexture(name,
-                                                   ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
-        setOnClick(btnId, "Battle",
-                   [this, skillId = skills.at(i).skillId]() { onEnvironmentCLick(skillId, true); });
-        setEnVI(btnId, "Battle", true);
+        const Skill& skill = game.getSkill(skills[i].skillId);
+        std::string info = std::to_string(skill.manaCost) + " MP";
+        if (skills[i].cooldownLeft > 0) info = "CD " + std::to_string(skills[i].cooldownLeft);
+        setListEntry(i, skill.name, info, hero.canCast(skill),
+                     [this, skillId = skill.id]() { onEnvironmentCLick(skillId, true); });
     }
 }
 
 void UIManager::initItems()
 {
-    const auto &items = player.getAvailableItems();
-    for (int i = 0; i < (int) items.size() && i < ENV_BUTTON_COUNT; i++)
+    closeList();
+    int i = 0;
+    for (const auto& [itemId, count] : player.getItemCounts())
     {
-        const std::string btnId = "EnButton" + std::to_string(i + 1);
-        const std::string name = game.getItem(items.at(i)).name;
-        setTexture(btnId, "Battle",
-                   ResourceManager::getTextTexture(name,
-                                                   ResourceManager::getFont("RetroByte"), {0, 0, 0, 0}));
-        setOnClick(btnId, "Battle",
-                   [this, itemId = items.at(i)]() { onEnvironmentCLick(itemId, false); });
-        setEnVI(btnId, "Battle", true);
+        if (count == 0) continue;
+        if (i >= ENV_BUTTON_COUNT) break;
+        setListEntry(i++, game.getItem(itemId).name, "x" + std::to_string(count), true,
+                     [this, itemId]() { onEnvironmentCLick(itemId, false); });
     }
 }
 
@@ -755,7 +871,7 @@ void UIManager::onEnvironmentCLick(int id, bool isMagic)
         pendingAction.targetType == TargetType::AllAllies)
     {
         game.getBattle()->confirmAction(pendingAction);
-        setEnVI("EnvironmentPanel", "Battle", false);
+        closeList();
         uiState = UIChooseState::ChooseAction;
         setEnVI("ActionPanel", "Battle", true);
         return;
@@ -763,22 +879,42 @@ void UIManager::onEnvironmentCLick(int id, bool isMagic)
 
     uiState = UIChooseState::ChooseTarget;
     moveSelector();
-    setEnVI("ActionPanel", "Battle", false); // ← скрываем только при переходе к цели
-    setEnVI("ActorSelector", "Battle", true);
-    setEnVI("TargetSelector", "Battle", true);
-    setEnVI("EnvironmentPanel", "Battle", false);
+    setEnVI("ActionPanel", "Battle", false);
+    setEnVI("EnvironmentPanel", "Battle", false);           // строки не трогаем: Esc вернёт к этому же списку
 }
 
 void UIManager::confirmTarget()
 {
     pendingAction.targetIndex = selectedTargetIndex;
-
-    setEnVI("TargetSelector", "Battle", false);
-    setEnVI("ActorSelector", "Battle", false);
-    setEnVI("EnvironmentPanel", "Battle", false);
+    closeList();
 
     game.getBattle()->confirmAction(pendingAction);
 
+    uiState = UIChooseState::ChooseAction;
+    setEnVI("ActionPanel", "Battle", true);
+}
+
+void UIManager::cancelChoice()
+{
+    switch (uiState)
+    {
+        case UIChooseState::ChooseTarget:
+            if (pendingAction.type == ActionType::Magic || pendingAction.type == ActionType::Item)
+            {
+                uiState = pendingAction.type == ActionType::Magic ? UIChooseState::ChooseSkill
+                                                                  : UIChooseState::ChooseItem;
+                setEnVI("ActionPanel", "Battle", true);
+                setEnVI("EnvironmentPanel", "Battle", true);
+                return;
+            }
+            break;
+        case UIChooseState::ChooseSkill:
+        case UIChooseState::ChooseItem:
+            break;
+        default:
+            return;
+    }
+    closeList();
     uiState = UIChooseState::ChooseAction;
     setEnVI("ActionPanel", "Battle", true);
 }
@@ -797,69 +933,28 @@ int UIManager::getTargetCount(TargetType type) const
     }
 }
 
+SDL_Rect UIManager::selectedTargetRect() const
+{
+    const int i = selectedTargetIndex;
+    if (i < 0 || i > 3) return {};
+    if (currentType == TargetType::Enemy) return enemySlotRect[i];
+    if (currentType != TargetType::Ally) return {};
+    SDL_Rect r = heroSlotRect[i];
+    if (game.getBattle()->isPlayerChoosing() && i == game.getBattle()->getCurrentHeroIndex())
+        r.x -= 8 * PIXEL_SCALE;                              // ходящий герой стоит на шаг впереди
+    return r;
+}
+
 void UIManager::moveSelector()
 {
     currentType = pendingAction.targetType;
     selectedTargetIndex = 0;
-
-    SDL_Rect targetRect{};
-    SDL_Log("moveSelector: currentHeroIndex=%d", currentHeroIndex);
-    SDL_Rect actorRect = getRect("Hero" + std::to_string(currentHeroIndex + 1), "Battle");
-    SDL_Log("moveSelector: actorRect={%d,%d,%d,%d}", actorRect.x, actorRect.y, actorRect.w, actorRect.h);
-
-    if (currentType == TargetType::Enemy)
-    {
-        for (int i = 0; i < (int) game.getBattle()->getEnemies().size(); i++)
-        {
-            if (game.getBattle()->getEnemies().at(i).getIsAlive())
-            {
-                targetRect = getRect("Enemy" + std::to_string(i + 1), "Battle");
-                selectedTargetIndex = i;
-                break;
-            }
-        }
-    } else if (currentType == TargetType::Ally)
-    {
-        for (int i = 0; i < (int) player.getHeroes().size(); i++)
-        {
-            if (player.getHeroes().at(i).getIsAlive())
-            {
-                targetRect = getRect("Hero" + std::to_string(i + 1), "Battle");
-                selectedTargetIndex = i;
-                break;
-            }
-        }
-    } else if (currentType == TargetType::Self) { targetRect = actorRect; }
-
-    // Защита — если rect нулевой, цель ещё не готова
-    if (targetRect.w == 0 || targetRect.h == 0)
-    {
-        SDL_Log("moveSelector: target rect is zero, skipping");
-        return;
-    }
-    if (actorRect.w == 0 || actorRect.h == 0)
-    {
-        SDL_Log("moveSelector: actor rect is zero, skipping");
-        return;
-    }
-
-    SDL_Rect tSel = getRect("TargetSelector", "Battle");
-    SDL_Rect aSel = getRect("ActorSelector", "Battle");
-
-    tSel.x = targetRect.x + targetRect.w / 2 - tSel.w / 2;
-    aSel.x = actorRect.x + actorRect.w / 2 - aSel.w / 2;
-    tSel.y = std::max(0, targetRect.y - tSel.h);              // над целью, но не за верхним краем экрана
-    aSel.y = std::max(0, actorRect.y - aSel.h);
-
-    setRect("TargetSelector", "Battle", tSel);
-    setRect("ActorSelector", "Battle", aSel);
+    snapSelectorToTarget();                                  // первая живая цель
 }
 
 void UIManager::moveSelectorToNext()
 {
-    auto *sel = findUIObject("TargetSelector", "Battle");
-    if (!sel || !sel->isEnabled) return;
-
+    if (uiState != UIChooseState::ChooseTarget) return;
     const int max = getTargetCount(currentType);
     if (max == 0) return;
 
@@ -869,49 +964,159 @@ void UIManager::moveSelectorToNext()
 
 void UIManager::moveSelectorToPrevious()
 {
-    auto *sel = findUIObject("TargetSelector", "Battle");
-    if (!sel || !sel->isEnabled) return;
-
+    if (uiState != UIChooseState::ChooseTarget) return;
     const int max = getTargetCount(currentType);
     if (max == 0) return;
 
-    selectedTargetIndex = (selectedTargetIndex - 1 + max) % max;
-    snapSelectorToTarget();
+    // Назад тоже пропускаем мёртвых, иначе snap перепрыгнет вперёд через ту же цель
+    for (int guard = 0; guard < max; guard++)
+    {
+        selectedTargetIndex = (selectedTargetIndex - 1 + max) % max;
+        const bool alive = currentType == TargetType::Enemy
+                ? game.getBattle()->getEnemies().at(selectedTargetIndex).getIsAlive()
+                : player.getHeroes().at(selectedTargetIndex).getIsAlive();
+        if (alive) break;
+    }
 }
 
 void UIManager::snapSelectorToTarget()
 {
     const int max = getTargetCount(currentType);
-    SDL_Rect targetRect{};
+    for (int guard = 0; guard < max; guard++)
+    {
+        const bool alive = currentType == TargetType::Enemy
+                ? game.getBattle()->getEnemies().at(selectedTargetIndex).getIsAlive()
+                : player.getHeroes().at(selectedTargetIndex).getIsAlive();
+        if (alive) break;
+        selectedTargetIndex = (selectedTargetIndex + 1) % max;
+    }
+}
 
-    if (currentType == TargetType::Enemy || currentType == TargetType::AllEnemies)
-    {
-        for (int guard = 0; guard < max; guard++)
+// ─────────────────────────────────────────
+// Battle overlay: указатели, имя цели, урон
+// ─────────────────────────────────────────
+
+void UIManager::drawPointer(int x, int y, int scale) const
+{
+    // Стрелка 6x9 «пикселей», острие справа по центру. '#' — чёрный контур, 'o' — белая заливка
+    static const char* kArrow[] = {
+        "##....",
+        "#o#...",
+        "#oo#..",
+        "#ooo#.",
+        "#oooo#",
+        "#ooo#.",
+        "#oo#..",
+        "#o#...",
+        "##....",
+    };
+    const int top = y - 9 * scale / 2;
+    const int left = x - 6 * scale;
+    for (int r = 0; r < 9; ++r)
+        for (int c = 0; c < 6; ++c)
         {
-            if (game.getBattle()->getEnemies().at(selectedTargetIndex).getIsAlive()) break;
-            selectedTargetIndex = (selectedTargetIndex + 1) % max;
+            const char ch = kArrow[r][c];
+            if (ch == '.') continue;
+            visualizer.fillRect({left + c * scale, top + r * scale, scale, scale},
+                                ch == '#' ? SDL_Color{0, 0, 0, 255} : SDL_Color{255, 255, 255, 255});
         }
-        targetRect = getRect("Enemy" + std::to_string(selectedTargetIndex + 1), "Battle");
-    } else if (currentType == TargetType::Ally || currentType == TargetType::AllAllies)
+}
+
+void UIManager::drawOutlinedText(const std::string& text, int x, int y, SDL_Color color, Uint8 alpha) const
+{
+    // Белая текстура красится через color mod: одна текстура на число, любой цвет и чёрная обводка
+    SDL_Texture* t = ResourceManager::getTextTexture(text, ResourceManager::getFont("RetroByte"), kWhite);
+    if (!t) return;
+    int w = 0, h = 0;
+    SDL_QueryTexture(t, nullptr, nullptr, &w, &h);
+    x -= w / 2;                                              // x — центр надписи
+
+    SDL_SetTextureAlphaMod(t, alpha);
+    SDL_SetTextureColorMod(t, 0, 0, 0);
+    for (const auto& [dx, dy] : {std::pair{-2, 0}, std::pair{2, 0}, std::pair{0, -2}, std::pair{0, 2}})
+        visualizer.drawTexture(t, x + dx, y + dy, w, h);
+    SDL_SetTextureColorMod(t, color.r, color.g, color.b);
+    visualizer.drawTexture(t, x, y, w, h);
+    SDL_SetTextureColorMod(t, 255, 255, 255);                // текстура общая: возвращаем как было
+    SDL_SetTextureAlphaMod(t, 255);
+}
+
+void UIManager::resetHpTracking()
+{
+    lastEnemyHp.fill(-1);
+    lastHeroHp.fill(-1);
+    lastRemoteHp.fill(-1);
+    popups.clear();
+}
+
+void UIManager::trackHp(int& last, int hp, const SDL_Rect& slot)
+{
+    // Числа берём из разницы HP между кадрами: так они работают и у клиента, которому HP приходят снапшотом
+    if (last >= 0 && hp != last && slot.w > 0)
     {
-        for (int guard = 0; guard < max; guard++)
+        const int delta = hp - last;
+        const SDL_Color c = delta < 0 ? SDL_Color{255, 255, 255, 255} : SDL_Color{96, 255, 120, 255};
+        const int x = slot.x + slot.w / 2;
+        int y = slot.y + slot.h / 3;
+        for (const auto& p : popups)                         // два удара подряд по одной цели: второе число выше
+            if (p.x == x && SDL_GetTicks() - p.start < 400) y = std::min(y, p.y - 22);
+        popups.push_back({x, y, std::to_string(std::abs(delta)), c, SDL_GetTicks()});
+    }
+    last = hp;
+}
+
+void UIManager::drawBattleOverlay()
+{
+    const Uint32 now = SDL_GetTicks();
+    const int bob = (now / 220) % 2 * 3;                     // стрелка «дышит» на 3 px
+
+    // Указатель на цель и окно с её именем
+    if (uiState == UIChooseState::ChooseTarget)
+    {
+        const SDL_Rect t = selectedTargetRect();
+        if (t.w > 0)
         {
-            if (player.getHeroes().at(selectedTargetIndex).getIsAlive()) break;
-            selectedTargetIndex = (selectedTargetIndex + 1) % max;
+            drawPointer(t.x - 4 - bob, t.y + t.h / 2, PIXEL_SCALE);
+
+            const std::string name = currentType == TargetType::Enemy
+                    ? game.getBattle()->getEnemies().at(selectedTargetIndex).getName()
+                    : player.getHeroes().at(selectedTargetIndex).getName();
+            SDL_Texture* tex = ResourceManager::getTextTexture(name, ResourceManager::getFont("RetroByte"), kWhite);
+            int w = 0, h = 0;
+            if (tex) SDL_QueryTexture(tex, nullptr, nullptr, &w, &h);
+            const SDL_Rect win{screen.w / 2 - (w + 32) / 2, 10, w + 32, h + 16};
+            visualizer.drawNinePatch(getWindowSkin(visualizer.getRenderer()), win, kWindowSkinSlice, 1);
+            if (tex) visualizer.drawTexture(tex, win.x + 16, win.y + 8, w, h);
         }
-        targetRect = getRect("Hero" + std::to_string(selectedTargetIndex + 1), "Battle");
     }
 
-    if (targetRect.w == 0 || targetRect.h == 0)
-    {
-        SDL_Log("snapSelectorToTarget: target rect is zero, skipping");
-        return;
-    }
+    // Стрелка у строки меню под мышью
+    int mx = 0, my = 0;
+    SDL_GetMouseState(&mx, &my);
+    auto pointAt = [&](const std::string& id) {
+        const UIObject* obj = findUIObject(id, "Battle");
+        if (!obj || !obj->isVisible || !obj->texture) return;
+        const SDL_Rect r = obj->rect;
+        if (my >= r.y - 2 && my <= r.y + r.h + 2 && mx >= r.x - 16 && mx <= r.x + std::max(r.w, 60))
+            drawPointer(r.x - 4, r.y + r.h / 2, 2);
+    };
+    if (uiState == UIChooseState::ChooseSkill || uiState == UIChooseState::ChooseItem)
+        for (int i = 0; i < ENV_BUTTON_COUNT; ++i) pointAt("EnButton" + std::to_string(i + 1));
+    else if (uiState == UIChooseState::ChooseAction && game.getBattle()->isPlayerChoosing())
+        for (const char* id : {"AttackButton", "ItemsButton", "MagicButton", "Run"}) pointAt(id);
 
-    SDL_Rect sel = getRect("TargetSelector", "Battle");
-    sel.x = targetRect.x + targetRect.w / 2 - sel.w / 2;
-    sel.y = targetRect.y - targetRect.h;
-    setRect("TargetSelector", "Battle", sel);
+    // Всплывающие числа: подскок вверх, пауза, затухание
+    constexpr Uint32 kRise = 250, kLife = 1100, kFade = 300;
+    std::erase_if(popups, [&](const Popup& p) { return now - p.start >= kLife; });
+    for (const auto& p : popups)
+    {
+        const Uint32 age = now - p.start;
+        const float rise = std::min(1.0f, static_cast<float>(age) / kRise);
+        const int y = p.y - static_cast<int>(18 * std::sin(rise * kPi / 2));
+        const Uint8 alpha = age < kLife - kFade ? 255
+                : static_cast<Uint8>(255 * (kLife - age) / kFade);
+        drawOutlinedText(p.text, p.x, y, p.color, alpha);
+    }
 }
 
 // ─────────────────────────────────────────
@@ -1224,9 +1429,8 @@ void UIManager::showBattleResults(const BattleReport& r)
 
     setText("ResultText", "Battle", text);
     setEnVI("ActionPanel", "Battle", false);
-    setEnVI("EnvironmentPanel", "Battle", false);
-    setEnVI("TargetSelector", "Battle", false);
-    setEnVI("ActorSelector", "Battle", false);
+    closeList();
+    uiState = UIChooseState::ChooseAction;
     setEnVI("ResultPanel", "Battle", true);
 }
 
@@ -1260,6 +1464,7 @@ void UIManager::initBattleScene()
     addLabel("HerosStatus",       "Battle", {screen.w - 3 * colW, barY, 0, 0}, nullptr, "", font, white, 12, 10);
     addLabel("EnemiesStatus",     "Battle", {screen.w - 2 * colW, barY, 0, 0}, nullptr, "", font, white, 12, 10);
     addLabel("RemoteHerosStatus", "Battle", {screen.w - colW,     barY, 0, 0}, nullptr, "", font, white, 12, 10);
+    addLabel("ActorInfo",         "Battle", {96,                  barY, 0, 0}, nullptr, "", font, white, 12, 10);
 
     addImage("FPS", "Battle", {10, 10, 100, 30},
              ResourceManager::getTextTexture("FPS: 0", font, {0, 0, 0, 0}));
@@ -1287,40 +1492,30 @@ void UIManager::initBattleScene()
               ResourceManager::getTextTexture("Run", font, white),
               [this]() { game.endRandomBattle(); }, hover, "ActionPanel");
 
-    // Окно списка умений и предметов: первым в своей панели, значит, под её кнопками.
-    // Скрывается и показывается вместе с панелью.
-    addWindow("EnvironmentWindow", "Battle", {84, barY, 496, 66}, "EnvironmentPanel");
+    // Окно списка умений и предметов закрывает всю нижнюю панель правее команд.
+    // Две колонки по четыре строки: слева название, справа стоимость или количество.
+    const SDL_Rect listWin{84, barY, screen.w - 84, barH};
+    addWindow("EnvironmentWindow", "Battle", listWin, "EnvironmentPanel");
+    const int rows = ENV_BUTTON_COUNT / 2;
+    const int cellW = (listWin.w - 3 * 28) / 2;
+    const int cellH = (barH - 20) / rows;
     for (int i = 0; i < ENV_BUTTON_COUNT; i++)
     {
-        const int row = barY + 8 + (i < ENV_BUTTON_COUNT / 2 ? 0 : 28);
-        const int col = 92 + (i % (ENV_BUTTON_COUNT / 2)) * 60;
-        addButton("EnButton" + std::to_string(i + 1), "Battle",
-                  {col, row, 60, 25}, nullptr, nullptr, nullptr, "EnvironmentPanel");
+        const int col = i / rows, row = i % rows;              // сначала вниз по колонке, потом вправо
+        listRect[i] = {listWin.x + 28 + col * (cellW + 28), barY + 10 + row * cellH, cellW, cellH};
+        addButton("EnButton" + std::to_string(i + 1), "Battle", listRect[i], nullptr, nullptr, nullptr, "EnvironmentPanel");
+        addButton("EnInfo" + std::to_string(i + 1), "Battle", listRect[i], nullptr, nullptr, nullptr, "EnvironmentPanel");
     }
     setEnVI("EnvironmentPanel", "Battle", false);
 
-    // Селекторы выбора цели: после панелей, чтобы рисовались поверх
-    addImage("TargetSelector", "Battle", {0, 0, 100, 100},
-             ResourceManager::getTexture("TargetSelector"), {0, 0, 100, 100});
-    addImage("ActorSelector", "Battle", {0, 0, 50, 50},
-             ResourceManager::getTexture("ActorSelector"), {0, 0, 100, 100});
-    setVisible("TargetSelector", "Battle", false);
-    setVisible("ActorSelector", "Battle", false);
-
-    // ── Герои и враги: размеры пока без изменений (займёмся при отрисовке боя) ──
+    // Слоты врагов и героев: положение и картинки задаёт layoutBattle() при старте боя
     for (int i = 0; i < 4; i++)
     {
-        addImage("Enemy" + std::to_string(i + 1), "Battle",
-                 {screen.w / 2 - 100, screen.h / 2 - 230 + i * 100, 76, 94},
-                 nullptr, {0, 0, 108, 144}, "EnemyPanel");
-        addImage("Hero" + std::to_string(i + 1), "Battle",
-                 {screen.w - 100, screen.h / 2 - 230 + i * 100, 56, 74},
-                 nullptr, {0, 0, 16, 24}, "HeroPanel");
-        addImage("RemoteHero" + std::to_string(i + 1), "Battle",
-                 {screen.w - 100, screen.h / 2 - 230 + i * 100, 56, 74},
-                 nullptr, {0, 0, 16, 24}, "HeroPanel");
+        const std::string n = std::to_string(i + 1);
+        addImage("Enemy" + n,      "Battle", {0, 0, 0, 0}, nullptr, {0, 0, 0, 0},   "EnemyPanel");
+        addImage("Hero" + n,       "Battle", {0, 0, 0, 0}, nullptr, {0, 0, 16, 24}, "HeroPanel");
+        addImage("RemoteHero" + n, "Battle", {0, 0, 0, 0}, nullptr, {0, 0, 16, 24}, "HeroPanel");
     }
-
 
     addPanel("ResultPanel", "Battle");
     addWindow("ResultWindow", "Battle", {screen.w / 2 - 230, 110, 460, 230}, "ResultPanel");

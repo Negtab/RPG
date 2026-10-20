@@ -656,6 +656,8 @@ void Battle::onAnimationFinished()
 {
     if (!ui->isAnimationFinished("Battle"))
         return;
+    if (currentTurn == TurnOwner::Enemy && SDL_GetTicks() - animStartTicks < 700)
+        return;                                        // иначе все враги бьют за пару кадров и числа урона сливаются
 
     // Восстанавливаем спрайт только если атаковал герой
     if (currentTurn == TurnOwner::Player && !plannedActions.empty())
@@ -742,6 +744,7 @@ void Battle::update()
                     ui->playAnimation(heroId + "Animation", "Battle", true);
                 }
                 isAnimationsStarted = true;
+                animStartTicks = SDL_GetTicks();
             }
 
             onAnimationFinished();

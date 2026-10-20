@@ -87,6 +87,13 @@ void InputController::battleInput(SDL_Event event, Game& game, Battle& battle,  
     if (input.isMousePressed(SDL_BUTTON_LEFT))
         manager.handleClickEvent(event,gameStateString.at(game.getGameState()));
 
+    // Шаг назад: из выбора цели в список, из списка к командам
+    if (input.isKeyPressed(SDL_SCANCODE_ESCAPE) || input.isMousePressed(SDL_BUTTON_RIGHT))
+    {
+        manager.cancelChoice();
+        return;
+    }
+
     if (manager.getState() == UIChooseState::ChooseTarget)
     {
         if (input.isKeyPressed(SDL_SCANCODE_SPACE) || input.isKeyPressed(SDL_SCANCODE_RETURN))
