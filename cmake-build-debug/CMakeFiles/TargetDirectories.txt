@@ -1,3 +1,0 @@
-C:/Users/Artem/CLionProjects/RPG/cmake-build-debug/CMakeFiles/PROJECT_NAME.dir
-C:/Users/Artem/CLionProjects/RPG/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/Artem/CLionProjects/RPG/cmake-build-debug/CMakeFiles/rebuild_cache.dir
