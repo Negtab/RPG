@@ -23,6 +23,17 @@ struct Zone {
     bool river = false;                       // по воде в этой зоне ходит каноэ, а не корабль
 };
 
+// Объект поверх картинки карты: замок, башня, мост. Ставится в Tiled тайлом из props.tsx
+enum class PropCollision { Solid, Walk, None };   // стена (кроме клеток-порталов), проходимо поверх воды, не трогать
+struct Prop {
+    std::string sprite;                       // имя PNG в resources/Images/Props без расширения
+    float px = 0.f, py = 0.f;                 // левый нижний угол в пикселях карты, как в Tiled: рисуем точно там
+    int pw = 16, ph = 16;                     // размер картинки в пикселях карты
+    int x0 = 0, bottom = 0;                   // клетки, покрытые больше чем наполовину: левая и нижний ряд
+    int w = 1, h = 1;                         // их число по ширине и высоте
+    PropCollision collision = PropCollision::Solid;
+};
+
 struct Portal {
     int x = 0, y = 0;
     std::string targetMap;
@@ -39,6 +50,7 @@ struct MapData {
     std::vector<Zone> zones;
     std::vector<Portal> portals;
     std::vector<uint8_t> water;                        // w*h, 1 = клетка хотя бы наполовину вода (считается по картинке)
+    std::vector<Prop> props;
     std::array<std::optional<Point>, kVehicleKinds> vehicleMarkers;   // маркеры canoe, ship, airship из Tiled
 
     // Временная карта без стен. 256x277 клеток = 4096x4432 px, как твоя картинка
@@ -72,6 +84,23 @@ struct MapData {
     [[nodiscard]] bool hasRivers() const {
         for (const auto& z : zones) if (z.river) return true;
         return false;
+    }
+
+    // Проходимость под объектами. Вызывать после того, как посчитана вода: мост убирает её под собой
+    void applyProps() {
+        for (const Prop& p : props)
+            for (int y = p.bottom - p.h + 1; y <= p.bottom; ++y)
+                for (int x = p.x0; x < p.x0 + p.w; ++x)
+                {
+                    if (!inside(x, y)) continue;
+                    const size_t i = static_cast<size_t>(y) * w + x;
+                    if (p.collision == PropCollision::Solid && !portalAt(x, y)) solid[i] = 1;   // вход в замок открыт
+                    if (p.collision == PropCollision::Walk)
+                    {
+                        solid[i] = 0;
+                        if (!water.empty()) water[i] = 0;          // под мостом корабль не проплывёт
+                    }
+                }
     }
 };
 

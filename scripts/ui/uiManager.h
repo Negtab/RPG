@@ -145,7 +145,7 @@ private:
     // ── Отрисовка ──────────────────────────────────────
     void drawMapWorld();
     void drawActor(const Player& p, int cellScreenX, int cellScreenY);
-    bool drawVehicle(Vehicle v, Direction dir, int cellScreenX, int cellScreenY, bool flying);   // false: нет спрайта
+    bool drawVehicle(Vehicle v, Direction dir, int cellScreenX, int cellScreenY, bool flying, bool moving);   // false: нет спрайта
     MapRenderer* rendererFor(const MapData& map);
     std::unordered_map<int, std::unique_ptr<MapRenderer>> mapRenderers;
 
@@ -274,6 +274,7 @@ private:
     void setOption(int row, int index);
     [[nodiscard]] SDL_Rect optionRect(int row, int index) const;
     void drawMinimap();
+    void drawProp(const Prop& p, int camX, int camY);
     int lastCamX = 0, lastCamY = 0;
     std::string mapNotice;                                     // короткая надпись над картой (H: бои вкл/выкл)
     Uint32 mapNoticeTicks = 0;                             // камера последнего кадра карты: рамка на мини-карте

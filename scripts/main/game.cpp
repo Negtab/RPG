@@ -501,6 +501,7 @@ void Game::loadMaps()
         {
             MapData m = loadMap(entry.path().string());
             computeWater(m);
+            m.applyProps();                               // после воды: мост убирает её под собой
             if (maps.contains(m.mapId))
             {
                 SDL_Log("Map '%s': mapId %d already used, skipped", m.name.c_str(), m.mapId);

@@ -145,6 +145,21 @@ struct BattleReport
     std::vector<std::string> items;   // трофеи, уже с количеством: "Health Potion x2"
 };
 
+constexpr int kHeroFrame = 32;                  // кадр героя в бою: 32x32 (спрайты Pixel Remaster)
+
+// Набор спрайтов FF1 для класса игры: Walk<набор>.png на карте, Battle<набор>.png в бою
+inline const char* heroSpriteSet(SpecializationNames c)
+{
+    switch (c)
+    {
+    case SpecializationNames::Warrior:  return "Warrior";
+    case SpecializationNames::Thief:    return "Thief";
+    case SpecializationNames::Archer:   return "RedMage";
+    case SpecializationNames::Magician: return "BlackMage";
+    default:                            return "Warrior";
+    }
+}
+
 inline int heroLook(SpecializationNames c)        // номер картинки ImageN и анимации HeroNAnimation
 {
     switch (c)

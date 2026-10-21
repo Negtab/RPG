@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 #include <fstream>
+#include <map>
 #include <sstream>
 #include <stdexcept>
 #include <nlohmann/json.hpp>
@@ -35,6 +37,51 @@ std::vector<int> parseList(const std::string& s)
 }
 
 int cellOf(double px, double tile) { return static_cast<int>(std::floor(px / tile)); }
+
+// Тайл из тайлсета-коллекции (props.tsx): своя картинка у каждого тайла
+struct PropTile { std::string sprite; int w = 0, h = 0; PropCollision collision = PropCollision::Solid; };
+
+PropCollision parseCollision(const std::string& s)
+{
+    if (s == "walk") return PropCollision::Walk;
+    if (s == "none") return PropCollision::None;
+    return PropCollision::Solid;
+}
+
+std::string xmlAttr(const std::string& tag, const std::string& name)
+{
+    const std::string key = name + "=\"";
+    const auto a = tag.find(key);
+    if (a == std::string::npos) return {};
+    const auto b = tag.find('"', a + key.size());
+    return b == std::string::npos ? std::string{} : tag.substr(a + key.size(), b - a - key.size());
+}
+
+// Разбираем .tsx без XML-библиотеки: Tiled пишет его предсказуемо, нужны только тайлы с картинками
+void loadPropTiles(const std::filesystem::path& tsx, int firstGid, std::map<int, PropTile>& out)
+{
+    std::ifstream f(tsx);
+    if (!f) return;
+    const std::string xml((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+
+    for (size_t pos = xml.find("<tile "); pos != std::string::npos; pos = xml.find("<tile ", pos + 1))
+    {
+        const size_t end = xml.find("</tile>", pos);
+        if (end == std::string::npos) break;
+        const std::string body = xml.substr(pos, end - pos);
+        const size_t img = body.find("<image ");
+        if (img == std::string::npos) continue;
+        const std::string imageTag = body.substr(img, body.find('>', img) - img);
+
+        PropTile t;
+        t.sprite = std::filesystem::path(xmlAttr(imageTag, "source")).stem().string();
+        t.w = std::atoi(xmlAttr(imageTag, "width").c_str());
+        t.h = std::atoi(xmlAttr(imageTag, "height").c_str());
+        if (const size_t p = body.find("name=\"collision\""); p != std::string::npos)
+            t.collision = parseCollision(xmlAttr(body.substr(p, body.find('>', p) - p), "value"));
+        out[firstGid + std::atoi(xmlAttr(body.substr(0, body.find('>')), "id").c_str())] = t;
+    }
+}
 
 Point nearestWalkable(const MapData& m, int cx, int cy)
 {
@@ -79,6 +126,11 @@ MapData loadMap(const std::string& path)
 
     bool haveSpawn = false;
 
+    std::map<int, PropTile> propTiles;                      // gid → картинка объекта
+    for (const auto& ts : j.value("tilesets", json::array()))
+        if (ts.contains("source"))
+            loadPropTiles(file.parent_path() / ts.at("source").get<std::string>(), ts.value("firstgid", 1), propTiles);
+
     for (const auto& L : j.at("layers"))
     {
         const std::string name = L.value("name", std::string{});
@@ -113,6 +165,36 @@ MapData loadMap(const std::string& path)
                 z.encounter = prop<std::string>(o, "encounter", "");
                 z.river     = prop<bool>(o, "river", false);   // по воде здесь ходит каноэ
                 m.zones.push_back(std::move(z));
+            }
+        }
+        else if (type == "objectgroup" && name == "props")
+        {
+            for (const auto& o : L.at("objects"))
+            {
+                const uint32_t gid = o.value("gid", 0u) & 0x1FFFFFFFu;       // старшие биты — отражения в Tiled
+                const auto it = propTiles.find(static_cast<int>(gid));
+                if (it == propTiles.end()) continue;
+                const PropTile& t = it->second;
+
+                // У тайла-объекта Tiled хранит левый НИЖНИЙ угол. Объект мог стоять не по сетке:
+                // рисуем его точно по пикселям, а стеной считаем клетки, покрытые больше чем наполовину
+                Prop p;
+                p.sprite = t.sprite;
+                p.px = static_cast<float>(o.value("x", 0.0));
+                p.py = static_cast<float>(o.value("y", 0.0));
+                p.pw = t.w;
+                p.ph = t.h;
+                const int left   = static_cast<int>(std::lround(p.px / tw));
+                const int right  = static_cast<int>(std::lround((p.px + t.w) / tw));    // не включая
+                const int top    = static_cast<int>(std::lround((p.py - t.h) / th));
+                const int bottom = static_cast<int>(std::lround(p.py / th));            // не включая
+                p.x0 = left;
+                p.w = std::max(1, right - left);
+                p.bottom = std::max(top + 1, bottom) - 1;
+                p.h = std::max(1, bottom - top);
+                p.collision = parseCollision(prop<std::string>(o, "collision",
+                    t.collision == PropCollision::Walk ? "walk" : t.collision == PropCollision::None ? "none" : "solid"));
+                m.props.push_back(std::move(p));
             }
         }
         else if (type == "objectgroup" && name == "portals")

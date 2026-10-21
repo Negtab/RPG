@@ -396,6 +396,20 @@ SDL_Texture* idleFrame(Direction d)     // стоячий кадр = первы�
 }
 }
 
+void UIManager::drawProp(const Prop& p, int camX, int camY)
+{
+    SDL_Texture* tex = ResourceManager::getTexture(p.sprite);
+    if (!tex) return;
+    int tw = 0, th = 0;
+    SDL_QueryTexture(tex, nullptr, nullptr, &tw, &th);
+    const int footX = px(p.px * PIXEL_SCALE) + tw * PIXEL_SCALE / 2 - camX;   // ровно там, где объект стоит в Tiled
+    const int footY = px(p.py * PIXEL_SCALE) - camY;
+    const SDL_Rect scr = game.getScreenRect();
+    if (footX + tw * PIXEL_SCALE < 0 || footX - tw * PIXEL_SCALE > scr.w || footY < 0 || footY - th * PIXEL_SCALE > scr.h)
+        return;                                                        // за экраном
+    visualizer.drawSprite(tex, footX, footY, PIXEL_SCALE);
+}
+
 void UIManager::showMapNotice(const std::string& text)
 {
     mapNotice = text;
@@ -432,6 +446,18 @@ void UIManager::drawMinimap()
         visualizer.fillRect({p.x - size / 2, p.y - size / 2, size, size}, c);
     };
 
+    // Замки и мосты: их нет на картинке карты, рисуем уменьшенные спрайты
+    for (const Prop& p : map.props)
+        if (SDL_Texture* tex = ResourceManager::getTexture(p.sprite))
+        {
+            const SDL_Point a = toMini(p.px / TILE_PX, (p.py - p.ph) / TILE_PX);
+            const SDL_Point b = toMini((p.px + p.pw) / TILE_PX, p.py / TILE_PX);
+            SDL_Rect dst{a.x, a.y, std::max(1, b.x - a.x), std::max(1, b.y - a.y)};
+            SDL_Rect clip{};
+            if (SDL_IntersectRect(&dst, &inner, &clip) && clip.w == dst.w && clip.h == dst.h)   // у края окна не рисуем
+                visualizer.drawTexture(tex, dst.x, dst.y, dst.w, dst.h);
+        }
+
     // Что сейчас видно на экране
     const SDL_Point v0 = toMini(static_cast<float>(lastCamX) / CELL_PX, static_cast<float>(lastCamY) / CELL_PX);
     const int vw = px(static_cast<float>(screen.w) / CELL_PX * fx), vh = px(static_cast<float>(screen.h) / CELL_PX * fy);
@@ -464,30 +490,38 @@ void UIManager::drawMinimap()
     dot(toMini(me.x + 0.5f, me.y + 0.5f), 4, blink ? SDL_Color{255, 60, 60, 255} : SDL_Color{255, 255, 255, 255});
 }
 
-bool UIManager::drawVehicle(Vehicle v, Direction dir, int cellScreenX, int cellScreenY, bool flying)
+bool UIManager::drawVehicle(Vehicle v, Direction dir, int cellScreenX, int cellScreenY, bool flying, bool moving)
 {
-    // Лист спрайта: 4 колонки по направлениям (Up, Down, Left, Right, как в enum Direction) и 2 строки-кадра
+    // Лист спрайта: 4 колонки по направлениям (Up, Down, Left, Right, как в enum Direction), кадры квадратные.
+    // 4 строки: 0-1 — стоит, 2-3 — движется (Pixel Remaster); 2 строки — одни кадры на всё (временные спрайты)
     SDL_Texture* tex = ResourceManager::getTexture(vehicleName(v));
     if (!tex) return false;
     int tw = 0, th = 0;
     SDL_QueryTexture(tex, nullptr, nullptr, &tw, &th);
-    const int fw = tw / 4, fh = th / 2;
-    if (fw <= 0 || fh <= 0) return false;
+    const int fw = tw / 4, fh = fw;
+    if (fw <= 0 || th < 2 * fh) return false;
 
     const Uint32 ticks = SDL_GetTicks();
     const int col = std::clamp(static_cast<int>(dir), 0, 3);
-    const int frame = v == Vehicle::Airship ? (flying ? (ticks / 90) % 2 : 0)     // винты крутятся только в полёте
-                                            : (ticks / 400) % 2;                      // лодка покачивается всегда
-    const SDL_Rect src{col * fw, frame * fh, fw, fh};
+    const int base = th >= 4 * fh && moving ? 2 : 0;
+    const Uint32 period = moving ? (v == Vehicle::Airship ? 90 : 220) : 500;     // винты быстро, волна медленно
+    const SDL_Rect src{col * fw, (base + static_cast<int>((ticks / period) % 2)) * fh, fw, fh};
 
     const int footX = cellScreenX + CELL_PX / 2, footY = cellScreenY + CELL_PX;
     int lift = 0;
     if (flying)
     {
-        // Тень на земле и сам дирижабль выше неё, с лёгким покачиванием
-        const int sw = fw * PIXEL_SCALE * 3 / 4, sh = 3 * PIXEL_SCALE;
-        visualizer.fillRect({footX - sw / 2, footY - sh - PIXEL_SCALE, sw, sh}, {0, 0, 0, 90});
-        visualizer.fillRect({footX - sw / 2 + PIXEL_SCALE, footY - sh - 2 * PIXEL_SCALE, sw - 2 * PIXEL_SCALE, sh + 2 * PIXEL_SCALE}, {0, 0, 0, 50});
+        // Тень на земле (из листа, если есть) и сам дирижабль выше неё, с лёгким покачиванием
+        if (SDL_Texture* shadow = ResourceManager::getTexture("AirshipShadow"))
+        {
+            SDL_SetTextureAlphaMod(shadow, 140);
+            visualizer.drawSprite(shadow, footX, footY - PIXEL_SCALE, PIXEL_SCALE);
+        }
+        else
+        {
+            const int sw = fw * PIXEL_SCALE * 3 / 4, sh = 3 * PIXEL_SCALE;
+            visualizer.fillRect({footX - sw / 2, footY - sh - PIXEL_SCALE, sw, sh}, {0, 0, 0, 90});
+        }
         lift = 10 * PIXEL_SCALE + static_cast<int>(std::lround(std::sin(ticks / 400.0) * PIXEL_SCALE));
     }
     visualizer.drawSprite(tex, footX, footY - lift, PIXEL_SCALE, &src);
@@ -496,11 +530,29 @@ bool UIManager::drawVehicle(Vehicle v, Direction dir, int cellScreenX, int cellS
 
 void UIManager::drawActor(const Player& p, int cellScreenX, int cellScreenY)
 {
+    const bool flying = p.getRiding() == Vehicle::Airship;
     if (p.getRiding() != Vehicle::None &&
-        drawVehicle(p.getRiding(), p.getMove().dir, cellScreenX, cellScreenY, p.getRiding() == Vehicle::Airship))
+        drawVehicle(p.getRiding(), p.getMove().dir, cellScreenX, cellScreenY, flying, flying || p.getMove().moving))
         return;                                                   // на транспорте героя не видно
 
-    SDL_Texture* tex = nullptr;
+    // Герой на карте — спрайт класса лидера (первого живого героя): Walk<набор>.png, 4 направления x 2 кадра
+    const auto& heroes = p.getHeroes();
+    const Hero* leader = heroes.empty() ? nullptr : &heroes.front();
+    for (const auto& h : heroes) if (h.getCurrentHp() > 0) { leader = &h; break; }
+    if (leader)
+        if (SDL_Texture* sheet = ResourceManager::getTexture(std::string("Walk") + heroSpriteSet(leader->getClass())))
+        {
+            int tw = 0, th = 0;
+            SDL_QueryTexture(sheet, nullptr, nullptr, &tw, &th);
+            const int fw = tw / 4, fh = th / 2;
+            const int col = std::clamp(static_cast<int>(p.getMove().dir), 0, 3);
+            const int frame = p.getMove().moving ? static_cast<int>((SDL_GetTicks() / 150) % 2) : 0;
+            const SDL_Rect src{col * fw, frame * fh, fw, fh};
+            visualizer.drawSprite(sheet, cellScreenX + CELL_PX / 2, cellScreenY + CELL_PX, PIXEL_SCALE, &src);
+            return;
+        }
+
+    SDL_Texture* tex = nullptr;                                   // запасной вариант: старая анимация ходьбы
 
     const AnimPlayer& ap = p.animPlayer;
     if (p.getDirection() != Direction::Idle && !ap.currentAnimationId.empty())
@@ -538,12 +590,16 @@ void UIManager::drawMapWorld()
         r->drawWater(visualizer.getRenderer(), camX, camY, scr.w, scr.h, PIXEL_SCALE, SDL_GetTicks());
     }
 
+    // Проходимые объекты (мосты) лежат на земле: герой ходит по ним сверху
+    for (const Prop& p : map.props)
+        if (p.collision != PropCollision::Solid) drawProp(p, camX, camY);
+
     // Стоящий транспорт лежит на земле и воде, поэтому рисуется до героев
     for (int i = 0; i < kVehicleKinds; ++i)
     {
         const VehicleState& v = player.getVehicles()[i];
         if (!v.available || v.mapId != localMove.mapId || player.getRiding() == static_cast<Vehicle>(i + 1)) continue;
-        drawVehicle(static_cast<Vehicle>(i + 1), v.dir, v.cell.x * CELL_PX - camX, v.cell.y * CELL_PX - camY, false);
+        drawVehicle(static_cast<Vehicle>(i + 1), v.dir, v.cell.x * CELL_PX - camX, v.cell.y * CELL_PX - camY, false, false);
     }
 
     struct Actor { const Player* p; Vec2f pos; };
@@ -553,14 +609,24 @@ void UIManager::drawMapWorld()
         if (remote.getMove().mapId == localMove.mapId)           // игроки с другой карты не видны
             actors.push_back({ &remote, visualCell(remote.getMove()) });
 
-    // Сверху вниз по экрану, но летящий дирижабль всегда поверх остальных
-    std::sort(actors.begin(), actors.end(), [](const Actor& a, const Actor& b) {
-        const bool fa = a.p->getRiding() == Vehicle::Airship, fb = b.p->getRiding() == Vehicle::Airship;
-        return fa != fb ? fb : a.pos.y < b.pos.y;
+    // Замки и герои вместе сверху вниз: кто ниже на экране, тот ближе. Герой в ряду замка — перед ним.
+    // Летящий дирижабль всегда поверх всего
+    struct Drawable { float y; int order; const Actor* actor; const Prop* prop; };
+    std::vector<Drawable> list;
+    for (const Prop& p : map.props)
+        if (p.collision == PropCollision::Solid) list.push_back({static_cast<float>(p.bottom), 0, nullptr, &p});
+    for (const Actor& a : actors)
+        list.push_back({a.pos.y, a.p->getRiding() == Vehicle::Airship ? 2 : 1, &a, nullptr});
+    std::sort(list.begin(), list.end(), [](const Drawable& a, const Drawable& b) {
+        if ((a.order == 2) != (b.order == 2)) return b.order == 2;
+        return a.y != b.y ? a.y < b.y : a.order < b.order;
     });
 
-    for (const Actor& a : actors)
-        drawActor(*a.p, px(a.pos.x * CELL_PX) - camX, px(a.pos.y * CELL_PX) - camY);
+    for (const Drawable& d : list)
+    {
+        if (d.prop) drawProp(*d.prop, camX, camY);
+        else drawActor(*d.actor->p, px(d.actor->pos.x * CELL_PX) - camX, px(d.actor->pos.y * CELL_PX) - camY);
+    }
 
     // Надпись по H (бои вкл/выкл): сверху по центру, гаснет за последние полсекунды
     if (!mapNotice.empty() && SDL_GetTicks() - mapNoticeTicks < 1800)
@@ -814,7 +880,7 @@ void UIManager::layoutBattle()
     }
 
     // ── Герои: две колонки справа (свои и напарника) ──────────────────
-    const int hw = 16 * S, hh = 24 * S;
+    const int hw = kHeroFrame * S, hh = kHeroFrame * S;
     const int slotH = (fieldH - 2 * margin) / 4;
     const int localX = scr.w - margin - hw - 8;
     const int remoteX = localX - hw - 36;
@@ -1349,7 +1415,7 @@ void UIManager::initCreateScene()
         const int x = startX + i * (slotW + gap);
 
         addWindow("Slot" + n, "CreatePlayer", {x, top, slotW, slotH});
-        addImage("Portrait" + n, "CreatePlayer", {x + 60, top + 24, 80, 120}, nullptr, {0, 0, 16, 24});
+        addImage("Portrait" + n, "CreatePlayer", {x + slotW / 2 - 64, top + 16, 128, 128}, nullptr);
         addButton("Prev" + n, "CreatePlayer", {x + 10, top + 160, 30, 30},
                   ResourceManager::getTextTexture("<", font, white), [this, i]() { cycleClass(i, -1); }, hover);
         addButton("Next" + n, "CreatePlayer", {x + slotW - 40, top + 160, 30, 30},
@@ -1693,8 +1759,8 @@ void UIManager::initBattleScene()
     {
         const std::string n = std::to_string(i + 1);
         addImage("Enemy" + n,      "Battle", {0, 0, 0, 0}, nullptr, {0, 0, 0, 0},   "EnemyPanel");
-        addImage("Hero" + n,       "Battle", {0, 0, 0, 0}, nullptr, {0, 0, 16, 24}, "HeroPanel");
-        addImage("RemoteHero" + n, "Battle", {0, 0, 0, 0}, nullptr, {0, 0, 16, 24}, "HeroPanel");
+        addImage("Hero" + n,       "Battle", {0, 0, 0, 0}, nullptr, {0, 0, 0, 0}, "HeroPanel");   // вся картинка
+        addImage("RemoteHero" + n, "Battle", {0, 0, 0, 0}, nullptr, {0, 0, 0, 0}, "HeroPanel");
     }
 
     addPanel("ResultPanel", "Battle");
@@ -1949,7 +2015,7 @@ void UIManager::drawSavesScreen()
             const auto& h = s->heroes[i];
             const int cx = card.x + 290 + i * 72;
             if (SDL_Texture* tex = ResourceManager::getTexture("Image" + std::to_string(heroLook(h.cls))))
-                visualizer.drawTexture(tex, cx - 16, card.y + 8, 32, 48, 0, 0, 16, 24);
+                visualizer.drawTexture(tex, cx - 24, card.y + 6, 48, 48);
             const std::string lv = "Lv " + std::to_string(h.level);
             drawText(lv, cx - ResourceManager::measureText(lv, font).w / 2, card.y + 58, kSaveText);
         }
@@ -2515,9 +2581,9 @@ void UIManager::drawPartyPanel(const SDL_Rect& party, int pointerRow, bool compa
         const int scale = compact ? 2 : 3;
         const std::string img = "Image" + std::to_string(heroLook(h.getClass())) + (dead ? "Dead" : "");
         if (SDL_Texture* tex = ResourceManager::getTexture(img))
-            visualizer.drawTexture(tex, row.x + 20, row.y + (row.h - 24 * scale) / 2, 16 * scale, 24 * scale, 0, 0, 16, 24);
+            visualizer.drawTexture(tex, row.x + 16, row.y + (row.h - kHeroFrame * scale) / 2, kHeroFrame * scale, kHeroFrame * scale);
 
-        const int tx = row.x + 20 + 16 * scale + 20;
+        const int tx = row.x + 16 + kHeroFrame * scale + 12;
         drawText(h.getName(), tx, row.y + (compact ? 8 : 14), dead ? kSaveBad : kSaveText);
         if (!compact)
         {
@@ -2747,7 +2813,7 @@ void UIManager::drawStatusPage()
     const bool dead = h.getCurrentHp() == 0;
     const std::string img = "Image" + std::to_string(heroLook(h.getClass())) + (dead ? "Dead" : "");
     if (SDL_Texture* tex = ResourceManager::getTexture(img))
-        visualizer.drawTexture(tex, win.x + 40, win.y + 20, 64, 96, 0, 0, 16, 24);
+        visualizer.drawTexture(tex, win.x + 24, win.y + 16, 96, 96);
     drawText(h.getName(), win.x + 130, win.y + 30, dead ? kSaveBad : kSaveText);
     const auto cls = specializationNamesString.find(h.getClass());
     drawText((cls != specializationNamesString.end() ? cls->second : "") + "   Lv " + std::to_string(h.getLevel()),

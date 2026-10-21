@@ -42,11 +42,21 @@ id,name,texture,hp,attack,defence,agility,exp,gold,hits,resists,immunities,vulne
 41,Earth Elemental,,288,66,20,,1536,768,1,,,Fire,attack:100,drop Remedy
 42,Troll,,184,24,12,,621,621,1,,,Fire,attack:70;102:30,regen 9 HP per turn
 43,Wight,,52,20,20,,150,150,1,,,Fire|Light,attack:100,undead; paralyze attack
+44,Ogre Mage,,144,23,10,,723,723,1,,,,attack:70;101:30,casts spells; stats approx from FF1 - check
 45,Cockatrice,,50,1,4,,186,200,1,,,,attack:100,petrify attack; drop Gold Needle
 46,Vampire,,280,76,26,,1200,2000,1,,,Fire|Light,attack:100,undead; gaze may paralyze; HP 156 and def 10 on NES
+47,Crocodile,,184,42,16,,816,900,1,,,Lightning,attack:100,stats approx from FF1 - check
+48,Specter,,52,20,12,,150,150,1,,,Fire|Light,attack:100,undead; paralyze attack; stats approx from FF1 - check
+49,Ochre Jelly,,76,30,6,,1003,70,1,,,Ice,attack:70;100:30,poison attack; stats approx from FF1 - check
 50,Ankheg,,222,39,20,,1194,300,3,,,,attack:70;100:30,up to 3 hits; poison attack
+51,Remorazz,,204,46,30,,1590,1590,1,Fire,,Ice,attack:70;101:30,fire breath; stats approx from FF1 - check
+52,Hydra,,212,30,14,,915,150,3,,,Ice,attack:100,up to 3 hits; stats approx from FF1 - check
+53,Sphinx,,228,40,12,,1160,1160,3,,,,attack:100,up to 3 hits; stats approx from FF1 - check
+54,Horned Devil,,94,30,26,,1101,1101,1,,,Light,attack:70;101:30,stats approx from FF1 - check
 55,Ochu,,208,20,24,,1224,102,1,,,Lightning,attack:70;100:30,poison attack
 56,Neochu,,344,35,32,,3189,500,1,,,,attack:70;100:30,poison attack
+57,Piranha,,92,22,20,,240,20,1,,,Lightning,attack:100,stats approx from FF1 - check
+58,Red Piranha,,172,37,22,,546,46,1,,,Lightning,attack:100,stats approx from FF1 - check
 59,Pyrolisk,,44,20,4,,432,500,1,,,Ice,attack:100,gaze may petrify or kill; drop Gold Needle
 60,Fire Elemental,,276,50,20,,1620,800,1,,,Ice,attack:100,
 61,Fire Hydra,,182,20,14,,1215,400,1,,,Ice,attack:100,drop Red Fang
@@ -55,6 +65,7 @@ id,name,texture,hp,attack,defence,agility,exp,gold,hits,resists,immunities,vulne
 64,Fire Lizard,,296,31,18,,2472,1200,1,,,Ice,attack:100,
 65,Fire Gigas,,300,73,20,,1506,1506,1,,,Ice,attack:100,
 66,Red Dragon,,248,75,30,,2904,4000,1,,,Ice,attack:100,also weak to stone and poison statuses
+67,White Croc,,288,50,20,,1890,2000,1,Ice,,Fire,attack:100,stats approx from FF1 - check
 68,White Dragon,,200,53,8,,1701,2000,1,,,Fire|Lightning,attack:100,
 69,Winter Wolf,,92,25,0,,402,200,1,,,Fire,attack:100,drop Ice Shield
 70,Mindflayer,,112,1,12,,822,999,1,,,,attack:100,attack may instantly kill; drop Phoenix Down

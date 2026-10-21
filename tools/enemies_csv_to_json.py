@@ -95,8 +95,8 @@ def main():
             })
     if missing:
         print("Нет спрайтов для:\n  " + "\n  ".join(missing))
-    if not args.skip_missing:
-        sys.exit("Добавь файлы или запусти с --skip-missing")
+        if not args.skip_missing:                       # выходим, только если чего-то правда не хватает
+            sys.exit("Добавь файлы или запусти с --skip-missing")
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
     print(f"Записано врагов: {len(result)} -> {args.out}")
