@@ -1035,6 +1035,9 @@ void Game::onStepFinished(Point from)
 
     const Zone* zone = currentMap->zoneAt(c.x, c.y);
     if (zone && zone->safe) { stepsSinceBattle = 0; return; }
+    // В городах и подземельях бои только в размеченных зонах: без них карта считается безопасной
+    const bool zoneHasEnemies = zone && (!zone->encounter.empty() || !zone->enemies.empty());
+    if (currentMap->mapId != 0 && !zoneHasEnemies) { stepsSinceBattle = 0; return; }
 
     if (!encounters) return;                             // бои выключены в Config
     if (++stepsSinceBattle < 6) return;
@@ -1042,6 +1045,30 @@ void Game::onStepFinished(Point from)
 
     stepsSinceBattle = 0;
     beginBattle(zone);
+}
+
+std::string Game::nearestLandmark() const
+{
+    const Point c = players.at(0).getMove().cell;
+    const Portal* best = nullptr;
+    long bestD = 0;
+    for (const Portal& p : currentMap->portals)
+    {
+        if (p.name.empty()) continue;                    // безымянный портал ориентиром не считаем
+        const long d = static_cast<long>(p.x - c.x) * (p.x - c.x) + static_cast<long>(p.y - c.y) * (p.y - c.y);
+        if (!best || d < bestD) { best = &p; bestD = d; }
+    }
+    return best ? best->name : std::string{};
+}
+
+std::string Game::encounterTerrain() const
+{
+    switch (players.at(0).getRiding())
+    {
+    case Vehicle::Ship:  return "sea";
+    case Vehicle::Canoe: return "river";
+    default:             return "land";
+    }
 }
 
 void Game::beginBattle(const Zone* zone)
@@ -1055,6 +1082,12 @@ void Game::beginBattle(const Zone* zone)
         pool = zone->enemies;
         if (!zone->encounter.empty())
             formation = GameData::instance().pickFormation(zone->encounter);
+    }
+    if (formation.empty() && pool.empty())               // вне зон: группа ближайшего города или пещеры
+    {
+        const std::string group = GameData::instance().groupNear(nearestLandmark(), encounterTerrain());
+        formation = GameData::instance().pickFormation(group);
+        if (formation.empty()) SDL_Log("No encounter group near '%s'", nearestLandmark().c_str());
     }
 
     setPreviousGameState(getGameState());

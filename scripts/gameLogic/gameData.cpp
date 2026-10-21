@@ -260,6 +260,9 @@ void GameData::loadEncounters(const fs::path& path)
             g.formations.push_back(std::move(fm));
         }
         if (g.formations.empty()) throw runtime_error("group '" + g.id + "' has no formations");
+        if (e.contains("near"))
+            for (const auto& n : e.at("near")) g.landmarks.push_back(n.get<std::string>());
+        g.terrain = e.value("terrain", std::string("land"));
 
         if (!encounterMap.emplace(g.id, g).second)
             throw runtime_error("duplicate encounter group '" + g.id + "'");
@@ -277,6 +280,14 @@ std::vector<int> GameData::pickFormation(const std::string& id) const
         if (roll < f.weight) return f.enemies;
         roll -= f.weight;
     }
+    return {};
+}
+
+std::string GameData::groupNear(const std::string& landmark, const std::string& terrain) const
+{
+    for (const auto& [id, g] : encounterMap)
+        if (g.terrain == terrain && std::find(g.landmarks.begin(), g.landmarks.end(), landmark) != g.landmarks.end())
+            return id;
     return {};
 }
 

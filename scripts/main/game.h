@@ -172,6 +172,8 @@ class Game {
         void parkVehicle(Point at, uint16_t mapId);   // слезть с транспорта, оставив его в клетке at
         Point stepFrom{};                             // откуда начался текущий шаг: туда ставим корабль при высадке
         void beginBattle(const Zone* zone = nullptr);
+        [[nodiscard]] std::string nearestLandmark() const;   // имя ближайшего портала: по нему выбирается группа встреч
+        [[nodiscard]] std::string encounterTerrain() const;  // land, sea или river — по транспорту
         Player& ensureRemote(uint32_t id);
         int stepsSinceBattle = 0;
 

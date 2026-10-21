@@ -46,6 +46,8 @@ struct EncounterGroup
     std::string id;
     std::vector<Formation> formations;
     int totalWeight = 0;
+    std::vector<std::string> landmarks;     // порталы карты мира, у которых группа водится ("near" в JSON; near — макрос Windows)
+    std::string terrain = "land";           // land, sea (корабль) или river (каноэ)
 };
 
 struct HeroClassDef
@@ -83,6 +85,8 @@ public:
 
     [[nodiscard]] bool hasEncounter(const std::string& id) const { return encounterMap.contains(id); }
     [[nodiscard]] std::vector<int> pickFormation(const std::string& id) const;   // пусто, если группы нет
+    // Группа для места без зоны Tiled: по ближайшему порталу и тому, на чём едет отряд. "" — такой нет
+    [[nodiscard]] std::string groupNear(const std::string& landmark, const std::string& terrain) const;
 
 private:
     void loadSkills(const std::filesystem::path& path);

@@ -119,6 +119,9 @@
           3
         ]
       }
+    ],
+    "near": [
+      "Cornelia"
     ]
   },
   {
@@ -271,7 +274,2399 @@
           4
         ]
       }
+    ],
+    "near": [
+      "Temple of Chaos"
     ]
+  },
+  {
+    "id": "matoya_area",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          3,
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          7,
+          7,
+          7,
+          7
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          7,
+          7,
+          7
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          7,
+          7,
+          7,
+          3
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          8,
+          8,
+          8,
+          8
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          8,
+          8,
+          8
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          8,
+          8,
+          8,
+          7
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          13,
+          13,
+          13,
+          13
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          13,
+          13,
+          13
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          13,
+          13,
+          13,
+          8
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          14,
+          14,
+          14
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          14,
+          14
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          14,
+          14,
+          13,
+          13
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          15,
+          15,
+          15
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          15,
+          15
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          15,
+          15,
+          14,
+          14
+        ]
+      }
+    ],
+    "near": [
+      "Matoya`s Cave"
+    ]
+  },
+  {
+    "id": "pravoka_east",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          2,
+          2,
+          2,
+          2
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          2,
+          2,
+          2
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          2,
+          2,
+          2,
+          1
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          3,
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          3,
+          3,
+          3,
+          2
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          4,
+          4,
+          4
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          4,
+          4,
+          4,
+          3
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          7,
+          7,
+          7,
+          7
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          7,
+          7,
+          7
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          7,
+          7,
+          7,
+          4
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          8,
+          8,
+          8,
+          8
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          8,
+          8,
+          8
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          8,
+          8,
+          8,
+          7
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          16,
+          16,
+          16,
+          16
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          16,
+          16,
+          16
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          16,
+          16,
+          16,
+          8
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          14,
+          14,
+          14
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          14,
+          14
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          14,
+          14,
+          16,
+          16
+        ]
+      }
+    ],
+    "near": [
+      "Pravoca"
+    ]
+  },
+  {
+    "id": "elfheim_area",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          3,
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          7,
+          7,
+          7,
+          7
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          7,
+          7,
+          7
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          7,
+          7,
+          7,
+          3
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          8,
+          8,
+          8,
+          8
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          8,
+          8,
+          8
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          8,
+          8,
+          8,
+          7
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          13,
+          13,
+          13,
+          13
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          13,
+          13,
+          13
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          13,
+          13,
+          13,
+          8
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          23,
+          23,
+          23,
+          23
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          23,
+          23,
+          23
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          23,
+          23,
+          23,
+          13
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          14,
+          14,
+          14
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          14,
+          14
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          14,
+          14,
+          23,
+          23
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          15,
+          15,
+          15
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          15,
+          15
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          15,
+          15,
+          14,
+          14
+        ]
+      }
+    ],
+    "near": [
+      "Elfheim",
+      "Elfheim castle",
+      "Mount Duergar",
+      "Western Keep"
+    ]
+  },
+  {
+    "id": "marsh_outside",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          2,
+          2,
+          2,
+          2
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          2,
+          2,
+          2
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          3,
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          3,
+          3,
+          3,
+          2
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          8,
+          8,
+          8,
+          8
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          8,
+          8,
+          8
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          8,
+          8,
+          8,
+          3
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          24,
+          24,
+          24,
+          24
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          24,
+          24,
+          24
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          24,
+          24,
+          24,
+          8
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          9,
+          9,
+          9,
+          9
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          9,
+          9,
+          9
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          9,
+          9,
+          9,
+          24
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          23,
+          23,
+          23,
+          23
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          23,
+          23,
+          23
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          23,
+          23,
+          23,
+          9
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          14,
+          14,
+          14
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          14,
+          14
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          14,
+          14,
+          23,
+          23
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          25,
+          25,
+          25
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          25,
+          25
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          25,
+          25,
+          14,
+          14
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          15,
+          15,
+          15
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          15,
+          15
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          15,
+          15,
+          25,
+          25
+        ]
+      }
+    ],
+    "near": [
+      "Marsh Cave"
+    ]
+  },
+  {
+    "id": "melmond_area",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          6,
+          6,
+          6,
+          6
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          6,
+          6,
+          6
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          26,
+          26,
+          26,
+          26
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          26,
+          26,
+          26
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          26,
+          26,
+          26,
+          6
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          8,
+          8,
+          8,
+          8
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          8,
+          8,
+          8
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          8,
+          8,
+          8,
+          26
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          11,
+          11,
+          11,
+          11
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          11,
+          11,
+          11
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          11,
+          11,
+          11,
+          8
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          24,
+          24,
+          24,
+          24
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          24,
+          24,
+          24
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          24,
+          24,
+          24,
+          11
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          23,
+          23,
+          23,
+          23
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          23,
+          23,
+          23
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          23,
+          23,
+          23,
+          24
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          48,
+          48,
+          48,
+          48
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          48,
+          48,
+          48
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          48,
+          48,
+          48,
+          23
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          14,
+          14,
+          14
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          14,
+          14
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          14,
+          14,
+          48,
+          48
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          15,
+          15,
+          15
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          15,
+          15
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          15,
+          15,
+          14,
+          14
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          37,
+          37,
+          37
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          37,
+          37
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          37,
+          37,
+          15,
+          15
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          38,
+          38,
+          38
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          38,
+          38
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          38,
+          38,
+          37,
+          37
+        ]
+      }
+    ],
+    "near": [
+      "Melmond",
+      "Terra Cavern",
+      "Titan`s Cave 1",
+      "Sage`s Cave"
+    ]
+  },
+  {
+    "id": "crescent_island",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          36,
+          36,
+          36,
+          36
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          36,
+          36,
+          36
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          25,
+          25,
+          25
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          25,
+          25
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          25,
+          25,
+          36,
+          36
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          39,
+          39,
+          39
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          39,
+          39
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          39,
+          39,
+          25,
+          25
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          42,
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          42,
+          42,
+          39,
+          39
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          47,
+          47,
+          47
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          47,
+          47
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          47,
+          47,
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          40,
+          40,
+          40
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          40,
+          40
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          40,
+          40,
+          47,
+          47
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          50,
+          50
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          50,
+          40,
+          40,
+          40
+        ]
+      }
+    ],
+    "near": [
+      "Crescent Lake",
+      "Citadel of Trials"
+    ]
+  },
+  {
+    "id": "gulg_area",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          59,
+          59,
+          59
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          59,
+          59
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          42,
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          42,
+          42,
+          59,
+          59
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          40,
+          40,
+          40
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          40,
+          40
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          40,
+          40,
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          52,
+          52,
+          52
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          52,
+          52
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          52,
+          52,
+          40,
+          40
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          63,
+          63
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          63,
+          52,
+          52,
+          52
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          64
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          64,
+          63,
+          63
+        ]
+      }
+    ],
+    "near": [
+      "Mount Gulg"
+    ]
+  },
+  {
+    "id": "ice_area",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          69,
+          69,
+          69
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          69,
+          69
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          42,
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          42,
+          42,
+          69,
+          69
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          44,
+          44,
+          44
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          44,
+          44
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          44,
+          44,
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          71,
+          71
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          71,
+          44,
+          44,
+          44
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          67,
+          67
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          67,
+          71,
+          71
+        ]
+      }
+    ],
+    "near": [
+      "Ice Cavern"
+    ]
+  },
+  {
+    "id": "onrac_area",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          42,
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          98,
+          98,
+          98
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          98,
+          98
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          98,
+          98,
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          96,
+          96,
+          96
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          96,
+          96
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          96,
+          96,
+          98,
+          98
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          78,
+          78
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          78,
+          96,
+          96,
+          96
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          79,
+          79
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          79,
+          78,
+          78
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          80,
+          80
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          80,
+          79,
+          79
+        ]
+      }
+    ],
+    "near": [
+      "Onrac",
+      "Waterfall Cavern"
+    ]
+  },
+  {
+    "id": "mirage_outside",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          53,
+          53
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          78,
+          78
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          78,
+          53,
+          53
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          81,
+          81
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          81,
+          78,
+          78
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          76
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          76,
+          81,
+          81
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          85
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          85,
+          76
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          83
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          83,
+          85
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          103
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          103,
+          83
+        ]
+      }
+    ],
+    "near": [
+      "Desert Caravan",
+      "Mirage Tower"
+    ]
+  },
+  {
+    "id": "gaia_area",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          89,
+          89,
+          89
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          89,
+          89
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          84,
+          84,
+          84
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          84,
+          84
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          84,
+          84,
+          89,
+          89
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          77,
+          77,
+          77
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          77,
+          77
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          77,
+          77,
+          84,
+          84
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          53,
+          53
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          53,
+          77,
+          77,
+          77
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          91,
+          91
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          91,
+          53,
+          53
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          80,
+          80
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          80,
+          91,
+          91
+        ]
+      }
+    ],
+    "near": [
+      "Gaia"
+    ]
+  },
+  {
+    "id": "lufenia_area",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          69,
+          69,
+          69
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          69,
+          69
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          42,
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          42,
+          42,
+          69,
+          69
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          40,
+          40,
+          40
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          40,
+          40
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          40,
+          40,
+          42,
+          42
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          86,
+          86
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          86,
+          40,
+          40,
+          40
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          78,
+          78
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          78,
+          86,
+          86
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          83
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          83,
+          78,
+          78
+        ]
+      }
+    ],
+    "near": [
+      "Lufenia"
+    ]
+  },
+  {
+    "id": "dragon_area",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          78,
+          78
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          79,
+          79
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          79,
+          78,
+          78
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          105
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          105,
+          79,
+          79
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          66
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          66,
+          105
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          83
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          83,
+          66
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          103
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          103,
+          83
+        ]
+      }
+    ],
+    "near": [
+      "Dragon Cave 1",
+      "Dragon Cave 2",
+      "Dragon Cave 3",
+      "Dragon Cave 4",
+      "Dragon Cave 5",
+      "Dragon Cave 6"
+    ]
+  },
+  {
+    "id": "closed_sea",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          18,
+          18,
+          18,
+          18
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          18,
+          18,
+          18
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          22,
+          22,
+          22,
+          22
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          22,
+          22,
+          22
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          22,
+          22,
+          22,
+          18
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          20,
+          20,
+          20,
+          20
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          20,
+          20,
+          20
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          20,
+          20,
+          20,
+          22
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          19,
+          19,
+          19,
+          19
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          19,
+          19,
+          19
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          19,
+          19,
+          19,
+          20
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          21,
+          21,
+          21
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          21,
+          21
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          21,
+          21,
+          19,
+          19
+        ]
+      }
+    ],
+    "near": [
+      "Cornelia",
+      "Temple of Chaos",
+      "Pravoca",
+      "Matoya`s Cave",
+      "Elfheim",
+      "Elfheim castle",
+      "Marsh Cave",
+      "Mount Duergar",
+      "Western Keep"
+    ],
+    "terrain": "sea"
+  },
+  {
+    "id": "open_sea",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          21,
+          21,
+          21
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          21,
+          21
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          97,
+          97,
+          97
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          97,
+          97
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          97,
+          97,
+          21,
+          21
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          98,
+          98,
+          98
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          98,
+          98
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          98,
+          98,
+          97,
+          97
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          93,
+          93,
+          93
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          93,
+          93
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          93,
+          93,
+          98,
+          98
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          96,
+          96,
+          96
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          96,
+          96
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          96,
+          96,
+          93,
+          93
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          94
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          94,
+          96,
+          96,
+          96
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          95
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          95,
+          94
+        ]
+      }
+    ],
+    "near": [
+      "Melmond",
+      "Terra Cavern",
+      "Titan`s Cave 1",
+      "Sage`s Cave",
+      "Crescent Lake",
+      "Citadel of Trials",
+      "Mount Gulg",
+      "Ice Cavern",
+      "Onrac",
+      "Waterfall Cavern",
+      "Desert Caravan",
+      "Mirage Tower",
+      "Gaia",
+      "Lufenia",
+      "Dragon Cave 1",
+      "Dragon Cave 2",
+      "Dragon Cave 3",
+      "Dragon Cave 4",
+      "Dragon Cave 5",
+      "Dragon Cave 6"
+    ],
+    "terrain": "sea"
+  },
+  {
+    "id": "rivers",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          57,
+          57,
+          57
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          57,
+          57
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          58,
+          58,
+          58
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          58,
+          58
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          58,
+          58,
+          57,
+          57
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          47,
+          47,
+          47
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          47,
+          47
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          47,
+          47,
+          58,
+          58
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          67,
+          67
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          67,
+          47,
+          47,
+          47
+        ]
+      }
+    ],
+    "near": [
+      "Cornelia",
+      "Temple of Chaos",
+      "Pravoca",
+      "Matoya`s Cave",
+      "Elfheim",
+      "Elfheim castle",
+      "Marsh Cave",
+      "Mount Duergar",
+      "Western Keep",
+      "Melmond",
+      "Terra Cavern",
+      "Titan`s Cave 1",
+      "Sage`s Cave",
+      "Crescent Lake",
+      "Citadel of Trials",
+      "Mount Gulg",
+      "Ice Cavern",
+      "Onrac",
+      "Waterfall Cavern",
+      "Desert Caravan",
+      "Mirage Tower",
+      "Gaia",
+      "Lufenia",
+      "Dragon Cave 1",
+      "Dragon Cave 2",
+      "Dragon Cave 3",
+      "Dragon Cave 4",
+      "Dragon Cave 5",
+      "Dragon Cave 6"
+    ],
+    "terrain": "river"
   },
   {
     "id": "chaos_shrine_inside",
@@ -525,878 +2920,6 @@
           9,
           9,
           11
-        ]
-      }
-    ]
-  },
-  {
-    "id": "matoya_area",
-    "formations": [
-      {
-        "weight": 4,
-        "enemies": [
-          3,
-          3,
-          3,
-          3
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          3,
-          3,
-          3
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          7,
-          7,
-          7,
-          7
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          7,
-          7,
-          7
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          7,
-          7,
-          7,
-          3
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          8,
-          8,
-          8,
-          8
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          8,
-          8,
-          8
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          8,
-          8,
-          8,
-          7
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          13,
-          13,
-          13,
-          13
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          13,
-          13,
-          13
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          13,
-          13,
-          13,
-          8
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          14,
-          14,
-          14
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          14,
-          14
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          14,
-          14,
-          13,
-          13
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          15,
-          15,
-          15
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          15,
-          15
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          15,
-          15,
-          14,
-          14
-        ]
-      }
-    ]
-  },
-  {
-    "id": "pravoka_east",
-    "formations": [
-      {
-        "weight": 4,
-        "enemies": [
-          1,
-          1,
-          1,
-          1
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          1,
-          1,
-          1
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          2,
-          2,
-          2,
-          2
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          2,
-          2,
-          2
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          2,
-          2,
-          2,
-          1
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          3,
-          3,
-          3,
-          3
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          3,
-          3,
-          3
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          3,
-          3,
-          3,
-          2
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          4,
-          4,
-          4,
-          4
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          4,
-          4,
-          4
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          4,
-          4,
-          4,
-          3
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          7,
-          7,
-          7,
-          7
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          7,
-          7,
-          7
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          7,
-          7,
-          7,
-          4
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          8,
-          8,
-          8,
-          8
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          8,
-          8,
-          8
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          8,
-          8,
-          8,
-          7
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          16,
-          16,
-          16,
-          16
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          16,
-          16,
-          16
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          16,
-          16,
-          16,
-          8
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          14,
-          14,
-          14
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          14,
-          14
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          14,
-          14,
-          16,
-          16
-        ]
-      }
-    ]
-  },
-  {
-    "id": "closed_sea",
-    "formations": [
-      {
-        "weight": 4,
-        "enemies": [
-          18,
-          18,
-          18,
-          18
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          18,
-          18,
-          18
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          22,
-          22,
-          22,
-          22
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          22,
-          22,
-          22
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          22,
-          22,
-          22,
-          18
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          20,
-          20,
-          20,
-          20
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          20,
-          20,
-          20
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          20,
-          20,
-          20,
-          22
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          19,
-          19,
-          19,
-          19
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          19,
-          19,
-          19
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          19,
-          19,
-          19,
-          20
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          21,
-          21,
-          21
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          21,
-          21
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          21,
-          21,
-          19,
-          19
-        ]
-      }
-    ]
-  },
-  {
-    "id": "elfheim_area",
-    "formations": [
-      {
-        "weight": 4,
-        "enemies": [
-          3,
-          3,
-          3,
-          3
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          3,
-          3,
-          3
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          7,
-          7,
-          7,
-          7
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          7,
-          7,
-          7
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          7,
-          7,
-          7,
-          3
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          8,
-          8,
-          8,
-          8
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          8,
-          8,
-          8
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          8,
-          8,
-          8,
-          7
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          13,
-          13,
-          13,
-          13
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          13,
-          13,
-          13
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          13,
-          13,
-          13,
-          8
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          23,
-          23,
-          23,
-          23
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          23,
-          23,
-          23
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          23,
-          23,
-          23,
-          13
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          14,
-          14,
-          14
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          14,
-          14
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          14,
-          14,
-          23,
-          23
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          15,
-          15,
-          15
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          15,
-          15
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          15,
-          15,
-          14,
-          14
-        ]
-      }
-    ]
-  },
-  {
-    "id": "marsh_outside",
-    "formations": [
-      {
-        "weight": 4,
-        "enemies": [
-          2,
-          2,
-          2,
-          2
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          2,
-          2,
-          2
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          3,
-          3,
-          3,
-          3
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          3,
-          3,
-          3
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          3,
-          3,
-          3,
-          2
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          8,
-          8,
-          8,
-          8
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          8,
-          8,
-          8
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          8,
-          8,
-          8,
-          3
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          24,
-          24,
-          24,
-          24
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          24,
-          24,
-          24
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          24,
-          24,
-          24,
-          8
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          9,
-          9,
-          9,
-          9
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          9,
-          9,
-          9
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          9,
-          9,
-          9,
-          24
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          23,
-          23,
-          23,
-          23
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          23,
-          23,
-          23
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          23,
-          23,
-          23,
-          9
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          14,
-          14,
-          14
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          14,
-          14
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          14,
-          14,
-          23,
-          23
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          25,
-          25,
-          25
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          25,
-          25
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          25,
-          25,
-          14,
-          14
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          15,
-          15,
-          15
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          15,
-          15
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          15,
-          15,
-          25,
-          25
         ]
       }
     ]
@@ -2254,153 +3777,123 @@
     ]
   },
   {
-    "id": "melmond_area",
+    "id": "earth_cave",
     "formations": [
       {
         "weight": 4,
         "enemies": [
-          6,
-          6,
-          6,
-          6
+          43,
+          43,
+          43,
+          43
         ]
       },
       {
         "weight": 2,
         "enemies": [
-          6,
-          6,
-          6
+          43,
+          43,
+          43
         ]
       },
       {
         "weight": 4,
         "enemies": [
-          26,
-          26,
-          26,
-          26
+          48,
+          48,
+          48,
+          48
         ]
       },
       {
         "weight": 2,
         "enemies": [
-          26,
-          26,
-          26
+          48,
+          48,
+          48
         ]
       },
       {
         "weight": 2,
         "enemies": [
-          26,
-          26,
-          26,
-          6
+          48,
+          48,
+          48,
+          43
         ]
       },
       {
         "weight": 4,
         "enemies": [
-          8,
-          8,
-          8,
-          8
+          36,
+          36,
+          36,
+          36
         ]
       },
       {
         "weight": 2,
         "enemies": [
-          8,
-          8,
-          8
+          36,
+          36,
+          36
         ]
       },
       {
         "weight": 2,
         "enemies": [
-          8,
-          8,
-          8,
-          26
+          36,
+          36,
+          36,
+          48
         ]
       },
       {
         "weight": 4,
         "enemies": [
-          11,
-          11,
-          11,
-          11
+          28,
+          28,
+          28
         ]
       },
       {
         "weight": 2,
         "enemies": [
-          11,
-          11,
-          11
+          28,
+          28
         ]
       },
       {
         "weight": 2,
         "enemies": [
-          11,
-          11,
-          11,
-          8
+          28,
+          28,
+          36,
+          36
         ]
       },
       {
         "weight": 4,
         "enemies": [
-          24,
-          24,
-          24,
-          24
+          45,
+          45,
+          45
         ]
       },
       {
         "weight": 2,
         "enemies": [
-          24,
-          24,
-          24
+          45,
+          45
         ]
       },
       {
         "weight": 2,
         "enemies": [
-          24,
-          24,
-          24,
-          11
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          23,
-          23,
-          23,
-          23
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          23,
-          23,
-          23
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          23,
-          23,
-          23,
-          24
+          45,
+          45,
+          28,
+          28
         ]
       },
       {
@@ -2423,8 +3916,8 @@
         "enemies": [
           14,
           14,
-          23,
-          23
+          45,
+          45
         ]
       },
       {
@@ -2473,6 +3966,30 @@
           37,
           15,
           15
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          34,
+          34,
+          34
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          34,
+          34
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          34,
+          34,
+          37,
+          37
         ]
       },
       {
@@ -2495,52 +4012,8 @@
         "enemies": [
           38,
           38,
-          37,
-          37
-        ]
-      }
-    ]
-  },
-  {
-    "id": "crescent_island",
-    "formations": [
-      {
-        "weight": 4,
-        "enemies": [
-          36,
-          36,
-          36
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          36,
-          36
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          25,
-          25,
-          25
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          25,
-          25
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          25,
-          25,
-          36,
-          36
+          34,
+          34
         ]
       },
       {
@@ -2563,56 +4036,24 @@
         "enemies": [
           39,
           39,
-          25,
-          25
+          38,
+          38
         ]
       },
       {
         "weight": 4,
         "enemies": [
-          42,
-          42,
-          42
+          49,
+          49
         ]
       },
       {
         "weight": 2,
         "enemies": [
-          42,
-          42
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          42,
-          42,
+          49,
+          39,
           39,
           39
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          40,
-          40,
-          40
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          40,
-          40
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          40,
-          40,
-          42,
-          42
         ]
       },
       {
@@ -2626,9 +4067,421 @@
         "weight": 2,
         "enemies": [
           50,
-          40,
-          40,
-          40
+          49,
+          49
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          41,
+          41
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          41,
+          50,
+          50
+        ]
+      }
+    ]
+  },
+  {
+    "id": "gulg_volcano",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          59,
+          59,
+          59
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          59,
+          59
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          52,
+          52,
+          52
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          52,
+          52
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          52,
+          52,
+          59,
+          59
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          63,
+          63
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          63,
+          52,
+          52,
+          52
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          61,
+          61
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          61,
+          63,
+          63
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          65,
+          65
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          65,
+          61,
+          61
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          51,
+          51
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          51,
+          65,
+          65
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          60,
+          60
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          60,
+          51,
+          51
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          62,
+          62
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          62,
+          60,
+          60
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          64
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          64,
+          62,
+          62
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          66
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          66,
+          64
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ice_cavern",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          35,
+          35,
+          35
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          35,
+          35
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          69,
+          69,
+          69
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          69,
+          69
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          69,
+          69,
+          35,
+          35
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          44,
+          44,
+          44
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          44,
+          44
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          44,
+          44,
+          69,
+          69
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          70,
+          70,
+          70
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          70,
+          70
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          70,
+          70,
+          44,
+          44
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          99,
+          99
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          99,
+          70,
+          70,
+          70
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          68,
+          68
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          68,
+          99,
+          99
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          71,
+          71
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          71,
+          68,
+          68
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          75
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          75,
+          71,
+          71
+        ]
+      }
+    ]
+  },
+  {
+    "id": "waterfall_cavern",
+    "formations": [
+      {
+        "weight": 4,
+        "enemies": [
+          99,
+          99
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          86,
+          86
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          86,
+          99,
+          99
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          113,
+          113
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          113,
+          86,
+          86
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          104,
+          104
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          104,
+          113,
+          113
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          92
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          92,
+          104,
+          104
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
+          75
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          75,
+          92
         ]
       }
     ]
@@ -2860,199 +4713,6 @@
     ]
   },
   {
-    "id": "lufenia_area",
-    "formations": [
-      {
-        "weight": 4,
-        "enemies": [
-          69,
-          69,
-          69
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          69,
-          69
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          42,
-          42,
-          42
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          42,
-          42
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          42,
-          42,
-          69,
-          69
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          40,
-          40,
-          40
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          40,
-          40
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          40,
-          40,
-          42,
-          42
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          86,
-          86
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          86,
-          40,
-          40,
-          40
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          78,
-          78
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          78,
-          86,
-          86
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          83
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          83,
-          78,
-          78
-        ]
-      }
-    ]
-  },
-  {
-    "id": "mirage_outside",
-    "formations": [
-      {
-        "weight": 4,
-        "enemies": [
-          78,
-          78
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          81,
-          81
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          81,
-          78,
-          78
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          76
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          76,
-          81,
-          81
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          85
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          85,
-          76
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          83
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          83,
-          85
-        ]
-      },
-      {
-        "weight": 4,
-        "enemies": [
-          103
-        ]
-      },
-      {
-        "weight": 2,
-        "enemies": [
-          103,
-          83
-        ]
-      }
-    ]
-  },
-  {
     "id": "mirage_tower",
     "formations": [
       {
@@ -3209,6 +4869,21 @@
       {
         "weight": 4,
         "enemies": [
+          54,
+          54
+        ]
+      },
+      {
+        "weight": 2,
+        "enemies": [
+          54,
+          87,
+          87
+        ]
+      },
+      {
+        "weight": 4,
+        "enemies": [
           78,
           78
         ]
@@ -3217,8 +4892,8 @@
         "weight": 2,
         "enemies": [
           78,
-          87,
-          87
+          54,
+          54
         ]
       },
       {
@@ -4067,7 +5742,6 @@
       {
         "weight": 4,
         "enemies": [
-          82,
           82
         ]
       },
@@ -4089,7 +5763,6 @@
         "weight": 2,
         "enemies": [
           105,
-          82,
           82
         ]
       },

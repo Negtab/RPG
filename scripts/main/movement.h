@@ -35,6 +35,7 @@ struct Prop {
 };
 
 struct Portal {
+    std::string name;                         // как объект назван в Tiled: город или пещера, ориентир для встреч
     int x = 0, y = 0;
     std::string targetMap;
     int targetX = 0, targetY = 0;

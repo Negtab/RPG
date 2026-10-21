@@ -202,6 +202,7 @@ MapData loadMap(const std::string& path)
             for (const auto& o : L.at("objects"))
             {
                 Portal p;
+                p.name = o.value("name", std::string{});
                 p.x = cellOf(o.value("x", 0.0), tw);
                 p.y = cellOf(o.value("y", 0.0), th);
                 p.targetMap = prop<std::string>(o, "targetMap", "");
