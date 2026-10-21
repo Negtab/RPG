@@ -2,6 +2,7 @@
 #define PROJECT_NAME_GAME_H
 
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <optional>
 #include <vector>
@@ -127,6 +128,10 @@ class Game {
 
         [[nodiscard]] const MapData& getMap() const { return *currentMap; }
 
+        // ── Переход между картами: затемнение, смена, осветление ──
+        [[nodiscard]] float getFadeAlpha() const;     // 0 — ничего, 1 — экран чёрный
+        void startTransition(std::function<void()> change);   // change вызывается в самый тёмный момент
+
         // ── Транспорт ──
         void vehicleAction();                         // E на карте: посадить дирижабль
         [[nodiscard]] bool canLandAirship() const;
@@ -152,7 +157,17 @@ class Game {
         float playSeconds = 0.0f;                     // время игры текущего прохождения
         int latestSaveSlot = -1;                      // самый свежий слот для «Continue», -1 — сохранений нет
         bool applyMapChange(int mapId, int x, int y);
-        void followPortal(const Portal& portal);
+        void followPortal(const Portal& portal, Point from);
+        void exitBack();                              // шаг за край карты с exit = "back"
+        [[nodiscard]] const MapData* mapByName(const std::string& name) const;
+        [[nodiscard]] const MapData* mapWithEntrance(const std::string& portalName) const;
+        enum class Fade { None, Out, In };
+        Fade fadePhase = Fade::None;
+        float fadeT = 0.0f;                           // 0..1 внутри фазы
+        std::function<void()> fadeChange;
+        void updateFade(float dt);
+        struct ReturnPoint { int mapId; Point cell; };
+        std::vector<ReturnPoint> returnStack;         // откуда пришли: выход из города или дома ведёт сюда
         void sendMapChange(int mapId, int x, int y);
         void gatherPartyAtHost();
 
@@ -168,6 +183,8 @@ class Game {
         void onStepFinished(Point from);
         bool updateVehicleAfterStep(Point from);     // посадка и высадка; true, если что-то сменилось
         void computeWater(MapData& m);
+        void findRivers(MapData& m);                  // узкая вода вдали от моря — реки для каноэ
+        [[nodiscard]] std::string battleBackground(const Zone* zone, const std::string& group) const;
         void resetVehicles();                         // транспорт на стоянки: маркеры Tiled или ближайшее подходящее место
         void parkVehicle(Point at, uint16_t mapId);   // слезть с транспорта, оставив его в клетке at
         Point stepFrom{};                             // откуда начался текущий шаг: туда ставим корабль при высадке

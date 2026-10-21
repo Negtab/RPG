@@ -2922,7 +2922,8 @@
           11
         ]
       }
-    ]
+    ],
+    "background": "Ruins"
   },
   {
     "id": "marsh_cave_b1",
@@ -3174,7 +3175,8 @@
           28
         ]
       }
-    ]
+    ],
+    "background": "GreenCave"
   },
   {
     "id": "marsh_cave_b2",
@@ -3500,7 +3502,8 @@
           29
         ]
       }
-    ]
+    ],
+    "background": "GreenCave"
   },
   {
     "id": "marsh_cave_b3",
@@ -3774,7 +3777,8 @@
           29
         ]
       }
-    ]
+    ],
+    "background": "GreenCave"
   },
   {
     "id": "earth_cave",
@@ -4086,7 +4090,8 @@
           50
         ]
       }
-    ]
+    ],
+    "background": "Cave"
   },
   {
     "id": "gulg_volcano",
@@ -4248,7 +4253,8 @@
           64
         ]
       }
-    ]
+    ],
+    "background": "Lava"
   },
   {
     "id": "ice_cavern",
@@ -4400,7 +4406,8 @@
           71
         ]
       }
-    ]
+    ],
+    "background": "IceCave"
   },
   {
     "id": "waterfall_cavern",
@@ -4484,7 +4491,8 @@
           92
         ]
       }
-    ]
+    ],
+    "background": "Waterfall"
   },
   {
     "id": "sea_shrine",
@@ -4710,7 +4718,8 @@
           94
         ]
       }
-    ]
+    ],
+    "background": "SunkenRuins"
   },
   {
     "id": "mirage_tower",
@@ -5013,7 +5022,8 @@
           105
         ]
       }
-    ]
+    ],
+    "background": "DesertTemple"
   },
   {
     "id": "flying_fortress",
@@ -5344,7 +5354,8 @@
           111
         ]
       }
-    ]
+    ],
+    "background": "GreenHall"
   },
   {
     "id": "chaos_shrine_past",
@@ -5935,6 +5946,7 @@
           120
         ]
       }
-    ]
+    ],
+    "background": "Space"
   }
 ]

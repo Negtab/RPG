@@ -62,6 +62,8 @@ def main():
             group["near"] = area["near"]
         if area.get("terrain", "land") != "land":
             group["terrain"] = area["terrain"]
+        if area.get("background"):
+            group["background"] = area["background"]
         result.append(group)
 
     with open(args.out, "w", encoding="utf-8") as f:

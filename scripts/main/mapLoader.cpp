@@ -123,6 +123,8 @@ MapData loadMap(const std::string& path)
         else throw std::runtime_error("map property 'mapId' (int) is missing");
     }
     if (m.mapId > 65535) throw std::runtime_error("mapId must be 0..65535");
+    m.exitMode = prop<std::string>(j, "exit", "");
+    m.entrance = prop<std::string>(j, "entrance", "");
 
     bool haveSpawn = false;
 
@@ -164,6 +166,7 @@ MapData loadMap(const std::string& path)
                 z.enemies       = parseList(prop<std::string>(o, "enemies", ""));
                 z.encounter = prop<std::string>(o, "encounter", "");
                 z.river     = prop<bool>(o, "river", false);   // по воде здесь ходит каноэ
+                z.background = prop<std::string>(o, "background", "");
                 m.zones.push_back(std::move(z));
             }
         }
@@ -203,11 +206,15 @@ MapData loadMap(const std::string& path)
             {
                 Portal p;
                 p.name = o.value("name", std::string{});
-                p.x = cellOf(o.value("x", 0.0), tw);
-                p.y = cellOf(o.value("y", 0.0), th);
+                const double px = o.value("x", 0.0), py = o.value("y", 0.0);
+                p.x = cellOf(px, tw);
+                p.y = cellOf(py, th);
+                p.w = std::max(1, static_cast<int>(std::ceil((px + o.value("width", 0.0)) / tw)) - p.x);
+                p.h = std::max(1, static_cast<int>(std::ceil((py + o.value("height", 0.0)) / th)) - p.y);
                 p.targetMap = prop<std::string>(o, "targetMap", "");
-                p.targetX   = prop<int>(o, "targetX", 0);
-                p.targetY   = prop<int>(o, "targetY", 0);
+                p.targetX   = prop<int>(o, "targetX", -1);
+                p.targetY   = prop<int>(o, "targetY", -1);
+                p.hasTargetCell = p.targetX >= 0 && p.targetY >= 0;
                 m.portals.push_back(std::move(p));
             }
         }

@@ -49,6 +49,7 @@ struct EncounterGroup
     int totalWeight = 0;
     std::vector<std::string> landmarks;     // порталы карты мира, у которых группа водится ("near" в JSON; near — макрос Windows)
     std::string terrain = "land";           // land, sea (корабль) или river (каноэ)
+    std::string background;                 // задник боя для этой группы (подземелья), пусто — по местности
 };
 
 // Слой боевого эффекта: покадровый лист или одна картинка, которая растёт и гаснет (см. effects.json)
@@ -110,6 +111,7 @@ public:
     [[nodiscard]] std::vector<int> pickFormation(const std::string& id) const;   // пусто, если группы нет
     // Группа для места без зоны Tiled: по ближайшему порталу и тому, на чём едет отряд. "" — такой нет
     [[nodiscard]] std::string groupNear(const std::string& landmark, const std::string& terrain) const;
+    [[nodiscard]] std::string groupBackground(const std::string& id) const;
 
 private:
     void loadSkills(const std::filesystem::path& path);

@@ -120,6 +120,7 @@ public:
     [[nodiscard]] UIChooseState getState() const;
 
     void showBattleResults(const BattleReport& r);
+    void setBattleBackground(const std::string& name);         // BB<name>.png; нет такого — прежний
 
     // ── Боевые эффекты (effects.json) ───────────────────
     void playEffect(const std::string& id, SDL_Point center, float delay = 0.0f);

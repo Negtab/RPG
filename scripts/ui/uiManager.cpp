@@ -663,6 +663,9 @@ void UIManager::drawScene(const std::string &sceneId)
 
     if (sceneId == "Map" && game.minimapEnabled())
         drawMinimap();                                // поверх интерфейса карты
+    if (sceneId == "Map")
+        if (const float a = game.getFadeAlpha(); a > 0.0f)      // переход через портал: затемнение поверх всего
+            visualizer.fillRect(screen, {0, 0, 0, static_cast<Uint8>(255 * a)});
     if (sceneId == "GameMenu")
         drawGameMenu();
     if (sceneId == "Options")
@@ -1836,6 +1839,14 @@ void UIManager::showBattleResults(const BattleReport& r)
     closeList();
     uiState = UIChooseState::ChooseAction;
     setEnVI("ResultPanel", "Battle", true);
+}
+
+void UIManager::setBattleBackground(const std::string& name)
+{
+    SDL_Texture* tex = ResourceManager::getTexture("BB" + name);
+    if (!tex) tex = ResourceManager::getTexture("BBPlains");
+    if (!tex) tex = ResourceManager::getTexture("BattleImage0");
+    setTexture("BattleBackground", "Battle", tex);
 }
 
 void UIManager::hideBattleResults()

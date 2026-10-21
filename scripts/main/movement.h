@@ -21,6 +21,7 @@ struct Zone {
     std::string encounter;// % на шаг
     std::vector<int> enemies;
     bool river = false;                       // по воде в этой зоне ходит каноэ, а не корабль
+    std::string background;                   // задник боя в зоне (BB<имя>.png); пусто — по местности
 };
 
 // Объект поверх картинки карты: замок, башня, мост. Ставится в Tiled тайлом из props.tsx
@@ -37,8 +38,10 @@ struct Prop {
 struct Portal {
     std::string name;                         // как объект назван в Tiled: город или пещера, ориентир для встреч
     int x = 0, y = 0;
-    std::string targetMap;
+    int w = 1, h = 1;                         // прямоугольник в клетках: вход шириной в несколько клеток
+    std::string targetMap;                    // пусто — карта, у которой свойство entrance = name
     int targetX = 0, targetY = 0;
+    bool hasTargetCell = false;               // нет targetX/targetY — на spawn целевой карты
 };
 
 struct MapData {
@@ -51,6 +54,10 @@ struct MapData {
     std::vector<Zone> zones;
     std::vector<Portal> portals;
     std::vector<uint8_t> water;                        // w*h, 1 = клетка хотя бы наполовину вода (считается по картинке)
+    std::vector<uint8_t> terrain;                      // w*h, Terrain из terrain.h — по цвету картинки
+    std::vector<uint8_t> river;                        // w*h, 1 = узкая вода далеко от моря: по ней ходит каноэ
+    std::string exitMode;                              // "back": шаг за край карты — обратно, откуда пришли
+    std::string entrance;                              // имя портала карты мира, который ведёт на эту карту
     std::vector<Prop> props;
     std::array<std::optional<Point>, kVehicleKinds> vehicleMarkers;   // маркеры canoe, ship, airship из Tiled
 
@@ -70,7 +77,12 @@ struct MapData {
         return nullptr;
     }
     [[nodiscard]] const Portal* portalAt(int x, int y) const {
-        for (const auto& p : portals) if (p.x == x && p.y == y) return &p;
+        for (const auto& p : portals)
+            if (x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h) return &p;
+        return nullptr;
+    }
+    [[nodiscard]] const Portal* portalNamed(const std::string& n) const {
+        for (const auto& p : portals) if (p.name == n) return &p;
         return nullptr;
     }
     [[nodiscard]] bool inside(int x, int y) const { return x >= 0 && y >= 0 && x < w && y < h; }
@@ -78,13 +90,18 @@ struct MapData {
         return inside(x, y) && !water.empty() && water[static_cast<size_t>(y) * w + x];
     }
     [[nodiscard]] bool isRiver(int x, int y) const {
+        if (inside(x, y) && !river.empty() && river[static_cast<size_t>(y) * w + x]) return true;
         for (const auto& z : zones)
             if (z.river && x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1) return true;
         return false;
     }
     [[nodiscard]] bool hasRivers() const {
+        for (uint8_t r : river) if (r) return true;
         for (const auto& z : zones) if (z.river) return true;
         return false;
+    }
+    [[nodiscard]] uint8_t terrainAt(int x, int y) const {
+        return inside(x, y) && !terrain.empty() ? terrain[static_cast<size_t>(y) * w + x] : 0;
     }
 
     // Проходимость под объектами. Вызывать после того, как посчитана вода: мост убирает её под собой
