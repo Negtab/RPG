@@ -68,6 +68,7 @@ struct Skill
     Elemental element{Elemental::Physical};
 
     int32_t power{0};
+    std::string effect;                                     // боевой эффект из effects.json; пусто — по стихии и типу
 };
 
 enum class ItemEffectType
@@ -111,6 +112,9 @@ struct Item
     int32_t attack{0}, defence{0}, agility{0};
     std::vector<SpecializationNames> classes;              // кто может надеть; пусто — все
     int startCount{0};                                     // сколько выдаётся в новой игре
+    std::string effect;                                    // боевой эффект при применении (effects.json)
+    std::string hitEffect;                                 // оружие: эффект попадания по врагу
+    int swing{-1};                                         // оружие: замах SwingNN.png, -1 — без замаха (лук)
 
     [[nodiscard]] bool isEquipment() const { return slot != EquipSlot::None; }
     [[nodiscard]] bool canEquip(SpecializationNames c) const

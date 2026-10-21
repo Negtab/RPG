@@ -142,6 +142,7 @@ void GameData::loadAll(const fs::path& dir)
     loadEncounters(dir / "encounters.json");     // после врагов: формации ссылаются на их id
     loadHeroes(dir / "heroes.json");
     loadDrops(dir / "drops.json");
+    loadEffects(dir / "effects.json");
 }
 
 void GameData::loadSkills(const fs::path& path)
@@ -158,6 +159,7 @@ void GameData::loadSkills(const fs::path& path)
         s.element     = e.contains("element") ? getEnum(e, "element", kElementals) : Elemental::Physical;
         s.power       = getInt(e, "power", 0, 1000000);
         s.isDamaging  = s.effectType == SkillEffectType::Damage;
+        s.effect      = e.value("effect", std::string{});
         if (!skillMap.emplace(s.id, s).second)
             throw runtime_error("duplicate skill id " + std::to_string(s.id));
     });
@@ -186,6 +188,9 @@ void GameData::loadItems(const fs::path& path)
                     it.classes.push_back(parseEnum(c.get<std::string>(), kClasses, "classes"));
         }
         it.startCount = getIntOr(e, "start", 0, 99, 0);
+        it.effect     = e.value("effect", std::string{});
+        it.hitEffect  = e.value("hitEffect", std::string{});
+        it.swing      = getIntOr(e, "swing", -1, 999, -1);
         if (!itemMap.emplace(it.id, it).second)
             throw runtime_error("duplicate item id " + std::to_string(it.id));
     });
@@ -349,6 +354,50 @@ void GameData::loadDrops(const fs::path& path)
             list.push_back(drop);
         }
     });
+}
+
+void GameData::loadEffects(const fs::path& path)
+{
+    effectMap.clear();
+    if (!fs::exists(path)) return;                               // без эффектов бой просто тише
+    forEachEntry(path, [&](const json& e) {
+        EffectDef d;
+        d.id = e.at("id").get<std::string>();
+        for (const auto& l : e.at("layers"))
+        {
+            EffectLayer L;
+            L.sheet    = l.at("sheet").get<std::string>();
+            L.cols     = getIntOr(l, "cols", 1, 64, 1);
+            L.rows     = getIntOr(l, "rows", 1, 64, 1);
+            L.frames   = getIntOr(l, "frames", 1, L.cols * L.rows, 1);
+            L.fps      = l.value("fps", 12.0f);
+            L.duration = l.value("duration", 0.4f);
+            L.delay    = l.value("delay", 0.0f);
+            L.scale    = l.value("scale", 1.0f);
+            L.scaleEnd = l.value("scaleEnd", -1.0f);
+            L.angle    = l.value("angle", 0.0f);
+            L.dx       = l.value("dx", 0);
+            L.dy       = l.value("dy", 0);
+            L.add      = l.value("add", true);
+            L.fade     = l.value("fade", false);
+            if (l.contains("color"))
+            {
+                const auto& c = l.at("color");
+                if (!c.is_array() || c.size() != 3) throw runtime_error("'color' must be [r, g, b]");
+                L.color = {static_cast<Uint8>(c[0].get<int>()), static_cast<Uint8>(c[1].get<int>()),
+                           static_cast<Uint8>(c[2].get<int>()), 255};
+            }
+            if (L.fps <= 0.0f || L.duration <= 0.0f) throw runtime_error("'fps' and 'duration' must be positive");
+            d.layers.push_back(std::move(L));
+        }
+        if (!effectMap.emplace(d.id, d).second) throw runtime_error("duplicate effect '" + d.id + "'");
+    });
+}
+
+const EffectDef* GameData::effect(const std::string& id) const
+{
+    const auto it = effectMap.find(id);
+    return it != effectMap.end() ? &it->second : nullptr;
 }
 
 const std::vector<Drop>& GameData::drops(int enemyId) const

@@ -16,6 +16,7 @@
 #include "core/Scene.h"
 #include "animation/animPlayer.h"
 #include "../main/mapRenderer.h"
+#include "../gameLogic/gameData.h"
 
 
 
@@ -119,6 +120,13 @@ public:
     [[nodiscard]] UIChooseState getState() const;
 
     void showBattleResults(const BattleReport& r);
+
+    // ── Боевые эффекты (effects.json) ───────────────────
+    void playEffect(const std::string& id, SDL_Point center, float delay = 0.0f);
+    void playEffectOn(const std::string& id, bool onHero, uint32_t owner, int index, float delay = 0.0f);
+    void playSwing(int swing, const std::string& heroImageId, float delay = 0.0f);   // замах SwingNN у руки героя
+    [[nodiscard]] static std::string effectForSkill(const Skill& skill);
+    [[nodiscard]] static std::string effectForItem(const Item& item);
     void hideBattleResults();
 
     void resetPartyCreation();
@@ -177,7 +185,12 @@ private:
     [[nodiscard]] SDL_Rect selectedTargetRect() const;
 
     // ── Поверх сцены боя: указатели, имя цели, всплывающие числа ──
-    struct Popup { int x, y; std::string text; SDL_Color color; Uint32 start; };
+    struct Popup { int x, y; std::string text; SDL_Color color; Uint32 start; };   // start может быть в будущем
+    struct FxInstance { EffectLayer layer; SDL_Texture* tex; SDL_Point at; Uint32 start; };
+    std::vector<FxInstance> fx;
+    void drawEffects();
+    [[nodiscard]] SDL_Rect battlerRect(bool onHero, uint32_t owner, int index) const;
+    [[nodiscard]] const FxInstance* recentEffectAt(SDL_Point p) const;   // эффект, только что запущенный здесь
     void drawBattleOverlay();
     void drawPointer(int x, int y, int scale) const;          // белая стрелка вправо, (x, y) — её острие
     void drawOutlinedText(const std::string& text, int x, int y, SDL_Color color, Uint8 alpha) const;

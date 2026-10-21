@@ -1,23 +1,23 @@
 [
   // Расходники. "start" — сколько отряд получает в новой игре
-  { "id": 1, "name": "Health Potion", "cost": 5,  "power": 15, "consumable": true, "effectType": "Heal",        "targetType": "Self", "start": 3 },
-  { "id": 2, "name": "Mana Potion",   "cost": 5,  "power": 20, "consumable": true, "effectType": "RestoreMana", "targetType": "Self", "start": 2 },
-  { "id": 3, "name": "Bomb",          "cost": 10, "power": 25, "consumable": true, "effectType": "Damage",      "targetType": "Enemy" },
-  { "id": 4, "name": "Attack Scroll", "cost": 8,  "power": 10, "consumable": true, "effectType": "Buff",        "targetType": "Self"  },
-  { "id": 5, "name": "Weaken Scroll", "cost": 8,  "power": 10, "consumable": true, "effectType": "Debuff",      "targetType": "Enemy" },
+  { "id": 1, "name": "Health Potion", "cost": 5,  "power": 15, "consumable": true, "effectType": "Heal",        "targetType": "Self", "start": 3, "effect": "heal" },
+  { "id": 2, "name": "Mana Potion",   "cost": 5,  "power": 20, "consumable": true, "effectType": "RestoreMana", "targetType": "Self", "start": 2, "effect": "mana" },
+  { "id": 3, "name": "Bomb",          "cost": 10, "power": 25, "consumable": true, "effectType": "Damage",      "targetType": "Enemy", "effect": "fire" },
+  { "id": 4, "name": "Attack Scroll", "cost": 8,  "power": 10, "consumable": true, "effectType": "Buff",        "targetType": "Self",  "effect": "buff" },
+  { "id": 5, "name": "Weaken Scroll", "cost": 8,  "power": 10, "consumable": true, "effectType": "Debuff",      "targetType": "Enemy", "effect": "debuff" },
 
   // Экипировка: "slot" — Weapon, Shield, Head, Body или Arms; "classes" — кто может надеть (нет поля — все)
   // Оружие
-  { "id": 101, "name": "Knife",          "cost": 5,   "slot": "Weapon", "attack": 5 },
-  { "id": 102, "name": "Dagger",         "cost": 20,  "slot": "Weapon", "attack": 8,  "classes": ["Warrior", "Thief", "Archer"] },
-  { "id": 103, "name": "Rapier",         "cost": 50,  "slot": "Weapon", "attack": 12, "classes": ["Warrior", "Thief"] },
-  { "id": 104, "name": "Long Sword",     "cost": 150, "slot": "Weapon", "attack": 18, "classes": ["Warrior"] },
-  { "id": 105, "name": "Mythril Sword",  "cost": 500, "slot": "Weapon", "attack": 26, "classes": ["Warrior", "Thief"] },
-  { "id": 106, "name": "Short Bow",      "cost": 40,  "slot": "Weapon", "attack": 10, "classes": ["Archer"] },
-  { "id": 107, "name": "Long Bow",       "cost": 150, "slot": "Weapon", "attack": 18, "classes": ["Archer"] },
-  { "id": 108, "name": "Mythril Bow",    "cost": 500, "slot": "Weapon", "attack": 26, "agility": 2, "classes": ["Archer"] },
-  { "id": 109, "name": "Staff",          "cost": 10,  "slot": "Weapon", "attack": 4,  "classes": ["Magician"] },
-  { "id": 110, "name": "Rod",            "cost": 120, "slot": "Weapon", "attack": 7,  "agility": 1, "classes": ["Magician"] },
+  { "id": 101, "name": "Knife",          "cost": 5,   "slot": "Weapon", "attack": 5, "swing": 9, "hitEffect": "slash" },
+  { "id": 102, "name": "Dagger",         "cost": 20,  "slot": "Weapon", "attack": 8,  "classes": ["Warrior", "Thief", "Archer"], "swing": 7, "hitEffect": "slash" },
+  { "id": 103, "name": "Rapier",         "cost": 50,  "slot": "Weapon", "attack": 12, "classes": ["Warrior", "Thief"], "swing": 8, "hitEffect": "slash" },
+  { "id": 104, "name": "Long Sword",     "cost": 150, "slot": "Weapon", "attack": 18, "classes": ["Warrior"], "swing": 22, "hitEffect": "slash" },
+  { "id": 105, "name": "Mythril Sword",  "cost": 500, "slot": "Weapon", "attack": 26, "classes": ["Warrior", "Thief"], "swing": 23, "hitEffect": "slash" },
+  { "id": 106, "name": "Short Bow",      "cost": 40,  "slot": "Weapon", "attack": 10, "classes": ["Archer"], "hitEffect": "hit" },
+  { "id": 107, "name": "Long Bow",       "cost": 150, "slot": "Weapon", "attack": 18, "classes": ["Archer"], "hitEffect": "hit" },
+  { "id": 108, "name": "Mythril Bow",    "cost": 500, "slot": "Weapon", "attack": 26, "agility": 2, "classes": ["Archer"], "hitEffect": "hit" },
+  { "id": 109, "name": "Staff",          "cost": 10,  "slot": "Weapon", "attack": 4,  "classes": ["Magician"], "swing": 16, "hitEffect": "blunt" },
+  { "id": 110, "name": "Rod",            "cost": 120, "slot": "Weapon", "attack": 7,  "agility": 1, "classes": ["Magician"], "swing": 20, "hitEffect": "blunt" },
 
   // Щиты
   { "id": 121, "name": "Buckler",        "cost": 25,  "slot": "Shield", "defence": 3,  "classes": ["Warrior", "Thief", "Archer"] },

@@ -226,7 +226,8 @@ bool UIManager::isAnimationFinished(const std::string &sceneId) const
     auto it = scenes.find(sceneId);
     if (it == scenes.end()) return true;
     const AnimPlayer &p = it->second.animPlayer;
-    return p.currentAnimationId.empty() && p.animationQueue.empty();
+    const bool effectsDone = sceneId != "Battle" || fx.empty();      // ход ждёт, пока доиграют удары и заклинания
+    return p.currentAnimationId.empty() && p.animationQueue.empty() && effectsDone;
 }
 
 // ─────────────────────────────────────────
@@ -903,6 +904,7 @@ void UIManager::addEnemys()
                        ? ResourceManager::getTexture(enemies[i].getTextureName()) : nullptr);
     layoutBattle();                            // сначала враги, потому что addCharacters использует позиции героев
     resetHpTracking();                         // новый бой: первый кадр только запоминает HP
+    fx.clear();
     closeList();
     uiState = UIChooseState::ChooseAction;
 }
@@ -1282,10 +1284,163 @@ void UIManager::trackHp(int& last, int hp, const SDL_Rect& slot)
         const int x = slot.x + slot.w / 2;
         int y = slot.y + slot.h / 3;
         for (const auto& p : popups)                         // два удара подряд по одной цели: второе число выше
-            if (p.x == x && SDL_GetTicks() - p.start < 400) y = std::min(y, p.y - 22);
-        popups.push_back({x, y, std::to_string(std::abs(delta)), c, SDL_GetTicks()});
+            if (p.x == x && static_cast<int>(SDL_GetTicks() - p.start) < 400) y = std::min(y, p.y - 22);
+
+        // Свой эффект запускает бой (удар оружием, заклинание). Если его нет — например, у клиента в коопе,
+        // которому HP пришли снапшотом, — хотя бы общий удар или лечение
+        const SDL_Point center{slot.x + slot.w / 2, slot.y + slot.h / 2};
+        Uint32 when = SDL_GetTicks();
+        if (const FxInstance* e = recentEffectAt(center))
+            when = e->start + static_cast<Uint32>(e->layer.delay * 1000.0f);   // число вместе с попаданием
+        else
+            playEffect(delta < 0 ? "hit" : "heal", center);
+        popups.push_back({x, y, std::to_string(std::abs(delta)), c, when});
     }
     last = hp;
+}
+
+// ─────────────────────────────────────────
+// Боевые эффекты
+// ─────────────────────────────────────────
+
+void UIManager::playEffect(const std::string& id, SDL_Point center, float delay)
+{
+    const EffectDef* def = GameData::instance().effect(id);
+    if (!def) return;
+    const Uint32 now = SDL_GetTicks();
+    for (EffectLayer layer : def->layers)
+    {
+        SDL_Texture* tex = ResourceManager::getTexture(layer.sheet);
+        if (!tex) continue;
+        layer.delay += delay;
+        fx.push_back({layer, tex, center, now});
+    }
+}
+
+SDL_Rect UIManager::battlerRect(bool onHero, uint32_t owner, int index) const
+{
+    if (index < 0 || index > 3) return {};
+    if (!onHero) return enemySlotRect[index];
+    if (owner == game.localPlayerId) return heroSlotRect[index];
+
+    int slot = 0;                                            // герои напарников идут подряд, как в updateBattleData
+    for (const auto& [id, remote] : game.getRemotePlayers())
+    {
+        if (!game.getBattle()->isParticipant(id)) continue;
+        if (id == owner) return slot + index < 4 ? remoteSlotRect[slot + index] : SDL_Rect{};
+        slot += static_cast<int>(remote.getHeroes().size());
+    }
+    return {};
+}
+
+void UIManager::playEffectOn(const std::string& id, bool onHero, uint32_t owner, int index, float delay)
+{
+    const SDL_Rect r = battlerRect(onHero, owner, index);
+    if (r.w > 0) playEffect(id, {r.x + r.w / 2, r.y + r.h / 2}, delay);
+}
+
+void UIManager::playSwing(int swing, const std::string& heroImageId, float delay)
+{
+    if (swing < 0) return;
+    char name[16];
+    std::snprintf(name, sizeof(name), "Swing%02d", swing);
+    SDL_Texture* tex = ResourceManager::getTexture(name);
+    if (!tex) return;
+
+    // Оружие у передней руки героя. Числа — в пикселях кадра героя 32x32 (на экране умножаются на PIXEL_SCALE):
+    // рука около (11, 14), а на замахе герой ещё шагнул влево примерно на 12 px
+    constexpr int kHandX = 11 - 12, kHandY = 14;
+    constexpr float kSwingScale = 0.8f;                      // замах чуть меньше героя
+    const SDL_Rect r = getRect(heroImageId, "Battle");
+    const int S = PIXEL_SCALE;
+    const SDL_Point hand{r.x + kHandX * S, r.y + r.h - kHeroFrame * S + kHandY * S};
+
+    EffectLayer layer;
+    layer.sheet = name;
+    layer.cols = 4;
+    layer.frames = 4;
+    layer.fps = 14.0f;
+    layer.scale = S * kSwingScale;
+    layer.add = false;
+    layer.delay = delay;
+    fx.push_back({layer, tex, hand, SDL_GetTicks()});
+}
+
+const UIManager::FxInstance* UIManager::recentEffectAt(SDL_Point p) const
+{
+    const Uint32 now = SDL_GetTicks();
+    for (auto it = fx.rbegin(); it != fx.rend(); ++it)
+        if (now - it->start < 150 && std::abs(it->at.x - p.x) < 40 && std::abs(it->at.y - p.y) < 40)
+            return &*it;
+    return nullptr;
+}
+
+void UIManager::drawEffects()
+{
+    SDL_Renderer* rr = visualizer.getRenderer();
+    const Uint32 now = SDL_GetTicks();
+    std::erase_if(fx, [&](const FxInstance& f) {
+        return static_cast<float>(now - f.start) / 1000.0f - f.layer.delay >= f.layer.length();
+    });
+
+    for (const FxInstance& f : fx)
+    {
+        const EffectLayer& L = f.layer;
+        const float age = static_cast<float>(now - f.start) / 1000.0f - L.delay;
+        if (age < 0.0f) continue;
+        const float t = std::clamp(age / L.length(), 0.0f, 1.0f);
+
+        int tw = 0, th = 0;
+        SDL_QueryTexture(f.tex, nullptr, nullptr, &tw, &th);
+        const int fw = tw / L.cols, fh = th / L.rows;
+        const int frame = L.frames > 1 ? std::min(L.frames - 1, static_cast<int>(age * L.fps)) : 0;
+        const SDL_Rect src{(frame % L.cols) * fw, (frame / L.cols) * fh, fw, fh};
+
+        const float scale = L.scaleEnd < 0.0f ? L.scale : L.scale + (L.scaleEnd - L.scale) * t;
+        const int w = static_cast<int>(fw * scale), h = static_cast<int>(fh * scale);
+        const SDL_Rect dst{f.at.x + L.dx - w / 2, f.at.y + L.dy - h / 2, w, h};
+
+        SDL_SetTextureBlendMode(f.tex, L.add ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);
+        SDL_SetTextureColorMod(f.tex, L.color.r, L.color.g, L.color.b);
+        SDL_SetTextureAlphaMod(f.tex, L.fade ? static_cast<Uint8>(255 * (1.0f - t)) : 255);
+        SDL_RenderCopyEx(rr, f.tex, &src, &dst, L.angle, nullptr, SDL_FLIP_NONE);
+        SDL_SetTextureColorMod(f.tex, 255, 255, 255);      // текстуры общие: возвращаем как было
+        SDL_SetTextureAlphaMod(f.tex, 255);
+    }
+}
+
+std::string UIManager::effectForSkill(const Skill& skill)
+{
+    if (!skill.effect.empty()) return skill.effect;
+    switch (skill.effectType)
+    {
+        case SkillEffectType::Heal:   return "heal";
+        case SkillEffectType::Buff:   return "buff";
+        case SkillEffectType::Debuff: return "debuff";
+        default: break;
+    }
+    switch (skill.element)
+    {
+        case Elemental::Fire: case Elemental::Lava:  return "fire";
+        case Elemental::Lightning: case Elemental::Air: return "thunder";
+        case Elemental::Ice: case Elemental::Water:  return "ice";
+        case Elemental::Poison:                      return "poison";
+        default:                                     return "slash";
+    }
+}
+
+std::string UIManager::effectForItem(const Item& item)
+{
+    if (!item.effect.empty()) return item.effect;
+    switch (item.effectType)
+    {
+        case ItemEffectType::Heal:        return "heal";
+        case ItemEffectType::RestoreMana: return "mana";
+        case ItemEffectType::Damage:      return "fire";
+        case ItemEffectType::Buff:        return "buff";
+        case ItemEffectType::Debuff:      return "debuff";
+        default:                          return "hit";
+    }
 }
 
 void UIManager::drawBattleOverlay()
@@ -1328,12 +1483,15 @@ void UIManager::drawBattleOverlay()
     else if (uiState == UIChooseState::ChooseAction && game.getBattle()->isPlayerChoosing())
         for (const char* id : {"AttackButton", "ItemsButton", "MagicButton", "Run"}) pointAt(id);
 
-    // Всплывающие числа: подскок вверх, пауза, затухание
-    constexpr Uint32 kRise = 250, kLife = 1100, kFade = 300;
-    std::erase_if(popups, [&](const Popup& p) { return now - p.start >= kLife; });
+    drawEffects();
+
+    // Всплывающие числа: подскок вверх, пауза, затухание. Старт может быть отложен до попадания
+    constexpr int kRise = 250, kLife = 1100, kFade = 300;
+    std::erase_if(popups, [&](const Popup& p) { return static_cast<int>(now - p.start) >= kLife; });
     for (const auto& p : popups)
     {
-        const Uint32 age = now - p.start;
+        const int age = static_cast<int>(now - p.start);
+        if (age < 0) continue;
         const float rise = std::min(1.0f, static_cast<float>(age) / kRise);
         const int y = p.y - static_cast<int>(18 * std::sin(rise * kPi / 2));
         const Uint8 alpha = age < kLife - kFade ? 255

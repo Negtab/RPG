@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include <SDL_pixels.h>
 #include <SDL_rect.h>
 
 #include "../main/types.h"
@@ -50,6 +51,27 @@ struct EncounterGroup
     std::string terrain = "land";           // land, sea (корабль) или river (каноэ)
 };
 
+// Слой боевого эффекта: покадровый лист или одна картинка, которая растёт и гаснет (см. effects.json)
+struct EffectLayer
+{
+    std::string sheet;
+    int cols = 1, rows = 1, frames = 1;
+    float fps = 12.0f, duration = 0.4f, delay = 0.0f;
+    float scale = 1.0f, scaleEnd = -1.0f;   // scaleEnd < 0 — размер не меняется
+    float angle = 0.0f;
+    int dx = 0, dy = 0;
+    bool add = true, fade = false;
+    SDL_Color color{255, 255, 255, 255};
+
+    [[nodiscard]] float length() const { return frames > 1 ? frames / fps : duration; }
+};
+
+struct EffectDef
+{
+    std::string id;
+    std::vector<EffectLayer> layers;
+};
+
 struct HeroClassDef
 {
     SpecializationNames id = SpecializationNames::None;
@@ -82,6 +104,7 @@ public:
     [[nodiscard]] const std::vector<int>& enemyIds() const { return enemyIdList; }
     [[nodiscard]] const HeroClassDef* heroClass(SpecializationNames id) const;
     [[nodiscard]] const std::vector<Drop>& drops(int enemyId) const;
+    [[nodiscard]] const EffectDef* effect(const std::string& id) const;   // nullptr, если такого нет
 
     [[nodiscard]] bool hasEncounter(const std::string& id) const { return encounterMap.contains(id); }
     [[nodiscard]] std::vector<int> pickFormation(const std::string& id) const;   // пусто, если группы нет
@@ -95,6 +118,7 @@ private:
     void loadEncounters(const std::filesystem::path& path);
     void loadHeroes(const std::filesystem::path& path);
     void loadDrops(const std::filesystem::path& path);
+    void loadEffects(const std::filesystem::path& path);
 
     std::map<int, Item> itemMap;
     std::map<int, Skill> skillMap;
@@ -103,6 +127,7 @@ private:
     std::map<std::string, EncounterGroup> encounterMap;
     std::map<SpecializationNames, HeroClassDef> heroMap;
     std::map<int, std::vector<Drop>> dropMap;
+    std::map<std::string, EffectDef> effectMap;
 };
 
 #endif

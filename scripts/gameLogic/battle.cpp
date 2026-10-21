@@ -8,6 +8,15 @@
 namespace {
 // Обычный удар: атака минус половина защиты, разброс ±10%, но не меньше 1.
 // Магия и предметы защиту не учитывают, как в FF1
+// Оружие героя: замах и эффект попадания из items.json. Без оружия — кулак (Swing37) и тупой удар
+constexpr int kUnarmedSwing = 37;
+
+const Item* heroWeapon(const Game* game, const Hero& hero)
+{
+    const int id = hero.getEquipped(EquipSlot::Weapon);
+    return id ? game->findItem(id) : nullptr;
+}
+
 uint32_t physicalDamage(uint32_t attack, uint32_t defence)
 {
     const int64_t base = std::max<int64_t>(1, static_cast<int64_t>(attack) - defence / 2);
@@ -312,6 +321,16 @@ void Battle::updateExecuteActions()
         return;
     }
 
+    // Последний враг пал от предыдущего удара: остальные действия не нужны, сразу к победе
+    if (std::none_of(enemies.begin(), enemies.end(), [](const Enemy& e) { return e.getCurrentHp() > 0; }))
+    {
+        plannedActions.clear();
+        currentActionIndex = 0;
+        state = BattleState::Result;
+        if (game->isConnected()) game->sendBattleSnapshot();
+        return;
+    }
+
     const Action& action = plannedActions[currentActionIndex];
 
     Hero* actor = resolveActor(action);
@@ -342,8 +361,11 @@ void Battle::updateExecuteActions()
 
 void Battle::executeAttack(Hero& attacker, const std::vector<int>& targets)
 {
+    const Item* weapon = heroWeapon(game, attacker);
+    const std::string hit = weapon ? (weapon->hitEffect.empty() ? "hit" : weapon->hitEffect) : "blunt";
     for (int idx : targets)
     {
+        ui->playEffectOn(hit, false, 0, idx, 0.3f);               // в середине замаха
         Enemy& target = enemies[idx];
         target.takeDamage(physicalDamage(attacker.getAttackPower(nullptr), target.getDefense()));
         tryCounterAttack(attacker, target);
@@ -389,6 +411,10 @@ void Battle::executeSkill(GamePerson& caster, int skillId, const std::vector<int
         return;
 
     caster.spendMana(skill->manaCost);
+    const std::string fx = UIManager::effectForSkill(*skill);
+    const bool onHeroes = (skill->effectType == SkillEffectType::Heal) == casterIsHero;   // лечит своих, бьёт чужих
+    for (int idx : targets)
+        ui->playEffectOn(fx, onHeroes, owner, idx, 0.2f);
 
     const auto validEnemy = [&](int i) { return i >= 0 && i < static_cast<int>(enemies.size()); };
     const auto validHero  = [&](int i) { return i >= 0 && i < static_cast<int>(party->size()); };
@@ -425,6 +451,10 @@ void Battle::executeItem(Hero& /*user*/, const std::vector<int>& targets, int it
     // а чужой списывает сам владелец в confirmAction.
     const bool mine = !game->isConnected() || owner == game->localPlayerId;
     if (mine && !player->hasItem(itemId)) return;
+
+    const bool onEnemies = item->effectType == ItemEffectType::Damage || item->effectType == ItemEffectType::Debuff;
+    for (int idx : targets)
+        ui->playEffectOn(UIManager::effectForItem(*item), !onEnemies, owner, idx, 0.15f);
 
     for (int idx : targets)
     {
@@ -548,7 +578,10 @@ bool Battle::enemyBasicAttack(Enemy& enemy, int hits)
         const auto target = selectHeroTarget();
         if (!target) return i > 0;                          // героев нет вообще: false; погибли за время ударов: true
         if (Hero* hero = heroByRef(*target))
+        {
+            ui->playEffectOn("claw", true, target->owner, target->index, 0.12f * i);
             hero->takeDamage(physicalDamage(enemy.getAttackPower(nullptr), hero->getDefense()));
+        }
     }
     return true;
 }
@@ -588,6 +621,9 @@ bool Battle::enemyUseSkill(int idx, int skillId)
     }
 
     const uint32_t power = static_cast<uint32_t>(std::max(0, skill->power));
+    const std::string fx = UIManager::effectForSkill(*skill);
+    for (const HeroRef& ref : heroTargets) ui->playEffectOn(fx, true, ref.owner, ref.index);
+    for (int i : enemyTargets)             ui->playEffectOn(fx, false, 0, i);
     switch (skill->effectType)
     {
     case SkillEffectType::Damage:
@@ -636,13 +672,16 @@ std::vector<int> Battle::resolveTargets(const Action& action)
 
         case TargetType::Enemy:
         {
-            // один конкретный враг
+            // один конкретный враг; если он уже пал — первый живой, а не удар в пустоту
             if (action.targetIndex >= 0 &&
                 action.targetIndex < static_cast<int>(enemies.size()) &&
                 enemies[action.targetIndex].getCurrentHp() > 0)
             {
                 result.push_back(action.targetIndex);
+                break;
             }
+            for (int i = 0; i < static_cast<int>(enemies.size()); ++i)
+                if (enemies[i].getCurrentHp() > 0) { result.push_back(i); break; }
             break;
         }
 
@@ -770,6 +809,12 @@ void Battle::update()
                     const std::string heroId = prefix + std::to_string(action.actorIndex + 1);
                     ui->setEnVI(heroId, "Battle", false);
                     ui->playAnimation(heroId + "Animation", "Battle", true);
+                    if (action.type == ActionType::Attack)
+                        if (const Hero* actor = resolveActor(action))
+                        {
+                            const Item* weapon = heroWeapon(game, *actor);
+                            ui->playSwing(weapon ? weapon->swing : kUnarmedSwing, heroId, 0.15f);
+                        }
                 }
                 isAnimationsStarted = true;
                 animStartTicks = SDL_GetTicks();

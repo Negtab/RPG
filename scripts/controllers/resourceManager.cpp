@@ -272,6 +272,7 @@ void ResourceManager::initialize()
     addTexturesFromDirectory((mainPath / "resources" / "Images" / "Vehicles").string());   // Ship, Canoe, Airship
     addTexturesFromDirectory((mainPath / "resources" / "Images" / "Props").string());      // замки, башни, мосты
     addTexturesFromDirectory((mainPath / "resources" / "Images" / "Overworld").string());  // Walk<набор>: герой на карте
+    addTexturesFromDirectory((mainPath / "resources" / "Images" / "Effects").string());    // боевые эффекты и замахи
 
     addTexture(pathToBackgrounds.string() + "WhiteBox.jpg");
     addTexture(pathToBackgrounds.string() + "MenuBackground.png");
