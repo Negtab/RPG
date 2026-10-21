@@ -346,18 +346,20 @@ void UIManager::handleClickEvent(const SDL_Event &event, const std::string &scen
 
     if (sceneId == "Battle" && uiState == UIChooseState::ChooseTarget && event.button.button == SDL_BUTTON_LEFT)
     {
-        // Клик прямо по живой цели выбирает её
+        // Клик прямо по живой цели выбирает её; «на всех» — клик по любой из них, «на себя» — по ходящему герою
         const SDL_Point m{event.button.x, event.button.y};
-        const int max = std::min(getTargetCount(currentType), 4);
-        for (int i = 0; i < max; ++i)
+        const bool enemiesSide = currentType == TargetType::Enemy || currentType == TargetType::AllEnemies;
+        const int count = enemiesSide ? static_cast<int>(game.getBattle()->getEnemies().size())
+                                      : static_cast<int>(player.getHeroes().size());
+        for (int i = 0; i < std::min(count, enemiesSide ? MAX_ENEMY_COUNT : 4); ++i)
         {
-            const bool alive = currentType == TargetType::Enemy
-                    ? game.getBattle()->getEnemies().at(i).getIsAlive()
-                    : player.getHeroes().at(i).getIsAlive();
-            const SDL_Rect r = currentType == TargetType::Enemy ? enemySlotRect[i] : heroSlotRect[i];
+            if (currentType == TargetType::Self && i != currentHeroIndex) continue;
+            const bool alive = enemiesSide ? game.getBattle()->getEnemies().at(i).getIsAlive()
+                                           : player.getHeroes().at(i).getIsAlive();
+            const SDL_Rect r = enemiesSide ? enemySlotRect[i] : heroSlotRect[i];
             if (alive && SDL_PointInRect(&m, &r))
             {
-                selectedTargetIndex = i;
+                if (currentType == TargetType::Enemy || currentType == TargetType::Ally) selectedTargetIndex = i;
                 confirmTarget();
                 return;
             }
@@ -777,11 +779,30 @@ void UIManager::updateBattleData(Scene &scene)
 
     // Враги
     const auto& enemies = game.getBattle()->getEnemies();
-    for (int i = 0; i < static_cast<int>(enemies.size()) && i < 4; ++i)
+    const Uint32 now = SDL_GetTicks();
+    constexpr double kPiD = 3.14159265358979;
+    for (int i = 0; i < static_cast<int>(enemies.size()) && i < MAX_ENEMY_COUNT; ++i)
     {
-        trackHp(lastEnemyHp[i], static_cast<int>(enemies[i].getCurrentHp()), enemySlotRect[i]);
-        if (!enemies[i].getIsAlive())
-            setTexture("Enemy" + std::to_string(i + 1), "Battle", nullptr);
+        if (const Uint32 hit = trackHp(lastEnemyHp[i], static_cast<int>(enemies[i].getCurrentHp()), enemySlotRect[i]))
+        {
+            enemyHitAt[i] = hit;
+            if (!enemies[i].getIsAlive()) enemyDeathAt[i] = hit;     // исчезнет после удара, а не до него
+        }
+        if (!enemies[i].getIsAlive() && enemyDeathAt[i] == 0) enemyDeathAt[i] = now;   // пал без видимого удара
+
+        SDL_Rect r = enemySlotRect[i];
+        if (enemyLungeAt[i] && now - enemyLungeAt[i] < 350)      // шаг к героям и обратно
+            r.x += static_cast<int>(10 * PIXEL_SCALE * std::sin(kPiD * (now - enemyLungeAt[i]) / 350.0));
+        if (enemyHitAt[i] && now >= enemyHitAt[i] && now - enemyHitAt[i] < 300)   // вздрогнул от удара
+            r.x += static_cast<int>(3 * PIXEL_SCALE * std::sin(kPiD * 6.0 * (now - enemyHitAt[i]) / 300.0));
+
+        bool visible = true;                                     // смертельный удар: мигает и пропадает
+        if (enemyDeathAt[i] && now >= enemyDeathAt[i])
+            visible = now - enemyDeathAt[i] < 400 && (now / 60) % 2 == 0;
+
+        const std::string id = "Enemy" + std::to_string(i + 1);
+        setRect(id, "Battle", r);
+        if (UIObject* obj = findUIObject(id, "Battle")) obj->isVisible = visible;
     }
 
     std::vector<std::pair<std::string, int>> groups;                // имя и сколько таких живых
@@ -836,47 +857,33 @@ void UIManager::layoutBattle()
     const int fieldH = 452;                    // поле боя над нижней панелью
     const int margin = 16;
 
-    // ── Враги: одна или две колонки слева ──────────────────────────────
+    // ── Враги: сетка до 3x3 слева, по колонкам сверху вниз ─────────────
     const auto& enemies = game.getBattle()->getEnemies();
-    const int n = std::min<int>(static_cast<int>(enemies.size()), 4);
+    const int n = std::min<int>(static_cast<int>(enemies.size()), MAX_ENEMY_COUNT);
 
-    std::array<SDL_Point, 4> nat{};            // родные размеры спрайтов
+    std::array<SDL_Point, MAX_ENEMY_COUNT> nat{};   // родные размеры спрайтов
     for (int i = 0; i < n; ++i)
         if (const EnemyDef* def = GameData::instance().enemy(enemies[i].getEnemyId()))
             nat[i] = {def->srcRect.w, def->srcRect.h};
 
-    const int columns = n <= 2 ? 1 : 2;
-    std::array<std::vector<int>, 2> col;
-    for (int i = 0; i < n; ++i) col[columns == 1 ? 0 : i % 2].push_back(i);
-
+    const int columns = n <= 2 ? 1 : n <= 6 ? 2 : 3;
+    const int rows = (n + columns - 1) / std::max(1, columns);
     const SDL_Rect area{margin, margin, 560 - margin, fieldH - 2 * margin};
+    const int cellW = area.w / columns, cellH = area.h / std::max(1, rows);
 
-    auto fits = [&](int scale) {
-        for (int c = 0; c < columns; ++c)
-        {
-            int sumH = 0, maxW = 0;
-            for (int i : col[c]) { sumH += nat[i].y * scale; maxW = std::max(maxW, nat[i].x * scale); }
-            if (sumH > area.h || maxW > area.w / columns) return false;
-        }
-        return true;
-    };
-    int es = S;
-    while (es > 1 && !fits(es)) --es;          // слишком крупная группа: уменьшаем целым шагом, а не дробью
-
-    for (int c = 0; c < columns; ++c)
+    for (int i = 0; i < n; ++i)
     {
-        const int cx = columns == 1 ? area.x + area.w / 2 : area.x + area.w * (c == 0 ? 27 : 73) / 100;
-        const int m = static_cast<int>(col[c].size());
-        for (int k = 0; k < m; ++k)
-        {
-            const int i = col[c][k];
-            const int w = nat[i].x * es, h = nat[i].y * es;
-            const int slotH = area.h / std::max(1, m);
-            const int bottom = area.y + slotH * (k + 1) - 6;               // «ноги» на нижнем крае слота
-            enemySlotRect[i] = {cx - w / 2, bottom - h, w, h};
-        }
+        // Свой масштаб у каждого: крупный враг уменьшается, чтобы влезть в клетку, мелкие остаются как есть.
+        // Целым шагом, а не дробью — пиксели не плывут
+        int es = S;
+        while (es > 1 && (nat[i].x * es > cellW - 8 || nat[i].y * es > cellH - 4)) --es;
+        const int c = i / rows, r = i % rows;
+        const int cx = area.x + cellW * c + cellW / 2;
+        const int bottom = area.y + cellH * (r + 1) - 6;                   // «ноги» на нижнем крае клетки
+        const int w = nat[i].x * es, h = nat[i].y * es;
+        enemySlotRect[i] = {cx - w / 2, bottom - h, w, h};
     }
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < MAX_ENEMY_COUNT; ++i)
     {
         const std::string id = "Enemy" + std::to_string(i + 1);
         if (i < n && nat[i].x > 0) setRect(id, "Battle", enemySlotRect[i]);
@@ -901,10 +908,13 @@ void UIManager::layoutBattle()
 void UIManager::addEnemys()
 {
     const auto& enemies = game.getBattle()->getEnemies();
-    for (int i = 0; i < 4; i++)
-        setTexture("Enemy" + std::to_string(i + 1), "Battle",
-                   i < static_cast<int>(enemies.size())
-                       ? ResourceManager::getTexture(enemies[i].getTextureName()) : nullptr);
+    for (int i = 0; i < MAX_ENEMY_COUNT; i++)
+    {
+        const std::string id = "Enemy" + std::to_string(i + 1);
+        setTexture(id, "Battle", i < static_cast<int>(enemies.size())
+                                     ? ResourceManager::getTexture(enemies[i].getTextureName()) : nullptr);
+        if (UIObject* obj = findUIObject(id, "Battle")) obj->isVisible = true;   // прошлый бой мог оставить скрытым
+    }
     layoutBattle();                            // сначала враги, потому что addCharacters использует позиции героев
     resetHpTracking();                         // новый бой: первый кадр только запоминает HP
     fx.clear();
@@ -1094,17 +1104,7 @@ void UIManager::onEnvironmentCLick(int id, bool isMagic)
         pendingAction.targetType = game.getItem(id).targetType;
     }
 
-    if (pendingAction.targetType == TargetType::Self ||
-        pendingAction.targetType == TargetType::AllEnemies ||
-        pendingAction.targetType == TargetType::AllAllies)
-    {
-        game.getBattle()->confirmAction(pendingAction);
-        closeList();
-        uiState = UIChooseState::ChooseAction;
-        setEnVI("ActionPanel", "Battle", true);
-        return;
-    }
-
+    // Любая цель, даже «на себя» и «на всех», подтверждается: курсоры показывают, кого заденет, Esc отменяет
     uiState = UIChooseState::ChooseTarget;
     moveSelector();
     setEnVI("ActionPanel", "Battle", false);
@@ -1164,9 +1164,9 @@ int UIManager::getTargetCount(TargetType type) const
 SDL_Rect UIManager::selectedTargetRect() const
 {
     const int i = selectedTargetIndex;
+    if (currentType == TargetType::Enemy) return i >= 0 && i < MAX_ENEMY_COUNT ? enemySlotRect[i] : SDL_Rect{};
     if (i < 0 || i > 3) return {};
-    if (currentType == TargetType::Enemy) return enemySlotRect[i];
-    if (currentType != TargetType::Ally) return {};
+    if (currentType != TargetType::Ally && currentType != TargetType::Self) return {};
     SDL_Rect r = heroSlotRect[i];
     if (game.getBattle()->isPlayerChoosing() && i == game.getBattle()->getCurrentHeroIndex())
         r.x -= 8 * PIXEL_SCALE;                              // ходящий герой стоит на шаг впереди
@@ -1176,8 +1176,8 @@ SDL_Rect UIManager::selectedTargetRect() const
 void UIManager::moveSelector()
 {
     currentType = pendingAction.targetType;
-    selectedTargetIndex = 0;
-    snapSelectorToTarget();                                  // первая живая цель
+    selectedTargetIndex = currentType == TargetType::Self ? currentHeroIndex : 0;
+    snapSelectorToTarget();                                  // первая живая цель (у «на себя» и «на всех» — без хода)
 }
 
 void UIManager::moveSelectorToNext()
@@ -1272,13 +1272,18 @@ void UIManager::drawOutlinedText(const std::string& text, int x, int y, SDL_Colo
 void UIManager::resetHpTracking()
 {
     lastEnemyHp.fill(-1);
+    enemyHitAt.fill(0);
+    enemyDeathAt.fill(0);
+    enemyLungeAt.fill(0);
+    actionBanner.clear();
     lastHeroHp.fill(-1);
     lastRemoteHp.fill(-1);
     popups.clear();
 }
 
-void UIManager::trackHp(int& last, int hp, const SDL_Rect& slot)
+Uint32 UIManager::trackHp(int& last, int hp, const SDL_Rect& slot)
 {
+    Uint32 hitAt = 0;
     // Числа берём из разницы HP между кадрами: так они работают и у клиента, которому HP приходят снапшотом
     if (last >= 0 && hp != last && slot.w > 0)
     {
@@ -1298,8 +1303,21 @@ void UIManager::trackHp(int& last, int hp, const SDL_Rect& slot)
         else
             playEffect(delta < 0 ? "hit" : "heal", center);
         popups.push_back({x, y, std::to_string(std::abs(delta)), c, when});
+        if (delta < 0) hitAt = std::max<Uint32>(when, 1);
     }
     last = hp;
+    return hitAt;
+}
+
+void UIManager::enemyLunge(int index)
+{
+    if (index >= 0 && index < MAX_ENEMY_COUNT) enemyLungeAt[index] = SDL_GetTicks();
+}
+
+void UIManager::showActionName(const std::string& text)
+{
+    actionBanner = text;
+    actionBannerAt = SDL_GetTicks();
 }
 
 // ─────────────────────────────────────────
@@ -1322,8 +1340,8 @@ void UIManager::playEffect(const std::string& id, SDL_Point center, float delay)
 
 SDL_Rect UIManager::battlerRect(bool onHero, uint32_t owner, int index) const
 {
+    if (!onHero) return index >= 0 && index < MAX_ENEMY_COUNT ? enemySlotRect[index] : SDL_Rect{};
     if (index < 0 || index > 3) return {};
-    if (!onHero) return enemySlotRect[index];
     if (owner == game.localPlayerId) return heroSlotRect[index];
 
     int slot = 0;                                            // герои напарников идут подряд, как в updateBattleData
@@ -1451,8 +1469,40 @@ void UIManager::drawBattleOverlay()
     const Uint32 now = SDL_GetTicks();
     const int bob = (now / 220) % 2 * 3;                     // стрелка «дышит» на 3 px
 
-    // Указатель на цель и окно с её именем
-    if (uiState == UIChooseState::ChooseTarget)
+    // Плашка «кто и что делает» во время хода
+    if (!actionBanner.empty() && now - actionBannerAt < 1200 && uiState != UIChooseState::ChooseTarget)
+    {
+        TTF_Font* font = ResourceManager::getFont("RetroByte");
+        const TextSize ts = ResourceManager::measureText(actionBanner, font);
+        const SDL_Rect win{screen.w / 2 - (ts.w + 32) / 2, 10, ts.w + 32, ts.h + 16};
+        visualizer.drawNinePatch(getWindowSkin(visualizer.getRenderer()), win, kWindowSkinSlice, 1);
+        drawText(actionBanner, win.x + 16, win.y + 8, kWhite);
+    }
+
+    // Указатель на цель и окно с её именем. «На всех» — курсор на каждой живой цели, они мигают по очереди
+    if (uiState == UIChooseState::ChooseTarget &&
+        (currentType == TargetType::AllEnemies || currentType == TargetType::AllAllies))
+    {
+        const bool enemiesSide = currentType == TargetType::AllEnemies;
+        const int count = enemiesSide ? static_cast<int>(game.getBattle()->getEnemies().size())
+                                      : static_cast<int>(player.getHeroes().size());
+        for (int i = 0; i < count && i < (enemiesSide ? MAX_ENEMY_COUNT : 4); ++i)
+        {
+            const bool alive = enemiesSide ? game.getBattle()->getEnemies()[i].getIsAlive()
+                                           : player.getHeroes()[i].getIsAlive();
+            if (!alive || (now / 180 + i) % 2) continue;         // мигают вразнобой, как в FF
+            SDL_Rect t = enemiesSide ? enemySlotRect[i] : heroSlotRect[i];
+            if (!enemiesSide && game.getBattle()->isPlayerChoosing() && i == game.getBattle()->getCurrentHeroIndex())
+                t.x -= 8 * PIXEL_SCALE;                          // ходящий герой на шаг впереди
+            drawPointer(t.x - 4, t.y + t.h / 2, PIXEL_SCALE);
+        }
+        const std::string label = enemiesSide ? "All enemies" : "All allies";
+        const TextSize ts = ResourceManager::measureText(label, ResourceManager::getFont("RetroByte"));
+        const SDL_Rect win{screen.w / 2 - (ts.w + 32) / 2, 10, ts.w + 32, ts.h + 16};
+        visualizer.drawNinePatch(getWindowSkin(visualizer.getRenderer()), win, kWindowSkinSlice, 1);
+        drawText(label, win.x + 16, win.y + 8, kWhite);
+    }
+    else if (uiState == UIChooseState::ChooseTarget)
     {
         const SDL_Rect t = selectedTargetRect();
         if (t.w > 0)
@@ -1924,10 +1974,11 @@ void UIManager::initBattleScene()
     setEnVI("EnvironmentPanel", "Battle", false);
 
     // Слоты врагов и героев: положение и картинки задаёт layoutBattle() при старте боя
+    for (int i = 0; i < MAX_ENEMY_COUNT; i++)
+        addImage("Enemy" + std::to_string(i + 1), "Battle", {0, 0, 0, 0}, nullptr, {0, 0, 0, 0}, "EnemyPanel");
     for (int i = 0; i < 4; i++)
     {
         const std::string n = std::to_string(i + 1);
-        addImage("Enemy" + n,      "Battle", {0, 0, 0, 0}, nullptr, {0, 0, 0, 0},   "EnemyPanel");
         addImage("Hero" + n,       "Battle", {0, 0, 0, 0}, nullptr, {0, 0, 0, 0}, "HeroPanel");   // вся картинка
         addImage("RemoteHero" + n, "Battle", {0, 0, 0, 0}, nullptr, {0, 0, 0, 0}, "HeroPanel");
     }

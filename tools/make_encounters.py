@@ -27,10 +27,19 @@ def main():
 
     exps = sorted(e["exp"][0] for e in enemies.values())
 
+    MAX_ENEMIES = 9                                                # слотов в бою, как в FF1
+
+    def size_limit(eid):
+        """Сколько таких влезает: мелкие толпой до 9, средние до 4, крупные по 1-2 (по размеру спрайта)."""
+        w, h = enemies[eid]["srcRect"][2], enemies[eid]["srcRect"][3]
+        side = max(w, h)
+        return 9 if side <= 36 else 4 if side <= 52 else 2 if side <= 80 else 1
+
     def group_size(eid):
         """Сколько таких врагов в группе: чем слабее по награде относительно остальных, тем больше."""
         rank = sum(1 for x in exps if x <= enemies[eid]["exp"][0]) / len(exps)
-        return 4 if rank <= 0.25 else 3 if rank <= 0.5 else 2 if rank <= 0.75 else 1
+        by_rank = 6 if rank <= 0.25 else 4 if rank <= 0.5 else 3 if rank <= 0.75 else 2
+        return max(1, min(by_rank, size_limit(eid)))
 
     result, report = [], []
     for area_id, area in areas.items():
@@ -54,7 +63,7 @@ def main():
             if k > 0:                                              # сильный + слабый сосед
                 weaker = ids[k - 1]
                 strong_n = max(1, n - 1)
-                weak_n = min(4 - strong_n, group_size(weaker))
+                weak_n = min(MAX_ENEMIES - strong_n, group_size(weaker))
                 if weak_n >= 1:
                     formations.append({"weight": 2, "enemies": [eid] * strong_n + [weaker] * weak_n})
         group = {"id": area_id, "formations": formations}

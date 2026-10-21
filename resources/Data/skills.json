@@ -5,9 +5,27 @@
   { "id": 4, "name": "Lightning Strike", "effectType": "Damage", "element": "Lightning", "power": 30, "manaCost": 15, "maxCooldown": 3, "targetType": "Enemy", "targetCount": 1 },
   { "id": 5, "name": "Defense Up",       "effectType": "Buff",   "element": "Physical",  "power": 5,  "manaCost": 8,  "maxCooldown": 3, "targetType": "Self",  "targetCount": 1 },
   { "id": 6, "name": "Weaken",           "effectType": "Debuff", "element": "Physical",  "power": 5,  "manaCost": 14, "maxCooldown": 4, "targetType": "Enemy", "targetCount": 0 },
+  { "id": 7, "name": "Frost Nova",       "effectType": "Damage", "element": "Ice",       "power": 20, "manaCost": 18, "maxCooldown": 2, "targetType": "AllEnemies", "targetCount": 0 },
+  { "id": 8, "name": "Mass Heal",        "effectType": "Heal",   "element": "Physical",  "power": 18, "manaCost": 16, "maxCooldown": 2, "targetType": "AllAllies",  "targetCount": 0 },
 
 
   { "id": 100, "name": "Poison Sting", "effectType": "Damage", "element": "Poison",   "power": 8,  "manaCost": 0, "maxCooldown": 0, "targetType": "Enemy",      "targetCount": 1 },
   { "id": 101, "name": "Flame",        "effectType": "Damage", "element": "Fire",     "power": 14, "manaCost": 0, "maxCooldown": 3, "targetType": "AllEnemies", "targetCount": 0 },
-  { "id": 102, "name": "Mend",         "effectType": "Heal",   "element": "Physical", "power": 12, "manaCost": 0, "maxCooldown": 3, "targetType": "Self",       "targetCount": 1 }
+  { "id": 102, "name": "Mend",         "effectType": "Heal",   "element": "Physical", "power": 12, "manaCost": 0, "maxCooldown": 3, "targetType": "Self",       "targetCount": 1 },
+
+  // Заклинания врагов (FF1): по всему отряду — targetType AllEnemies
+  { "id": 103, "name": "Fira", "effectType": "Damage", "element": "Fire", "power": 60, "manaCost": 0, "maxCooldown": 1, "targetType": "Enemy", "targetCount": 1 },
+  { "id": 104, "name": "Blizzara", "effectType": "Damage", "element": "Ice", "power": 60, "manaCost": 0, "maxCooldown": 1, "targetType": "Enemy", "targetCount": 1 },
+  { "id": 105, "name": "Thundara", "effectType": "Damage", "element": "Lightning", "power": 60, "manaCost": 0, "maxCooldown": 1, "targetType": "Enemy", "targetCount": 1 },
+  { "id": 106, "name": "Firaga", "effectType": "Damage", "element": "Fire", "power": 110, "manaCost": 0, "maxCooldown": 2, "targetType": "AllEnemies", "targetCount": 0 },
+  { "id": 107, "name": "Blizzaga", "effectType": "Damage", "element": "Ice", "power": 110, "manaCost": 0, "maxCooldown": 2, "targetType": "AllEnemies", "targetCount": 0 },
+  { "id": 108, "name": "Thundaga", "effectType": "Damage", "element": "Lightning", "power": 110, "manaCost": 0, "maxCooldown": 2, "targetType": "AllEnemies", "targetCount": 0 },
+  { "id": 109, "name": "Blaze", "effectType": "Damage", "element": "Fire", "power": 90, "manaCost": 0, "maxCooldown": 2, "targetType": "AllEnemies", "targetCount": 0 },
+  { "id": 110, "name": "Icestorm", "effectType": "Damage", "element": "Ice", "power": 100, "manaCost": 0, "maxCooldown": 2, "targetType": "AllEnemies", "targetCount": 0 },
+  { "id": 111, "name": "Thunderbolt", "effectType": "Damage", "element": "Lightning", "power": 100, "manaCost": 0, "maxCooldown": 2, "targetType": "AllEnemies", "targetCount": 0 },
+  { "id": 112, "name": "Poison Gas", "effectType": "Damage", "element": "Poison", "power": 60, "manaCost": 0, "maxCooldown": 2, "targetType": "AllEnemies", "targetCount": 0 },
+  { "id": 113, "name": "Earthquake", "effectType": "Damage", "element": "Earth", "power": 90, "manaCost": 0, "maxCooldown": 3, "targetType": "AllEnemies", "targetCount": 0, "effect": "blunt" },
+  { "id": 114, "name": "Flare", "effectType": "Damage", "element": "Physical", "power": 250, "manaCost": 0, "maxCooldown": 3, "targetType": "Enemy", "targetCount": 1, "effect": "fire" },
+  { "id": 115, "name": "Nuclear", "effectType": "Damage", "element": "Fire", "power": 200, "manaCost": 0, "maxCooldown": 4, "targetType": "AllEnemies", "targetCount": 0, "effect": "fire" },
+  { "id": 116, "name": "Cura", "effectType": "Heal", "element": "Physical", "power": 150, "manaCost": 0, "maxCooldown": 3, "targetType": "Self", "targetCount": 1 }
 ]

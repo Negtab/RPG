@@ -259,8 +259,8 @@ void GameData::loadEncounters(const fs::path& path)
                 if (!enemyMap.contains(id)) throw runtime_error("unknown enemy id " + std::to_string(id));
                 fm.enemies.push_back(id);
             }
-            if (fm.enemies.empty() || fm.enemies.size() > 4)
-                throw runtime_error("a formation must have 1..4 enemies");
+            if (fm.enemies.empty() || fm.enemies.size() > MAX_ENEMY_COUNT)
+                throw runtime_error("a formation must have 1.." + std::to_string(MAX_ENEMY_COUNT) + " enemies");
             g.totalWeight += fm.weight;
             g.formations.push_back(std::move(fm));
         }

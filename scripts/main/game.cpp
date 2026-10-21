@@ -1457,7 +1457,8 @@ void Game::sendBattleStart()
     packet.header.type = PacketType::BattleStart;
     packet.header.size = sizeof(BattleStartPacket);
 
-    const int n = std::min<int>(static_cast<int>(enemies.size()), 4);
+    static_assert(std::size(BattleStartPacket{}.enemies) == MAX_ENEMY_COUNT);
+    const int n = std::min<int>(static_cast<int>(enemies.size()), MAX_ENEMY_COUNT);
     packet.enemyCount = static_cast<uint8_t>(n);
     for (int i = 0; i < n; i++)
     {
@@ -1498,7 +1499,8 @@ void Game::sendBattleSnapshot()
     const auto& enemies = battle->getEnemies();
 
     constexpr int kMaxHeroes  = 8;   // размер packet.heroes и heroOwner
-    constexpr int kMaxEnemies = 4;   // размер packet.enemies
+    constexpr int kMaxEnemies = MAX_ENEMY_COUNT;   // размер packet.enemies
+    static_assert(std::size(BattleSnapshotPacket{}.enemies) == kMaxEnemies);
 
     // Сначала герои хоста
     int heroIndex = 0;

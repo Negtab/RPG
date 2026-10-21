@@ -91,7 +91,7 @@ void Battle::runFromNetwork(const BattleStartPacket& packet)
     escapeUsed = false;
     ui->hideBattleResults();
 
-    for (int i = 0; i < packet.enemyCount && i < 4; i++)
+    for (int i = 0; i < packet.enemyCount && i < MAX_ENEMY_COUNT; i++)
     {
         const int id = packet.enemies[i].enemyId;           // теперь это id из enemies.json
         const int32_t maxHp = packet.enemies[i].maxHp;
@@ -166,7 +166,7 @@ void Battle::applySnapshot(const BattleSnapshotPacket& packet)
         return;                                                    // мусор
 
     const int heroCount  = std::min<int>(packet.heroCount, 8);
-    const int enemyCount = std::min<int>({packet.enemyCount, 4, static_cast<int>(enemies.size())});
+    const int enemyCount = std::min<int>({packet.enemyCount, MAX_ENEMY_COUNT, static_cast<int>(enemies.size())});
 
     for (int i = 0; i < heroCount; i++)
     {
@@ -383,6 +383,13 @@ void Battle::executeAction(const Action& action)
     if (targets.empty())
         return;
 
+    std::string what = "Attack";                             // плашка сверху: кто и что делает
+    if (action.type == ActionType::Magic)
+        if (const Skill* s = game->findSkill(action.payloadId)) what = s->name;
+    if (action.type == ActionType::Item)
+        if (const Item* it = game->findItem(action.payloadId)) what = it->name;
+    ui->showActionName(actor->getName() + " - " + what);
+
     switch (action.type)
     {
         case ActionType::Attack:
@@ -548,6 +555,7 @@ void Battle::updateEnemyTurn()
 bool Battle::performEnemyAction(int idx)
 {
     Enemy& enemy = enemies[idx];
+    ui->enemyLunge(idx);                                     // шаг к героям; удар — на середине шага
     const EnemyDef* def = GameData::instance().enemy(enemy.getEnemyId());
     if (!def) return !aliveHeroes().empty();
 
@@ -579,7 +587,8 @@ bool Battle::enemyBasicAttack(Enemy& enemy, int hits)
         if (!target) return i > 0;                          // героев нет вообще: false; погибли за время ударов: true
         if (Hero* hero = heroByRef(*target))
         {
-            ui->playEffectOn("claw", true, target->owner, target->index, 0.12f * i);
+            if (i == 0) ui->showActionName(enemy.getName());
+            ui->playEffectOn("claw", true, target->owner, target->index, 0.18f + 0.12f * i);
             hero->takeDamage(physicalDamage(enemy.getAttackPower(nullptr), hero->getDefense()));
         }
     }
@@ -622,8 +631,9 @@ bool Battle::enemyUseSkill(int idx, int skillId)
 
     const uint32_t power = static_cast<uint32_t>(std::max(0, skill->power));
     const std::string fx = UIManager::effectForSkill(*skill);
-    for (const HeroRef& ref : heroTargets) ui->playEffectOn(fx, true, ref.owner, ref.index);
-    for (int i : enemyTargets)             ui->playEffectOn(fx, false, 0, i);
+    ui->showActionName(enemies[idx].getName() + " - " + skill->name);
+    for (const HeroRef& ref : heroTargets) ui->playEffectOn(fx, true, ref.owner, ref.index, 0.18f);
+    for (int i : enemyTargets)             ui->playEffectOn(fx, false, 0, i, 0.18f);
     switch (skill->effectType)
     {
     case SkillEffectType::Damage:
@@ -845,7 +855,7 @@ void Battle::spawnEnemies()
 
     for (int id : enemyFormation)                            // 1) готовая формация из encounters.json
     {
-        if (static_cast<int>(enemies.size()) >= 4) break;    // в интерфейсе четыре слота
+        if (static_cast<int>(enemies.size()) >= MAX_ENEMY_COUNT) break;   // в интерфейсе девять слотов
         if (data.enemy(id)) enemies.emplace_back(id, avgLvl);
     }
     if (!enemies.empty()) return;

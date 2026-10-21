@@ -91,28 +91,32 @@ void InputController::battleInput(SDL_Event event, Game& game, Battle& battle,  
         return;
     }
 
-    if (input.isMousePressed(SDL_BUTTON_LEFT))
-        manager.handleClickEvent(event,gameStateString.at(game.getGameState()));
+    // Всё по самому событию, а не по «нажато в этом кадре»: буквы WASD дают ещё и SDL_TEXTINPUT,
+    // и проверка состояния срабатывала на оба события — курсор перепрыгивал через врага
+    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT)
+        manager.handleClickEvent(event, gameStateString.at(game.getGameState()));
+
+    const bool keyDown = event.type == SDL_KEYDOWN;
+    const SDL_Scancode key = keyDown ? event.key.keysym.scancode : SDL_SCANCODE_UNKNOWN;
+    const bool fresh = keyDown && event.key.repeat == 0;      // подтверждение и отмена не повторяются при удержании
 
     // Шаг назад: из выбора цели в список, из списка к командам
-    if (input.isKeyPressed(SDL_SCANCODE_ESCAPE) || input.isMousePressed(SDL_BUTTON_RIGHT))
+    if ((fresh && key == SDL_SCANCODE_ESCAPE) ||
+        (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT))
     {
         manager.cancelChoice();
         return;
     }
 
-    if (manager.getState() == UIChooseState::ChooseTarget)
+    if (manager.getState() == UIChooseState::ChooseTarget && keyDown)
     {
-        if (input.isKeyPressed(SDL_SCANCODE_SPACE) || input.isKeyPressed(SDL_SCANCODE_RETURN))
+        if (fresh && (key == SDL_SCANCODE_SPACE || key == SDL_SCANCODE_RETURN || key == SDL_SCANCODE_KP_ENTER))
             manager.confirmTarget();
-        if (input.isKeyPressed(SDL_SCANCODE_W) || input.isKeyPressed(SDL_SCANCODE_UP) ||
-            input.isKeyPressed(SDL_SCANCODE_D) || input.isKeyPressed(SDL_SCANCODE_RIGHT))
+        if (key == SDL_SCANCODE_W || key == SDL_SCANCODE_UP || key == SDL_SCANCODE_D || key == SDL_SCANCODE_RIGHT)
             manager.moveSelectorToNext();
-        if (input.isKeyPressed(SDL_SCANCODE_S) || input.isKeyPressed(SDL_SCANCODE_DOWN) ||
-            input.isKeyPressed(SDL_SCANCODE_A) || input.isKeyPressed(SDL_SCANCODE_LEFT))
+        if (key == SDL_SCANCODE_S || key == SDL_SCANCODE_DOWN || key == SDL_SCANCODE_A || key == SDL_SCANCODE_LEFT)
             manager.moveSelectorToPrevious();
     }
-
 }
 
 void InputController::onlineInput(SDL_Event event, Game& game, UIManager& manager)

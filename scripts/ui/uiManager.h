@@ -121,6 +121,8 @@ public:
 
     void showBattleResults(const BattleReport& r);
     void setBattleBackground(const std::string& name);         // BB<name>.png; нет такого — прежний
+    void enemyLunge(int index);                                // враг шагает к героям
+    void showActionName(const std::string& text);
 
     // ── Боевые эффекты (effects.json) ───────────────────
     void playEffect(const std::string& id, SDL_Point center, float delay = 0.0f);
@@ -195,10 +197,13 @@ private:
     void drawBattleOverlay();
     void drawPointer(int x, int y, int scale) const;          // белая стрелка вправо, (x, y) — её острие
     void drawOutlinedText(const std::string& text, int x, int y, SDL_Color color, Uint8 alpha) const;
-    void trackHp(int& last, int hp, const SDL_Rect& slot);
+    Uint32 trackHp(int& last, int hp, const SDL_Rect& slot);   // момент попадания, если HP упало; иначе 0
     void resetHpTracking();
     std::vector<Popup> popups;
-    std::array<int, 4> lastEnemyHp{}, lastHeroHp{}, lastRemoteHp{};
+    std::array<int, MAX_ENEMY_COUNT> lastEnemyHp{};
+    std::array<int, 4> lastHeroHp{}, lastRemoteHp{};
+    std::string actionBanner;                                  // «Warrior - Attack» сверху во время хода
+    Uint32 actionBannerAt = 0;
     std::array<SDL_Rect, 8> listRect{};                        // строки списка: для стрелки под мышью
 
     void initCreateScene();
@@ -297,7 +302,9 @@ private:
     bool draggingVolume = false;
 
     std::array<int, 4> pickedClass{0, 1, 2, 3};
-    std::array<SDL_Rect, 4> heroSlotRect{}, remoteSlotRect{}, enemySlotRect{};
+    std::array<SDL_Rect, 4> heroSlotRect{}, remoteSlotRect{};
+    std::array<SDL_Rect, MAX_ENEMY_COUNT> enemySlotRect{};
+    std::array<Uint32, MAX_ENEMY_COUNT> enemyHitAt{}, enemyDeathAt{}, enemyLungeAt{};   // 0 — не было
     std::array<std::string, 4> autoName;
 
     Action        pendingAction;

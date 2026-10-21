@@ -8,6 +8,7 @@ import argparse
 import csv
 import json
 import os
+import re
 import sys
 
 from PIL import Image
@@ -60,7 +61,8 @@ def main():
     skill_ids = None
     if args.skills:
         with open(args.skills, encoding="utf-8") as f:
-            skill_ids = {s["id"] for s in json.load(f)}
+            text = re.sub(r"//[^\n]*", "", f.read())             # игра разрешает комментарии // в JSON
+            skill_ids = {s["id"] for s in json.loads(text)}
 
     missing = []
     result, seen = [], set()

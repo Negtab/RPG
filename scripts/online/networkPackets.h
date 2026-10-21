@@ -68,7 +68,7 @@ struct BattleStartPacket
 {
     PacketHeader header;
     uint8_t  enemyCount;
-    EnemyData enemies[4]; // максимум 4 врага
+    EnemyData enemies[9]; // MAX_ENEMY_COUNT: до 9 врагов, как в FF1
 };
 
 struct BattleActionPacket
@@ -103,7 +103,7 @@ struct BattleSnapshotPacket
     uint8_t  enemyCount;
     CharacterState heroes[8];
     uint32_t heroOwner[8];  // ✅ ID владельца каждого героя
-    CharacterState enemies[4];
+    CharacterState enemies[9];   // MAX_ENEMY_COUNT
     uint8_t  battleState;
     uint8_t  currentHeroIndex;
     uint8_t currentTurn;

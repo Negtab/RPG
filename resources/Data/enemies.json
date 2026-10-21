@@ -1536,7 +1536,15 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 50
+      },
+      {
+        "skill": 103,
+        "weight": 25
+      },
+      {
+        "skill": 105,
+        "weight": 25
       }
     ]
   },
@@ -2055,7 +2063,7 @@
         "weight": 70
       },
       {
-        "skill": 101,
+        "skill": 104,
         "weight": 30
       }
     ]
@@ -3063,7 +3071,11 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 70
+      },
+      {
+        "skill": 103,
+        "weight": 30
       }
     ]
   },
@@ -3110,7 +3122,11 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 60
+      },
+      {
+        "skill": 109,
+        "weight": 40
       }
     ]
   },
@@ -3207,7 +3223,11 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 60
+      },
+      {
+        "skill": 110,
+        "weight": 40
       }
     ]
   },
@@ -3346,7 +3366,11 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 70
+      },
+      {
+        "skill": 104,
+        "weight": 30
       }
     ]
   },
@@ -3436,7 +3460,15 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 50
+      },
+      {
+        "skill": 104,
+        "weight": 25
+      },
+      {
+        "skill": 105,
+        "weight": 25
       }
     ]
   },
@@ -3898,11 +3930,15 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 70
+        "weight": 60
       },
       {
         "skill": 100,
-        "weight": 30
+        "weight": 20
+      },
+      {
+        "skill": 113,
+        "weight": 20
       }
     ]
   },
@@ -4668,7 +4704,11 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 40
+      },
+      {
+        "skill": 105,
+        "weight": 60
       }
     ]
   },
@@ -4718,7 +4758,15 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 60
+      },
+      {
+        "skill": 108,
+        "weight": 20
+      },
+      {
+        "skill": 105,
+        "weight": 20
       }
     ]
   },
@@ -4855,7 +4903,11 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 60
+      },
+      {
+        "skill": 109,
+        "weight": 40
       }
     ]
   },
@@ -4949,7 +5001,11 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 60
+      },
+      {
+        "skill": 111,
+        "weight": 40
       }
     ]
   },
@@ -5129,7 +5185,15 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 30
+      },
+      {
+        "skill": 104,
+        "weight": 35
+      },
+      {
+        "skill": 105,
+        "weight": 35
       }
     ]
   },
@@ -5174,7 +5238,11 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 60
+      },
+      {
+        "skill": 114,
+        "weight": 40
       }
     ]
   },
@@ -5361,7 +5429,15 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 50
+      },
+      {
+        "skill": 104,
+        "weight": 25
+      },
+      {
+        "skill": 105,
+        "weight": 25
       }
     ]
   },
@@ -5406,7 +5482,15 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 60
+      },
+      {
+        "skill": 116,
+        "weight": 20
+      },
+      {
+        "skill": 103,
+        "weight": 20
       }
     ]
   },
@@ -5456,7 +5540,11 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 60
+      },
+      {
+        "skill": 115,
+        "weight": 40
       }
     ]
   },
@@ -5506,7 +5594,23 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 40
+      },
+      {
+        "skill": 111,
+        "weight": 15
+      },
+      {
+        "skill": 112,
+        "weight": 15
+      },
+      {
+        "skill": 110,
+        "weight": 15
+      },
+      {
+        "skill": 109,
+        "weight": 15
       }
     ]
   },
@@ -5604,7 +5708,19 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 40
+      },
+      {
+        "skill": 106,
+        "weight": 20
+      },
+      {
+        "skill": 107,
+        "weight": 20
+      },
+      {
+        "skill": 108,
+        "weight": 20
       }
     ]
   },
@@ -5743,7 +5859,19 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 40
+      },
+      {
+        "skill": 107,
+        "weight": 20
+      },
+      {
+        "skill": 106,
+        "weight": 20
+      },
+      {
+        "skill": 113,
+        "weight": 20
       }
     ]
   },
@@ -5793,7 +5921,15 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 60
+      },
+      {
+        "skill": 106,
+        "weight": 20
+      },
+      {
+        "skill": 103,
+        "weight": 20
       }
     ]
   },
@@ -5841,7 +5977,15 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 60
+      },
+      {
+        "skill": 108,
+        "weight": 20
+      },
+      {
+        "skill": 105,
+        "weight": 20
       }
     ]
   },
@@ -5891,7 +6035,23 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 40
+      },
+      {
+        "skill": 111,
+        "weight": 15
+      },
+      {
+        "skill": 112,
+        "weight": 15
+      },
+      {
+        "skill": 110,
+        "weight": 15
+      },
+      {
+        "skill": 109,
+        "weight": 15
       }
     ]
   },
@@ -5941,7 +6101,27 @@
     "abilities": [
       {
         "attack": true,
-        "weight": 100
+        "weight": 30
+      },
+      {
+        "skill": 106,
+        "weight": 15
+      },
+      {
+        "skill": 107,
+        "weight": 15
+      },
+      {
+        "skill": 108,
+        "weight": 15
+      },
+      {
+        "skill": 114,
+        "weight": 15
+      },
+      {
+        "skill": 113,
+        "weight": 10
       }
     ]
   }
