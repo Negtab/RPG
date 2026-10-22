@@ -76,6 +76,8 @@ class Game {
         void setMinimapZoom(int zoom) { minimapZoom = std::clamp(zoom, 0, kMinimapZoomMax); }
         void cycleMinimap();                          // M: Off → x1 → x2 → x3 → Off
         void toggleEncounters();                      // H: с подсказкой на карте
+        [[nodiscard]] bool isFullscreen() const { return fullscreen; }
+        void setFullscreen(bool on);                  // на весь экран без смены разрешения, пропорции сохраняются
 
         // ── Сохранения: слот 0 — автосохранение при выходе, 1..4 — ручные ──
         static constexpr int kSaveSlots = 5;
@@ -153,6 +155,7 @@ class Game {
 
         bool encounters = true;                       // случайные бои (выключаются в Config)
         int minimapZoom = 1;
+        bool fullscreen = false;
         bool gameInProgress = false;                  // отряд на карте: можно сохраняться, «Continue» возвращает в игру
         float playSeconds = 0.0f;                     // время игры текущего прохождения
         int latestSaveSlot = -1;                      // самый свежий слот для «Continue», -1 — сохранений нет

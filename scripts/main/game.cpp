@@ -77,6 +77,23 @@ void Game::run()
                 this->isRunning = false;
                 break;
             }
+            // F11 или Alt+Enter переключают полный экран в любом состоянии игры
+            if (event.type == SDL_KEYDOWN && event.key.repeat == 0 &&
+                (event.key.keysym.scancode == SDL_SCANCODE_F11 ||
+                 (event.key.keysym.scancode == SDL_SCANCODE_RETURN && (event.key.keysym.mod & KMOD_ALT))))
+            {
+                setFullscreen(!fullscreen);
+                saveSettings();
+                continue;
+            }
+            // Кнопка «развернуть» у окна тоже уводит в полный экран, а не в развёрнутое окно с рамкой
+            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_MAXIMIZED && !fullscreen)
+            {
+                SDL_RestoreWindow(window);                       // при выходе из полного экрана вернётся обычное окно
+                setFullscreen(true);
+                saveSettings();
+                continue;
+            }
             inputManager->processEvent(event);
             handleInput(event); // обработка клавиш и кликов
         }
@@ -493,6 +510,7 @@ void Game::loadSettings()
         if (key == "sound")      sound = value;
         if (key == "encounters") encounters = value != 0;
         if (key == "minimap")    setMinimapZoom(value);       // старый файл: 1 = вкл, это и есть x1
+        if (key == "fullscreen") setFullscreen(value != 0);
     }
     AudioManager::setMusicVolume(music);                      // заодно применяем и зажимаем в 0..10
     AudioManager::setSoundVolume(sound);
@@ -511,6 +529,17 @@ void Game::toggleEncounters()
     uiManager->showMapNotice(encounters ? "Encounters: On" : "Encounters: Off");
 }
 
+void Game::setFullscreen(bool on)
+{
+    if (on == fullscreen) return;
+    if (SDL_SetWindowFullscreen(window, on ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0) != 0)
+    {
+        SDL_Log("Cannot switch fullscreen: %s", SDL_GetError());
+        return;
+    }
+    fullscreen = on;
+}
+
 void Game::saveSettings() const
 {
     const std::string path = (saveDir.parent_path() / "settings.ini").string();
@@ -518,7 +547,8 @@ void Game::saveSettings() const
     out << "music=" << AudioManager::getMusicVolume() << "\n"
         << "sound=" << AudioManager::getSoundVolume() << "\n"
         << "encounters=" << (encounters ? 1 : 0) << "\n"
-        << "minimap=" << minimapZoom << "\n";
+        << "minimap=" << minimapZoom << "\n"
+        << "fullscreen=" << (fullscreen ? 1 : 0) << "\n";
     if (!out) SDL_Log("Cannot write settings to %s", path.c_str());
 }
 

@@ -20,13 +20,15 @@ bool initSDL(SDLContext &ctx, int width = 800, int height = 600)
         return false;
     }
 
-    ctx.window = SDL_CreateWindow("RPG", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN);
+    ctx.window = SDL_CreateWindow("RPG", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height,
+                                  SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     if (!ctx.window)
     {
         SDL_Log("Failed to create window: %s", SDL_GetError());
         SDL_Quit();
         return false;
     }
+    SDL_SetWindowMinimumSize(ctx.window, width / 2, height / 2);
 
     ctx.renderer = SDL_CreateRenderer(ctx.window, -1, SDL_RENDERER_ACCELERATED);
     if (!ctx.renderer)
@@ -36,6 +38,8 @@ bool initSDL(SDLContext &ctx, int width = 800, int height = 600)
         SDL_Quit();
         return false;
     }
+    // Игра всегда рисует в width x height, SDL растягивает это на окно с полосами по краям
+    SDL_RenderSetLogicalSize(ctx.renderer, width, height);
 
     if (!(IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG) & (IMG_INIT_JPG | IMG_INIT_PNG)))
     {

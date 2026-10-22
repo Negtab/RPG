@@ -1524,6 +1524,12 @@ void UIManager::drawBattleOverlay()
     // Стрелка у строки меню под мышью
     int mx = 0, my = 0;
     SDL_GetMouseState(&mx, &my);
+    {
+        float lx = 0.f, ly = 0.f;                                 // окно может быть растянуто: в координаты игры
+        SDL_RenderWindowToLogical(visualizer.getRenderer(), mx, my, &lx, &ly);
+        mx = static_cast<int>(lx);
+        my = static_cast<int>(ly);
+    }
     auto pointAt = [&](const std::string& id) {
         const UIObject* obj = findUIObject(id, "Battle");
         if (!obj || !obj->isVisible || !obj->texture) return;
@@ -3080,10 +3086,10 @@ void UIManager::drawStatusPage()
 // ─────────────────────────────────────────
 
 namespace {
-    // Строки окна: две полоски громкости, два переключателя и «Back»
-    enum ConfigRow { kRowMusic, kRowSound, kRowEncounters, kRowMinimap, kRowBack, kConfigRows };
+    // Строки окна: две полоски громкости, три переключателя и «Back»
+    enum ConfigRow { kRowMusic, kRowSound, kRowEncounters, kRowMinimap, kRowScreen, kRowBack, kConfigRows };
     bool isVolumeRow(int r) { return r == kRowMusic || r == kRowSound; }
-    bool isToggleRow(int r) { return r == kRowEncounters || r == kRowMinimap; }
+    bool isToggleRow(int r) { return r == kRowEncounters || r == kRowMinimap || r == kRowScreen; }
     SDL_Rect configWindow(const SDL_Rect& screen) { return {120, 50, screen.w - 240, screen.h - 100}; }
 }
 
@@ -3120,6 +3126,7 @@ std::vector<std::string> UIManager::optionLabels(int row) const
 {
     if (row == kRowEncounters) return {"On", "Off"};
     if (row == kRowMinimap)    return {"Off", "x1", "x2", "x3"};
+    if (row == kRowScreen)     return {"Window", "Fullscreen"};
     return {};
 }
 
@@ -3127,6 +3134,7 @@ int UIManager::optionValue(int row) const
 {
     if (row == kRowEncounters) return game.encountersEnabled() ? 0 : 1;
     if (row == kRowMinimap)    return game.getMinimapZoom();
+    if (row == kRowScreen)     return game.isFullscreen() ? 1 : 0;
     return 0;
 }
 
@@ -3137,6 +3145,7 @@ void UIManager::setOption(int row, int index)
     index = (index % n + n) % n;                                      // по кругу в обе стороны
     if (row == kRowEncounters) game.setEncountersEnabled(index == 0);
     if (row == kRowMinimap)    game.setMinimapZoom(index);
+    if (row == kRowScreen)     game.setFullscreen(index == 1);
 }
 
 SDL_Rect UIManager::optionRect(int row, int index) const
@@ -3240,7 +3249,7 @@ void UIManager::drawConfig()
     visualizer.drawNinePatch(skin, win, kWindowSkinSlice, 1);
     drawText("Config", win.x + 30, win.y + 20, kSaveText);
 
-    const char* labels[kConfigRows] = {"Music", "Sound", "Encounters", "Minimap", "Back"};
+    const char* labels[kConfigRows] = {"Music", "Sound", "Encounters", "Minimap", "Screen", "Back"};
     const int levels[2] = {AudioManager::getMusicVolume(), AudioManager::getSoundVolume()};
     for (int r = 0; r < kConfigRows; ++r)
     {
@@ -3280,7 +3289,7 @@ void UIManager::drawConfig()
         "Map: WASD or arrows - move, E - land airship",
         "M - minimap zoom, H - encounters, Esc - menu",
         "Battle: arrows - target, Enter - confirm",
-        "Esc or right click - back",
+        "Esc or right click - back, F11 - fullscreen",
     };
     for (int i = 0; i < static_cast<int>(std::size(help)); ++i)
         drawText(help[i], win.x + 50, helpY + 32 + i * 26, kSaveDim);
