@@ -48,6 +48,9 @@ public:
     [[nodiscard]] std::vector<int> getAvailableItems() const;
 
     void addDiscoveredEnemy(const std::string& enemy);
+    // Бестиарий: встреченные враги хранятся как id из enemies.json строкой (так они и пишутся в сохранение)
+    [[nodiscard]] bool isEnemyDiscovered(int enemyId) const;
+    void discoverEnemy(int enemyId) { addDiscoveredEnemy(std::to_string(enemyId)); }
     void addItem(int itemId, uint8_t count);
 
     void resetProgress();

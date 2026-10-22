@@ -144,6 +144,13 @@ public:
     void handleGameMenuEvent(const SDL_Event& event);
     void handleConfigEvent(const SDL_Event& event);
 
+    // ── Бестиарий: из игрового меню и из боя ────────────
+    void openBestiary();
+    void openBestiaryFromBattle();                             // только пока выбираем команду (кнопка Book или B)
+    void closeBestiary();
+    [[nodiscard]] bool isBestiaryOpen() const { return bestiaryOpen; }
+    void handleBestiaryEvent(const SDL_Event& event);
+
     bool handleTextEvent(const SDL_Event& event, const std::string& sceneId);   // true: событие поглотило поле ввода
     void styleEdit(const std::string& id, const std::string& sceneId,
                    SDL_Color background, SDL_Color border, int maxLength = 32);
@@ -284,6 +291,23 @@ private:
     int equipSlotSel = 0;
     std::string menuNotice;
     Uint32 menuNoticeTicks = 0;
+    // ── Бестиарий (bestiary.cpp) ────────────────────────
+    void drawBestiary();
+    void drawBestiaryLeft(int index, const SDL_Rect& page);    // номер, имя, спрайт или силуэт
+    void drawBestiaryRight(int index, const SDL_Rect& page);   // слабости, сильные стороны, места, умения
+    void drawBestiaryCorner(const SDL_Rect& r, bool right, bool enabled);
+    int  drawWrapped(const std::string& text, int x, int y, int width, int maxLines, SDL_Color color) const;   // y под текстом
+    void turnBestiaryPage(int index);
+    void runBestiarySearch(bool next);                         // next: к следующему совпадению после текущей страницы
+    void setBestiarySearch(bool on);
+    bool bestiaryOpen = false;
+    int  bestiaryIndex = 0;                                    // страница, на которой остановились (не сбрасывается)
+    int  bestiaryTurnFrom = 0;
+    Uint32 bestiaryTurnAt = 0;                                 // 0 — страница не листается
+    bool bestiarySearching = false;
+    std::string bestiaryQuery;
+    int  bestiaryMatches = 0, bestiaryMatchPos = 0;           // для подписи «2/5»
+
     void drawConfig();
     [[nodiscard]] SDL_Rect configRowRect(int row) const;
     [[nodiscard]] SDL_Rect volumeBarRect(int row) const;

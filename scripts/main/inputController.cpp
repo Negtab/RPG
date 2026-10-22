@@ -91,6 +91,17 @@ void InputController::battleInput(SDL_Event event, Game& game, Battle& battle,  
         return;
     }
 
+    if (manager.isBestiaryOpen())                             // книга поверх боя забирает весь ввод
+    {
+        manager.handleBestiaryEvent(event);
+        return;
+    }
+    if (event.type == SDL_KEYDOWN && event.key.repeat == 0 && event.key.keysym.scancode == SDL_SCANCODE_B)
+    {
+        manager.openBestiaryFromBattle();
+        return;
+    }
+
     // Всё по самому событию, а не по «нажато в этом кадре»: буквы WASD дают ещё и SDL_TEXTINPUT,
     // и проверка состояния срабатывала на оба события — курсор перепрыгивал через врага
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT)

@@ -80,7 +80,17 @@ std::vector<int> Player::getAvailableItems() const
 }
 
 
-void Player::addDiscoveredEnemy(const std::string& enemy) { discoveredEnemies.push_back(enemy); }
+void Player::addDiscoveredEnemy(const std::string& enemy)
+{
+    if (std::find(discoveredEnemies.begin(), discoveredEnemies.end(), enemy) == discoveredEnemies.end())
+        discoveredEnemies.push_back(enemy);
+}
+
+bool Player::isEnemyDiscovered(int enemyId) const
+{
+    const std::string key = std::to_string(enemyId);
+    return std::find(discoveredEnemies.begin(), discoveredEnemies.end(), key) != discoveredEnemies.end();
+}
 void Player::addItem(int itemId, uint8_t count)
 {
     if (itemId == 0 || count == 0) return;

@@ -676,6 +676,8 @@ void UIManager::drawScene(const std::string &sceneId)
         drawSavesScreen();
     if (sceneId == "Battle")
         drawBattleOverlay();                          // поверх окон: стрелки и числа урона
+    if (sceneId == "Battle" && bestiaryOpen)
+        drawBestiary();
 
     // Из игры музыка карты продолжает играть; экран слотов никогда не меняет трек
     if (!overGame && sceneId != "Saves")
@@ -919,6 +921,7 @@ void UIManager::addEnemys()
     resetHpTracking();                         // новый бой: первый кадр только запоминает HP
     fx.clear();
     closeList();
+    closeBestiary();
     uiState = UIChooseState::ChooseAction;
 }
 
@@ -1540,7 +1543,7 @@ void UIManager::drawBattleOverlay()
     if (uiState == UIChooseState::ChooseSkill || uiState == UIChooseState::ChooseItem)
         for (int i = 0; i < ENV_BUTTON_COUNT; ++i) pointAt("EnButton" + std::to_string(i + 1));
     else if (uiState == UIChooseState::ChooseAction && game.getBattle()->isPlayerChoosing())
-        for (const char* id : {"AttackButton", "ItemsButton", "MagicButton", "Run"}) pointAt(id);
+        for (const char* id : {"AttackButton", "ItemsButton", "MagicButton", "BookButton", "Run"}) pointAt(id);
 
     drawEffects();
 
@@ -1959,9 +1962,12 @@ void UIManager::initBattleScene()
     addButton("MagicButton", "Battle", {12, barY + 62, 60, 25},
               ResourceManager::getTextTexture("Magic", font, white),
               [this]() { onActionButton(ActionType::Magic); }, hover, "ActionPanel");
-    addButton("Run", "Battle", {12, barY + 88, 60, 25},
+    addButton("Run", "Battle", {12, barY + 114, 60, 25},
               ResourceManager::getTextTexture("Run", font, white),
               [this]() { game.endRandomBattle(); }, hover, "ActionPanel");
+    addButton("BookButton", "Battle", {12, barY + 88, 60, 25},
+              ResourceManager::getTextTexture("Book", font, white),
+              [this]() { openBestiaryFromBattle(); }, hover, "ActionPanel");
 
     // Окно списка умений и предметов закрывает всю нижнюю панель правее команд.
     // Две колонки по четыре строки: слева название, справа стоимость или количество.
@@ -2332,6 +2338,7 @@ namespace {
 
 void UIManager::openGameMenu()
 {
+    closeBestiary();
     gameMenuSelected = 0;
     menuPage = MenuPage::Main;
     menuNotice.clear();
@@ -2360,6 +2367,7 @@ std::vector<UIManager::MenuCommand> UIManager::gameMenuCommands()
         {"Magic",           true,           pickHero(MenuPage::Magic)},
         {"Equipment",       true,           pickHero(MenuPage::Equip)},
         {"Status",          true,           pickHero(MenuPage::Status)},
+        {"Bestiary",        true,           [this]() { openBestiary(); }},
         {"Save",            game.canSave(), [this]() { game.openSaveScreen(true); }},
         {"Load",            game.canLoad(), [this]() { game.openSaveScreen(false); }},
         {"Config",          true,           [this]() { game.openOptions(GameState::GameMenu); }},
@@ -2565,6 +2573,8 @@ void UIManager::cycleMenuHero(int dir)
 
 void UIManager::handleGameMenuEvent(const SDL_Event& e)
 {
+    if (bestiaryOpen) { handleBestiaryEvent(e); return; }       // Esc в книге возвращает в меню
+
     // Q/E листают героя на страницах одного героя, как LB/RB в ремастере
     const bool heroPage = menuPage == MenuPage::Magic || menuPage == MenuPage::Equip ||
                           menuPage == MenuPage::EquipPick || menuPage == MenuPage::Status;
@@ -2840,6 +2850,7 @@ void UIManager::drawGameMenu()
     SDL_Texture* skin = getWindowSkin(visualizer.getRenderer());
     TTF_Font* font = ResourceManager::getFont("RetroByte");
     visualizer.fillRect(screen, {0, 0, 0, 120});                  // карта видна, но приглушена
+    if (bestiaryOpen) { drawBestiary(); return; }
 
     switch (menuPage)
     {
@@ -3288,7 +3299,7 @@ void UIManager::drawConfig()
     const char* help[] = {
         "Map: WASD or arrows - move, E - land airship",
         "M - minimap zoom, H - encounters, Esc - menu",
-        "Battle: arrows - target, Enter - confirm",
+        "Battle: arrows - target, Enter - OK, B - book",
         "Esc or right click - back, F11 - fullscreen",
     };
     for (int i = 0; i < static_cast<int>(std::size(help)); ++i)

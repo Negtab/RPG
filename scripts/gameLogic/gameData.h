@@ -45,6 +45,7 @@ struct Formation
 struct EncounterGroup
 {
     std::string id;
+    std::string name;                       // место для бестиария ("Marsh Cave"); пусто — по id
     std::vector<Formation> formations;
     int totalWeight = 0;
     std::vector<std::string> landmarks;     // порталы карты мира, у которых группа водится ("near" в JSON; near — макрос Windows)
@@ -112,6 +113,8 @@ public:
     // Группа для места без зоны Tiled: по ближайшему порталу и тому, на чём едет отряд. "" — такой нет
     [[nodiscard]] std::string groupNear(const std::string& landmark, const std::string& terrain) const;
     [[nodiscard]] std::string groupBackground(const std::string& id) const;
+    // Где водится враг: названия групп встреч в порядке encounters.json, без повторов
+    [[nodiscard]] const std::vector<std::string>& habitats(int enemyId) const;
 
 private:
     void loadSkills(const std::filesystem::path& path);
@@ -127,6 +130,7 @@ private:
     std::map<int, EnemyDef> enemyMap;
     std::vector<int> enemyIdList;
     std::map<std::string, EncounterGroup> encounterMap;
+    std::map<int, std::vector<std::string>> habitatMap;
     std::map<SpecializationNames, HeroClassDef> heroMap;
     std::map<int, std::vector<Drop>> dropMap;
     std::map<std::string, EffectDef> effectMap;

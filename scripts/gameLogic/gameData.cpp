@@ -1,6 +1,7 @@
 #include "gameData.h"
 
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <stdexcept>
 #include <nlohmann/json.hpp>
@@ -134,7 +135,7 @@ GameData& GameData::instance()
 
 void GameData::loadAll(const fs::path& dir)
 {
-    itemMap.clear(); skillMap.clear(); enemyMap.clear(); enemyIdList.clear(); heroMap.clear(); encounterMap.clear();
+    itemMap.clear(); skillMap.clear(); enemyMap.clear(); enemyIdList.clear(); heroMap.clear(); encounterMap.clear(); habitatMap.clear();
 
     loadSkills(dir / "skills.json");
     loadItems(dir / "items.json");
@@ -269,6 +270,23 @@ void GameData::loadEncounters(const fs::path& path)
             for (const auto& n : e.at("near")) g.landmarks.push_back(n.get<std::string>());
         g.terrain = e.value("terrain", std::string("land"));
         g.background = e.value("background", std::string{});
+        g.name = e.value("name", std::string{});
+        if (g.name.empty())                                          // "marsh_cave_b1" -> "Marsh Cave B1"
+        {
+            bool word = true;
+            for (char c : g.id)
+            {
+                if (c == '_') { g.name += ' '; word = true; continue; }
+                g.name += word ? static_cast<char>(std::toupper(static_cast<unsigned char>(c))) : c;
+                word = false;
+            }
+        }
+        for (const Formation& f : g.formations)
+            for (int id : f.enemies)
+            {
+                auto& places = habitatMap[id];
+                if (std::find(places.begin(), places.end(), g.name) == places.end()) places.push_back(g.name);
+            }
 
         if (!encounterMap.emplace(g.id, g).second)
             throw runtime_error("duplicate encounter group '" + g.id + "'");
@@ -287,6 +305,13 @@ std::vector<int> GameData::pickFormation(const std::string& id) const
         roll -= f.weight;
     }
     return {};
+}
+
+const std::vector<std::string>& GameData::habitats(int enemyId) const
+{
+    static const std::vector<std::string> none;
+    const auto it = habitatMap.find(enemyId);
+    return it != habitatMap.end() ? it->second : none;
 }
 
 std::string GameData::groupBackground(const std::string& id) const

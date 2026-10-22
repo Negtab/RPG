@@ -1,6 +1,7 @@
 [
   {
     "id": "cornelia_south",
+    "name": "Cornelia Plains",
     "formations": [
       {
         "weight": 4,
@@ -27,6 +28,7 @@
   },
   {
     "id": "cornelia_north",
+    "name": "Cornelia Plains",
     "formations": [
       {
         "weight": 4,
@@ -157,6 +159,7 @@
   },
   {
     "id": "chaos_shrine_outside",
+    "name": "Temple Grounds",
     "formations": [
       {
         "weight": 4,
@@ -351,6 +354,7 @@
   },
   {
     "id": "matoya_area",
+    "name": "Matoya's Woods",
     "formations": [
       {
         "weight": 4,
@@ -545,6 +549,7 @@
   },
   {
     "id": "pravoka_east",
+    "name": "Pravoka Plains",
     "formations": [
       {
         "weight": 4,
@@ -805,6 +810,7 @@
   },
   {
     "id": "elfheim_area",
+    "name": "Elfheim Woods",
     "formations": [
       {
         "weight": 4,
@@ -1031,6 +1037,7 @@
   },
   {
     "id": "marsh_outside",
+    "name": "Marshlands",
     "formations": [
       {
         "weight": 4,
@@ -1318,6 +1325,7 @@
   },
   {
     "id": "melmond_area",
+    "name": "Melmond Plains",
     "formations": [
       {
         "weight": 4,
@@ -1670,6 +1678,7 @@
   },
   {
     "id": "crescent_island",
+    "name": "Crescent Isle",
     "formations": [
       {
         "weight": 4,
@@ -1873,6 +1882,7 @@
   },
   {
     "id": "gulg_area",
+    "name": "Gulg Wastes",
     "formations": [
       {
         "weight": 4,
@@ -2027,6 +2037,7 @@
   },
   {
     "id": "ice_area",
+    "name": "Ice Fields",
     "formations": [
       {
         "weight": 4,
@@ -2161,6 +2172,7 @@
   },
   {
     "id": "onrac_area",
+    "name": "Onrac Coast",
     "formations": [
       {
         "weight": 4,
@@ -2321,6 +2333,7 @@
   },
   {
     "id": "mirage_outside",
+    "name": "Mirage Desert",
     "formations": [
       {
         "weight": 4,
@@ -2456,6 +2469,7 @@
   },
   {
     "id": "gaia_area",
+    "name": "Gaia Highlands",
     "formations": [
       {
         "weight": 4,
@@ -2615,6 +2629,7 @@
   },
   {
     "id": "lufenia_area",
+    "name": "Lufenia Coast",
     "formations": [
       {
         "weight": 4,
@@ -2765,6 +2780,7 @@
   },
   {
     "id": "dragon_area",
+    "name": "Dragon Isles",
     "formations": [
       {
         "weight": 4,
@@ -2879,6 +2895,7 @@
   },
   {
     "id": "closed_sea",
+    "name": "Inner Sea",
     "formations": [
       {
         "weight": 4,
@@ -3049,6 +3066,7 @@
   },
   {
     "id": "open_sea",
+    "name": "Open Sea",
     "formations": [
       {
         "weight": 4,
@@ -3242,6 +3260,7 @@
   },
   {
     "id": "rivers",
+    "name": "Rivers",
     "formations": [
       {
         "weight": 4,
@@ -3380,6 +3399,7 @@
   },
   {
     "id": "chaos_shrine_inside",
+    "name": "Temple of Chaos",
     "formations": [
       {
         "weight": 4,
@@ -3718,6 +3738,7 @@
   },
   {
     "id": "marsh_cave_b1",
+    "name": "Marsh Cave",
     "formations": [
       {
         "weight": 4,
@@ -4040,6 +4061,7 @@
   },
   {
     "id": "marsh_cave_b2",
+    "name": "Marsh Cave",
     "formations": [
       {
         "weight": 4,
@@ -4451,6 +4473,7 @@
   },
   {
     "id": "marsh_cave_b3",
+    "name": "Marsh Cave",
     "formations": [
       {
         "weight": 4,
@@ -4792,6 +4815,7 @@
   },
   {
     "id": "earth_cave",
+    "name": "Earth Cave",
     "formations": [
       {
         "weight": 4,
@@ -5199,6 +5223,7 @@
   },
   {
     "id": "gulg_volcano",
+    "name": "Mount Gulg",
     "formations": [
       {
         "weight": 4,
@@ -5433,6 +5458,7 @@
   },
   {
     "id": "ice_cavern",
+    "name": "Ice Cavern",
     "formations": [
       {
         "weight": 4,
@@ -5635,6 +5661,7 @@
   },
   {
     "id": "waterfall_cavern",
+    "name": "Waterfall Cavern",
     "formations": [
       {
         "weight": 4,
@@ -5762,6 +5789,7 @@
   },
   {
     "id": "sea_shrine",
+    "name": "Sunken Shrine",
     "formations": [
       {
         "weight": 4,
@@ -6049,6 +6077,7 @@
   },
   {
     "id": "mirage_tower",
+    "name": "Mirage Tower",
     "formations": [
       {
         "weight": 4,
@@ -6474,6 +6503,7 @@
   },
   {
     "id": "flying_fortress",
+    "name": "Flying Fortress",
     "formations": [
       {
         "weight": 4,
@@ -6921,6 +6951,7 @@
   },
   {
     "id": "chaos_shrine_past",
+    "name": "Temple of the Past",
     "formations": [
       {
         "weight": 4,

@@ -898,6 +898,8 @@ void Battle::determineFirstTurn()
 
 void Battle::prepairUI()
 {
+    for (const Enemy& e : enemies)                          // бестиарий: враг встречен, как только показался в бою
+        player->discoverEnemy(e.getEnemyId());
     for (int i = 0; i < static_cast<int>(enemies.size()); i++)
         if (const EnemyDef* def = GameData::instance().enemy(enemies[i].getEnemyId()))
             ui->setSrcRect("Enemy" + std::to_string(i + 1), "Battle", def->srcRect);
