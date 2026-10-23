@@ -296,7 +296,7 @@ void ResourceManager::initialize()
 }
 
 constexpr uint32_t kSaveMagic   = 0x504C5952;   // 'PLYR'
-constexpr uint32_t kSaveVersion = 7;            // 2: координаты в клетках + mapId; 3: герои; 4: локация, время игры, дата; 5: экипировка; 6: транспорт; 7: посещённые места
+constexpr uint32_t kSaveVersion = 8;            // 2: координаты в клетках + mapId; 3: герои; 4: локация, время игры, дата; 5: экипировка; 6: транспорт; 7: посещённые места; 8: выученные заклинания
 constexpr uint64_t kMaxString   = 1024;
 constexpr uint64_t kMaxCount    = 100000;
 
@@ -337,6 +337,7 @@ struct SaveData
         uint8_t cls = 0, level = 1; uint32_t exp = 0, hp = 0, mp = 0; std::string name;
         std::array<int32_t, kEquipSlots> equipment{};
         bool hasEquipment = false;                       // до версии 5 экипировки не было: выдадим стартовую
+        std::vector<int32_t> spells;                     // 8: заклинания из лавок магии
     };
 
     std::string name;
@@ -453,6 +454,15 @@ SaveData readSaveFile(const std::string& path)
         readPod(in, count);
         for (int i = 0; i < count; ++i) d.visited.push_back(readString(in));
     }
+
+    if (version >= 8)
+        for (auto& h : d.heroes)
+        {
+            uint8_t count = 0;
+            readPod(in, count);
+            h.spells.resize(count);
+            for (auto& id : h.spells) readPod(in, id);
+        }
     return d;
 }
 }
@@ -535,6 +545,14 @@ bool ResourceManager::savePlayer(const std::string& path, const Player& player, 
         for (const auto& place : player.getVisited())
             writeString(out, place);
 
+        for (size_t i = 0; i < heroes.size() && i < 4; ++i)
+        {
+            const auto& spells = heroes[i].getLearnedSkills();
+            writePod<uint8_t>(out, static_cast<uint8_t>(std::min<size_t>(spells.size(), 255)));
+            for (size_t k = 0; k < spells.size() && k < 255; ++k)
+                writePod<int32_t>(out, spells[k]);
+        }
+
         out.flush();
         if (!out)
         {
@@ -585,6 +603,9 @@ bool ResourceManager::loadPlayer(const std::string& path, Player& player, SaveMe
         hero.setCurrentHp(s.hp);
         hero.setCurrentMp(s.mp);
         if (!s.name.empty()) hero.setName(s.name);
+        for (int id : s.spells)                              // заклинания, которых больше нет в skills.json, пропадают
+            if (const auto it = GameData::instance().skills().find(id); it != GameData::instance().skills().end())
+                hero.learnSkill(id);
         if (s.hasEquipment)
             for (int slot = 0; slot < kEquipSlots; ++slot)
                 hero.equip(static_cast<EquipSlot>(slot), s.equipment[slot]);   // неизвестный id equip просто не наденет

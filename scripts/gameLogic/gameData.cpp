@@ -26,7 +26,10 @@ const std::vector<std::pair<std::string, TargetType>> kTargets = {
 
 const std::vector<std::pair<std::string, SkillEffectType>> kSkillEffects = {
     {"Damage", SkillEffectType::Damage}, {"Heal", SkillEffectType::Heal}, {"Buff", SkillEffectType::Buff},
-    {"Debuff", SkillEffectType::Debuff}, {"None", SkillEffectType::None}};
+    {"Debuff", SkillEffectType::Debuff}, {"Revive", SkillEffectType::Revive}, {"None", SkillEffectType::None}};
+
+const std::vector<std::pair<std::string, BattleStat>> kStats = {
+    {"attack", BattleStat::Attack}, {"defence", BattleStat::Defence}};
 
 const std::vector<std::pair<std::string, ItemEffectType>> kItemEffects = {
     {"Heal", ItemEffectType::Heal}, {"Damage", ItemEffectType::Damage}, {"Buff", ItemEffectType::Buff},
@@ -182,6 +185,16 @@ void GameData::loadSkills(const fs::path& path)
         s.power       = getInt(e, "power", 0, 1000000);
         s.isDamaging  = s.effectType == SkillEffectType::Damage;
         s.effect      = e.value("effect", std::string{});
+        if (e.contains("stat")) s.stat = getEnum(e, "stat", kStats);
+        if (e.contains("spellLevel"))                            // заклинание лавки магии
+        {
+            s.spellLevel = getInt(e, "spellLevel", 1, kSpellLevels);
+            const std::string school = e.at("school").get<std::string>();
+            if (school != "White" && school != "Black") throw runtime_error("'school' must be White or Black");
+            s.white = school == "White";
+            for (const auto& c : e.at("classes"))
+                s.learners.push_back(parseEnum(c.get<std::string>(), kClasses, "classes"));
+        }
         if (!skillMap.emplace(s.id, s).second)
             throw runtime_error("duplicate skill id " + std::to_string(s.id));
     });
@@ -468,10 +481,17 @@ void GameData::loadShops(const fs::path& path)
         d.title    = e.value("title", std::string{});
         d.greeting = e.value("greeting", std::string{});
         d.price    = getIntOr(e, "price", 0, 1000000, 0);
+        const bool magic = d.kind == ShopKind::WhiteMagic || d.kind == ShopKind::BlackMagic;
         for (const auto& g : e.value("goods", json::array()))
         {
             const int id = g.get<int>();
-            if (!itemMap.contains(id)) throw runtime_error("unknown item " + std::to_string(id) + " in goods");
+            if (magic)                                           // лавка магии продаёт заклинания из skills.json
+            {
+                const auto it = skillMap.find(id);
+                if (it == skillMap.end() || !it->second.isSpell())
+                    throw runtime_error("goods: " + std::to_string(id) + " is not a spell with spellLevel");
+            }
+            else if (!itemMap.contains(id)) throw runtime_error("unknown item " + std::to_string(id) + " in goods");
             d.goods.push_back(id);
         }
         if (!shopMap.emplace(d.id, d).second)

@@ -357,10 +357,9 @@ void UIManager::handleClickEvent(const SDL_Event &event, const std::string &scen
         for (int i = 0; i < std::min(count, enemiesSide ? MAX_ENEMY_COUNT : 4); ++i)
         {
             if (currentType == TargetType::Self && i != currentHeroIndex) continue;
-            const bool alive = enemiesSide ? game.getBattle()->getEnemies().at(i).getIsAlive()
-                                           : player.getHeroes().at(i).getIsAlive();
+            const bool fits = enemiesSide ? game.getBattle()->getEnemies().at(i).getIsAlive() : heroTargetable(i);
             const SDL_Rect r = enemiesSide ? enemySlotRect[i] : heroSlotRect[i];
-            if (alive && SDL_PointInRect(&m, &r))
+            if (fits && SDL_PointInRect(&m, &r))
             {
                 if (currentType == TargetType::Enemy || currentType == TargetType::Ally) selectedTargetIndex = i;
                 confirmTarget();
@@ -1133,6 +1132,7 @@ void UIManager::onEnvironmentCLick(int id, bool isMagic)
         pendingAction.type = ActionType::Item;
         pendingAction.targetType = game.getItem(id).targetType;
     }
+    targetFallen = isMagic && game.getSkill(id).effectType == SkillEffectType::Revive;   // Жизнь — в павшего
 
     // Любая цель, даже «на себя» и «на всех», подтверждается: курсоры показывают, кого заденет, Esc отменяет
     uiState = UIChooseState::ChooseTarget;
@@ -1220,6 +1220,12 @@ void UIManager::moveSelectorToNext()
     snapSelectorToTarget();
 }
 
+bool UIManager::heroTargetable(int i) const
+{
+    const auto& heroes = player.getHeroes();
+    return i >= 0 && i < static_cast<int>(heroes.size()) && heroes[i].getIsAlive() != targetFallen;
+}
+
 void UIManager::moveSelectorToPrevious()
 {
     if (uiState != UIChooseState::ChooseTarget) return;
@@ -1230,10 +1236,10 @@ void UIManager::moveSelectorToPrevious()
     for (int guard = 0; guard < max; guard++)
     {
         selectedTargetIndex = (selectedTargetIndex - 1 + max) % max;
-        const bool alive = currentType == TargetType::Enemy
+        const bool fits = currentType == TargetType::Enemy
                 ? game.getBattle()->getEnemies().at(selectedTargetIndex).getIsAlive()
-                : player.getHeroes().at(selectedTargetIndex).getIsAlive();
-        if (alive) break;
+                : heroTargetable(selectedTargetIndex);
+        if (fits) break;
     }
 }
 
@@ -1242,10 +1248,10 @@ void UIManager::snapSelectorToTarget()
     const int max = getTargetCount(currentType);
     for (int guard = 0; guard < max; guard++)
     {
-        const bool alive = currentType == TargetType::Enemy
+        const bool fits = currentType == TargetType::Enemy
                 ? game.getBattle()->getEnemies().at(selectedTargetIndex).getIsAlive()
-                : player.getHeroes().at(selectedTargetIndex).getIsAlive();
-        if (alive) break;
+                : heroTargetable(selectedTargetIndex);
+        if (fits) break;
         selectedTargetIndex = (selectedTargetIndex + 1) % max;
     }
 }
@@ -2604,21 +2610,33 @@ std::string UIManager::skillDescription(const Skill& skill) const
     {
         case SkillEffectType::Heal:   return trf("Restores {0} HP. Target: {1}", {power, who});
         case SkillEffectType::Damage: return trf("Deals {0} damage. Target: {1}. Battle only", {power, who});
-        case SkillEffectType::Buff:   return trf("Strengthens. Target: {0}. Battle only", {who});
-        case SkillEffectType::Debuff: return trf("Weakens. Target: {0}. Battle only", {who});
+        case SkillEffectType::Buff:   return trf("{0} +{1}. Target: {2}. Battle only",
+                                                 {tr(skill.stat == BattleStat::Attack ? "ATK" : "DEF"), power, who});
+        case SkillEffectType::Debuff: return trf("{0} -{1}. Target: {2}. Battle only",
+                                                 {tr(skill.stat == BattleStat::Attack ? "ATK" : "DEF"), power, who});
+        case SkillEffectType::Revive: return tr(skill.power >= 9999 ? "Revives a fallen ally with full HP"
+                                                                    : "Revives a fallen ally");
         default:                      return "";
     }
 }
 
 bool UIManager::skillUsableInField(const Hero& caster, const Skill& skill) const
 {
-    return skill.effectType == SkillEffectType::Heal && caster.getCurrentHp() > 0 &&
+    return (skill.effectType == SkillEffectType::Heal || skill.effectType == SkillEffectType::Revive) &&
+           caster.getCurrentHp() > 0 &&
            caster.getCurrentMp() >= skill.manaCost && skill.targetType != TargetType::Enemy &&
            skill.targetType != TargetType::AllEnemies;
 }
 
-bool UIManager::applyFieldEffect(Hero& target, bool restoresMp, int power)
+bool UIManager::applyFieldEffect(Hero& target, bool restoresMp, int power, bool revive)
 {
+    if (revive)                                                   // Жизнь: только павшего
+    {
+        if (target.getCurrentHp() > 0) return false;
+        target.resurrectPerson(power >= 9999 ? target.getMaxHp()
+                                             : std::min<uint32_t>(target.getMaxHp(), static_cast<uint32_t>(power)));
+        return true;
+    }
     if (target.getCurrentHp() == 0) return false;                 // зелья и Heal не воскрешают, как в FF1
     if (restoresMp)
     {
@@ -2665,10 +2683,11 @@ void UIManager::castOn(int heroIndex)
 
     // Self и AllAllies не спрашивают цель: heroIndex тогда -1
     bool any = false;
+    const bool revive = skill.effectType == SkillEffectType::Revive;
     if (skill.targetType == TargetType::AllAllies)
-        for (auto& h : heroes) any |= applyFieldEffect(h, false, skill.power);
+        for (auto& h : heroes) any |= applyFieldEffect(h, false, skill.power, revive);
     else
-        any = applyFieldEffect(heroes[skill.targetType == TargetType::Self ? menuHero : heroIndex], false, skill.power);
+        any = applyFieldEffect(heroes[skill.targetType == TargetType::Self ? menuHero : heroIndex], false, skill.power, revive);
 
     if (!any) { showMenuNotice(tr("No effect")); return; }
     caster.spendMana(skill.manaCost);
@@ -2813,7 +2832,8 @@ void UIManager::handleMenuList(const SDL_Event& e)
     const Skill& skill = game.getSkill(caster.getAvailableSkills()[listSel].skillId);
     if (!skillUsableInField(caster, skill))
     {
-        showMenuNotice(skill.effectType != SkillEffectType::Heal ? tr("Can only be used in battle")
+        showMenuNotice(skill.effectType != SkillEffectType::Heal && skill.effectType != SkillEffectType::Revive
+                       ? tr("Can only be used in battle")
                        : caster.getCurrentHp() == 0 ? trf("{0} is down", {caster.getName()}) : tr("Not enough MP"));
         return;
     }

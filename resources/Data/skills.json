@@ -1,10 +1,8 @@
 [
   { "id": 1, "name": "Attack",           "effectType": "Damage", "element": "Physical",  "power": 10, "manaCost": 0,  "maxCooldown": 0, "targetType": "Enemy", "targetCount": 1 },
-  { "id": 2, "name": "Fire",             "effectType": "Damage", "element": "Fire",      "power": 25, "manaCost": 12, "maxCooldown": 2, "targetType": "Enemy", "targetCount": 1 },
-  { "id": 3, "name": "Cure",             "effectType": "Heal",   "element": "Physical",  "power": 20, "manaCost": 10, "maxCooldown": 1, "targetType": "Ally",  "targetCount": 1 },
   { "id": 4, "name": "Lightning Strike", "effectType": "Damage", "element": "Lightning", "power": 30, "manaCost": 15, "maxCooldown": 3, "targetType": "Enemy", "targetCount": 1 },
-  { "id": 5, "name": "Defense Up",       "effectType": "Buff",   "element": "Physical",  "power": 5,  "manaCost": 8,  "maxCooldown": 3, "targetType": "Self",  "targetCount": 1 },
-  { "id": 6, "name": "Weaken",           "effectType": "Debuff", "element": "Physical",  "power": 5,  "manaCost": 14, "maxCooldown": 4, "targetType": "Enemy", "targetCount": 0 },
+  { "id": 5, "name": "Defense Up",       "effectType": "Buff", "stat": "defence",   "element": "Physical",  "power": 5,  "manaCost": 8,  "maxCooldown": 3, "targetType": "Self",  "targetCount": 1 },
+  { "id": 6, "name": "Weaken",           "effectType": "Debuff", "stat": "defence", "element": "Physical",  "power": 5,  "manaCost": 14, "maxCooldown": 4, "targetType": "Enemy", "targetCount": 0 },
   { "id": 7, "name": "Frost Nova",       "effectType": "Damage", "element": "Ice",       "power": 20, "manaCost": 18, "maxCooldown": 2, "targetType": "AllEnemies", "targetCount": 0 },
   { "id": 8, "name": "Mass Heal",        "effectType": "Heal",   "element": "Physical",  "power": 18, "manaCost": 16, "maxCooldown": 2, "targetType": "AllAllies",  "targetCount": 0 },
 
@@ -27,5 +25,31 @@
   { "id": 113, "name": "Earthquake", "effectType": "Damage", "element": "Earth", "power": 90, "manaCost": 0, "maxCooldown": 3, "targetType": "AllEnemies", "targetCount": 0, "effect": "blunt" },
   { "id": 114, "name": "Flare", "effectType": "Damage", "element": "Physical", "power": 250, "manaCost": 0, "maxCooldown": 3, "targetType": "Enemy", "targetCount": 1, "effect": "fire" },
   { "id": 115, "name": "Nuclear", "effectType": "Damage", "element": "Fire", "power": 200, "manaCost": 0, "maxCooldown": 4, "targetType": "AllEnemies", "targetCount": 0, "effect": "fire" },
-  { "id": 116, "name": "Cura", "effectType": "Heal", "element": "Physical", "power": 150, "manaCost": 0, "maxCooldown": 3, "targetType": "Self", "targetCount": 1 }
+  { "id": 116, "name": "Cura", "effectType": "Heal", "element": "Physical", "power": 150, "manaCost": 0, "maxCooldown": 3, "targetType": "Self", "targetCount": 1 },
+
+  // Заклинания FF1 из лавок магии: school, spellLevel (круг 1-8) и classes — кто может выучить
+  { "id": 3, "name": "Cure", "school": "White", "spellLevel": 1, "effectType": "Heal", "power": 48, "manaCost": 8, "maxCooldown": 0, "targetType": "Ally", "targetCount": 1, "classes": ["RedMage", "WhiteMage"] },
+  { "id": 201, "name": "Protect", "school": "White", "spellLevel": 1, "effectType": "Buff", "stat": "defence", "power": 10, "manaCost": 8, "maxCooldown": 0, "targetType": "Ally", "targetCount": 1, "classes": ["RedMage", "WhiteMage"] },
+  { "id": 202, "name": "Cura", "school": "White", "spellLevel": 3, "effectType": "Heal", "power": 99, "manaCost": 18, "maxCooldown": 0, "targetType": "Ally", "targetCount": 1, "classes": ["RedMage", "WhiteMage"] },
+  { "id": 203, "name": "Heal", "school": "White", "spellLevel": 3, "effectType": "Heal", "power": 36, "manaCost": 18, "maxCooldown": 0, "targetType": "AllAllies", "targetCount": 0, "classes": ["WhiteMage"] },
+  { "id": 204, "name": "Curaga", "school": "White", "spellLevel": 5, "effectType": "Heal", "power": 198, "manaCost": 32, "maxCooldown": 0, "targetType": "Ally", "targetCount": 1, "classes": ["RedMage", "WhiteMage"] },
+  { "id": 205, "name": "Healara", "school": "White", "spellLevel": 5, "effectType": "Heal", "power": 72, "manaCost": 32, "maxCooldown": 0, "targetType": "AllAllies", "targetCount": 0, "classes": ["WhiteMage"] },
+  { "id": 206, "name": "Life", "school": "White", "spellLevel": 5, "effectType": "Revive", "power": 1, "manaCost": 32, "maxCooldown": 0, "targetType": "Ally", "targetCount": 1, "classes": ["WhiteMage"] },
+  { "id": 207, "name": "Protera", "school": "White", "spellLevel": 6, "effectType": "Buff", "stat": "defence", "power": 12, "manaCost": 40, "maxCooldown": 0, "targetType": "AllAllies", "targetCount": 0, "classes": ["WhiteMage"] },
+  { "id": 208, "name": "Curaja", "school": "White", "spellLevel": 7, "effectType": "Heal", "power": 9999, "manaCost": 50, "maxCooldown": 0, "targetType": "Ally", "targetCount": 1, "classes": ["WhiteMage"] },
+  { "id": 209, "name": "Healaga", "school": "White", "spellLevel": 7, "effectType": "Heal", "power": 144, "manaCost": 50, "maxCooldown": 0, "targetType": "AllAllies", "targetCount": 0, "classes": ["WhiteMage"] },
+  { "id": 210, "name": "Full-Life", "school": "White", "spellLevel": 8, "effectType": "Revive", "power": 9999, "manaCost": 60, "maxCooldown": 0, "targetType": "Ally", "targetCount": 1, "classes": ["WhiteMage"] },
+  { "id": 211, "name": "Holy", "school": "White", "spellLevel": 8, "effectType": "Damage", "element": "Light", "power": 300, "manaCost": 60, "maxCooldown": 0, "targetType": "AllEnemies", "targetCount": 0, "classes": ["WhiteMage"] },
+  { "id": 2, "name": "Fire", "school": "Black", "spellLevel": 1, "effectType": "Damage", "element": "Fire", "power": 30, "manaCost": 8, "maxCooldown": 0, "targetType": "Enemy", "targetCount": 1, "classes": ["RedMage", "BlackMage"] },
+  { "id": 212, "name": "Thunder", "school": "Black", "spellLevel": 1, "effectType": "Damage", "element": "Lightning", "power": 30, "manaCost": 8, "maxCooldown": 0, "targetType": "Enemy", "targetCount": 1, "classes": ["RedMage", "BlackMage"] },
+  { "id": 213, "name": "Blizzard", "school": "Black", "spellLevel": 2, "effectType": "Damage", "element": "Ice", "power": 60, "manaCost": 12, "maxCooldown": 0, "targetType": "Enemy", "targetCount": 1, "classes": ["RedMage", "BlackMage"] },
+  { "id": 214, "name": "Temper", "school": "Black", "spellLevel": 2, "effectType": "Buff", "stat": "attack", "power": 10, "manaCost": 12, "maxCooldown": 0, "targetType": "Ally", "targetCount": 1, "classes": ["RedMage", "BlackMage"] },
+  { "id": 215, "name": "Fira", "school": "Black", "spellLevel": 3, "effectType": "Damage", "element": "Fire", "power": 90, "manaCost": 18, "maxCooldown": 0, "targetType": "AllEnemies", "targetCount": 0, "classes": ["RedMage", "BlackMage"] },
+  { "id": 216, "name": "Thundara", "school": "Black", "spellLevel": 3, "effectType": "Damage", "element": "Lightning", "power": 90, "manaCost": 18, "maxCooldown": 0, "targetType": "AllEnemies", "targetCount": 0, "classes": ["RedMage", "BlackMage"] },
+  { "id": 217, "name": "Blizzara", "school": "Black", "spellLevel": 4, "effectType": "Damage", "element": "Ice", "power": 120, "manaCost": 24, "maxCooldown": 0, "targetType": "AllEnemies", "targetCount": 0, "classes": ["RedMage", "BlackMage"] },
+  { "id": 218, "name": "Firaga", "school": "Black", "spellLevel": 5, "effectType": "Damage", "element": "Fire", "power": 150, "manaCost": 32, "maxCooldown": 0, "targetType": "AllEnemies", "targetCount": 0, "classes": ["RedMage", "BlackMage"] },
+  { "id": 219, "name": "Thundaga", "school": "Black", "spellLevel": 6, "effectType": "Damage", "element": "Lightning", "power": 180, "manaCost": 40, "maxCooldown": 0, "targetType": "AllEnemies", "targetCount": 0, "classes": ["BlackMage"] },
+  { "id": 220, "name": "Blizzaga", "school": "Black", "spellLevel": 7, "effectType": "Damage", "element": "Ice", "power": 210, "manaCost": 50, "maxCooldown": 0, "targetType": "AllEnemies", "targetCount": 0, "classes": ["BlackMage"] },
+  { "id": 221, "name": "Saber", "school": "Black", "spellLevel": 7, "effectType": "Buff", "stat": "attack", "power": 40, "manaCost": 50, "maxCooldown": 0, "targetType": "Self", "targetCount": 1, "classes": ["BlackMage"] },
+  { "id": 222, "name": "Flare", "school": "Black", "spellLevel": 8, "effectType": "Damage", "power": 300, "manaCost": 60, "maxCooldown": 0, "targetType": "AllEnemies", "targetCount": 0, "classes": ["BlackMage"] }
 ]

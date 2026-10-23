@@ -470,7 +470,9 @@ void Battle::executeSkill(GamePerson& caster, int skillId, const std::vector<int
 
     caster.spendMana(skill->manaCost);
     const std::string fx = UIManager::effectForSkill(*skill);
-    const bool onHeroes = (skill->effectType == SkillEffectType::Heal) == casterIsHero;   // лечит своих, бьёт чужих
+    const bool friendly = skill->effectType == SkillEffectType::Heal || skill->effectType == SkillEffectType::Buff ||
+                          skill->effectType == SkillEffectType::Revive;
+    const bool onHeroes = friendly == casterIsHero;                                  // лечит своих, бьёт чужих
     for (int idx : targets)
         ui->playEffectOn(fx, onHeroes, owner, idx, 0.2f);
 
@@ -486,9 +488,28 @@ void Battle::executeSkill(GamePerson& caster, int skillId, const std::vector<int
                 else              { if (validHero(idx))  (*party)[idx].takeDamage(skill->power, skill->element); }
                 break;
 
-            case SkillEffectType::Heal:
-                if (casterIsHero) { if (validHero(idx))  (*party)[idx].heal(skill->power); }
-                else              { if (validEnemy(idx)) enemies[idx].heal(skill->power); }
+            case SkillEffectType::Heal:                         // павших лечение не поднимает, как в FF1
+                if (casterIsHero) { if (validHero(idx) && (*party)[idx].getIsAlive()) (*party)[idx].heal(skill->power); }
+                else              { if (validEnemy(idx) && enemies[idx].getIsAlive()) enemies[idx].heal(skill->power); }
+                break;
+
+            case SkillEffectType::Buff:
+                if (casterIsHero) { if (validHero(idx))  (*party)[idx].addBattleBonus(skill->stat, skill->power); }
+                else              { if (validEnemy(idx)) enemies[idx].addBattleBonus(skill->stat, skill->power); }
+                break;
+
+            case SkillEffectType::Debuff:
+                if (casterIsHero) { if (validEnemy(idx)) enemies[idx].addBattleBonus(skill->stat, -skill->power); }
+                else              { if (validHero(idx))  (*party)[idx].addBattleBonus(skill->stat, -skill->power); }
+                break;
+
+            case SkillEffectType::Revive:
+                if (casterIsHero && validHero(idx) && !(*party)[idx].getIsAlive())
+                {
+                    Hero& h = (*party)[idx];
+                    h.resurrectPerson(skill->power >= 9999 ? h.getMaxHp()
+                                                           : std::min<uint32_t>(h.getMaxHp(), static_cast<uint32_t>(skill->power)));
+                }
                 break;
 
             default:
@@ -694,7 +715,14 @@ bool Battle::enemyUseSkill(int idx, int skillId)
     case SkillEffectType::Heal:
         for (int i : enemyTargets) enemies[i].heal(power);
         break;
-    default:                                            // Buff и Debuff пока без эффекта
+    case SkillEffectType::Buff:
+        for (int i : enemyTargets) enemies[i].addBattleBonus(skill->stat, static_cast<int32_t>(power));
+        break;
+    case SkillEffectType::Debuff:
+        for (const HeroRef& ref : heroTargets)
+            if (Hero* hero = heroByRef(ref)) hero->addBattleBonus(skill->stat, -static_cast<int32_t>(power));
+        break;
+    default:
         break;
     }
 
@@ -748,10 +776,12 @@ std::vector<int> Battle::resolveTargets(const Action& action)
 
         case TargetType::Ally:
         {
+            const Skill* skill = action.type == ActionType::Magic ? game->findSkill(action.payloadId) : nullptr;
+            const bool wantsFallen = skill && skill->effectType == SkillEffectType::Revive;   // Жизнь — в павшего
             auto* party = partyOf(action.playerId);
             if (party && action.targetIndex >= 0 &&
                 action.targetIndex < static_cast<int>(party->size()) &&
-                (*party)[action.targetIndex].getCurrentHp() > 0)
+                ((*party)[action.targetIndex].getCurrentHp() > 0) != wantsFallen)
                 result.push_back(action.targetIndex);
             break;
         }
@@ -1101,6 +1131,9 @@ void Battle::closeResults()
 void Battle::leaveBattle()
 {
     currentHeroIndex = 0;
+    for (auto& h : player->getLinkTOHeroes()) h.clearBattleBonuses();      // Защита и Ярость — только на этот бой
+    for (auto& [id, remote] : game->getRemotePlayersMutable())
+        for (auto& h : remote.getLinkTOHeroes()) h.clearBattleBonuses();
     game->battleStarted = false;
     game->sendPartyInfo();                     // новые уровни и HP видны напарнику
     game->setGameState(GameState::Map);

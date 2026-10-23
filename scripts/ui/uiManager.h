@@ -201,6 +201,8 @@ private:
     [[nodiscard]] bool hasItems() const;
 
     void snapSelectorToTarget();
+    [[nodiscard]] bool heroTargetable(int i) const;          // живой, а для Жизни — павший
+    bool targetFallen = false;
     [[nodiscard]] int getTargetCount(TargetType type) const;
     [[nodiscard]] SDL_Rect selectedTargetRect() const;
 
@@ -276,7 +278,7 @@ private:
     [[nodiscard]] std::string itemDescription(const Item& item) const;
     [[nodiscard]] std::string skillDescription(const Skill& skill) const;
     [[nodiscard]] bool skillUsableInField(const Hero& caster, const Skill& skill) const;
-    bool applyFieldEffect(Hero& target, bool restoresMp, int power);         // false: эффекта нет
+    bool applyFieldEffect(Hero& target, bool restoresMp, int power, bool revive = false);   // false: эффекта нет
     void useItemOn(int heroIndex);
     void castOn(int heroIndex);
     void cycleMenuHero(int dir);
@@ -327,7 +329,7 @@ private:
     int talkPage = 0;
     Uint32 talkStart = 0;                                      // когда страница начала печататься
 
-    enum class ShopPhase { Command, Buy, Sell, Quantity };
+    enum class ShopPhase { Command, Buy, Sell, Quantity, LearnWho, InnSave };
     void drawShop();
     void drawShopInfo(const Item& item);
     [[nodiscard]] std::vector<std::pair<int, int>> shopList() const;   // (id, цена): товары или что можно продать
@@ -338,6 +340,12 @@ private:
     void shopPick(int index);                                  // выбран товар: к выбору количества
     void shopDeal();                                           // количество подтверждено: купить или продать
     void shopSay(const std::string& line) { shopLine = line; }
+    [[nodiscard]] std::vector<const char*> shopCommands() const;  // «Купить / Продать / Выйти» или услуги
+    void shopRunCommand(int index);                              // выбрана команда
+    [[nodiscard]] std::string learnBlock(const Hero& hero, const Skill& spell) const;   // "" — может выучить
+    void drawSpellInfo(const Skill& spell);
+    void learnSpell(int heroIndex);
+    void restAtInn();
     const ShopDef* shop = nullptr;
     ShopPhase shopPhase = ShopPhase::Command;
     bool shopSelling = false;                                  // в Quantity: продаём, а не покупаем

@@ -99,7 +99,12 @@ struct ShopDef
     std::string greeting;                   // что говорит продавец, когда подходишь
     std::vector<int> goods;                 // id предметов в порядке на прилавке
     int price = 0;                          // гостиница и церковь: цена услуги
+    [[nodiscard]] bool sellsSpells() const { return kind == ShopKind::WhiteMagic || kind == ShopKind::BlackMagic; }
+    [[nodiscard]] bool isService() const { return kind == ShopKind::Inn || kind == ShopKind::Church; }
 };
+
+// Цена заклинания по кругу: Pixel Remaster x2, как у остальных товаров
+constexpr int kSpellPrice[kSpellLevels] = {100, 500, 2000, 5000, 8000, 26000, 60000, 80000};
 
 struct Drop
 {

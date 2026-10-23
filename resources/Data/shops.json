@@ -51,5 +51,27 @@
   // ── Гайя: одна лавка снаряжения (Кошачьи когти FF1 носят только улучшенные классы — их пока нет) ──
   { "id": "gaia_shop", "kind": "armor", "title": "Armor Shop",
     "greeting": "Welcome! Need some armor?",
-    "goods": [185, 193] }
+    "goods": [185, 193] },
+
+  // ── Лавки магии: товары — id заклинаний из skills.json, цена — по кругу (kSpellPrice).
+  //    Как в FF1, но только заклинания, которые бой уже умеет (без статусов, уклонения и телепортов) ──
+  { "id": "cornelia_white_magic", "kind": "whiteMagic", "title": "White Magic Shop", "greeting": "Welcome! Seeking white magic?", "goods": [3, 201] },
+  { "id": "cornelia_black_magic", "kind": "blackMagic", "title": "Black Magic Shop", "greeting": "Welcome! Seeking black magic?", "goods": [2, 212] },
+  { "id": "pravoka_black_magic", "kind": "blackMagic", "title": "Black Magic Shop", "greeting": "Welcome! Seeking black magic?", "goods": [213, 214] },
+  { "id": "elfheim_white_magic", "kind": "whiteMagic", "title": "White Magic Shop", "greeting": "Welcome! Seeking white magic?", "goods": [202, 203] },
+  { "id": "elfheim_black_magic", "kind": "blackMagic", "title": "Black Magic Shop", "greeting": "Welcome! Seeking black magic?", "goods": [215, 216] },
+  { "id": "elfheim_black_magic_2", "kind": "blackMagic", "title": "Black Magic Shop", "greeting": "Welcome! Seeking black magic?", "goods": [217] },
+  { "id": "melmond_white_magic", "kind": "whiteMagic", "title": "White Magic Shop", "greeting": "Welcome! Seeking white magic?", "goods": [204, 205, 206] },
+  { "id": "melmond_black_magic", "kind": "blackMagic", "title": "Black Magic Shop", "greeting": "Welcome! Seeking black magic?", "goods": [218] },
+  { "id": "crescent_lake_white_magic", "kind": "whiteMagic", "title": "White Magic Shop", "greeting": "Welcome! Seeking white magic?", "goods": [207] },
+  { "id": "crescent_lake_black_magic", "kind": "blackMagic", "title": "Black Magic Shop", "greeting": "Welcome! Seeking black magic?", "goods": [219] },
+  { "id": "onrac_white_magic", "kind": "whiteMagic", "title": "White Magic Shop", "greeting": "Welcome! Seeking white magic?", "goods": [209] },
+  { "id": "onrac_black_magic", "kind": "blackMagic", "title": "Black Magic Shop", "greeting": "Welcome! Seeking black magic?", "goods": [221] },
+  { "id": "gaia_white_magic", "kind": "whiteMagic", "title": "White Magic Shop", "greeting": "Welcome! Seeking white magic?", "goods": [208, 211] },
+  { "id": "gaia_black_magic", "kind": "blackMagic", "title": "Black Magic Shop", "greeting": "Welcome! Seeking black magic?", "goods": [220] },
+  { "id": "lufenia_magic", "kind": "whiteMagic", "title": "Magic Shop", "greeting": "Welcome! Seeking the strongest magic?", "goods": [210, 222] },
+
+  // ── Гостиница: ночлег лечит живых и предлагает сохраниться. Церковь поднимает павших с 1 HP ──
+  { "id": "cornelia_inn", "kind": "inn", "title": "Inn", "greeting": "", "price": 60 },
+  { "id": "cornelia_church", "kind": "church", "title": "Church", "greeting": "", "price": 80 }
 ]

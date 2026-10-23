@@ -35,5 +35,6 @@ Enemy::Enemy(int id, int lvl) : enemyId(id)
 
 uint32_t Enemy::getAttackPower(const Skill* skill) const
 {
-    return skill ? attack + skill->power : attack;
+    const uint32_t a = withBattleBonus(attack, battleAttack);
+    return skill ? a + skill->power : a;
 }

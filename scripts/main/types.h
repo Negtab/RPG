@@ -60,10 +60,15 @@ enum class SkillEffectType
 {
     Damage,
     Heal,
-    Buff,
-    Debuff,
+    Buff,                                                   // stat растёт на power до конца боя
+    Debuff,                                                 // stat падает на power до конца боя
+    Revive,                                                 // поднимает павшего: power HP, 9999 — полностью
     None
 };
+
+constexpr int kSpellLevels = 8;
+constexpr int kSpellsPerLevel = 3;                          // как в FF1: из четырёх заклинаний круга можно знать три
+enum class BattleStat { Attack, Defence };
 
 struct Skill
 {
@@ -82,6 +87,17 @@ struct Skill
 
     int32_t power{0};
     std::string effect;                                     // боевой эффект из effects.json; пусто — по стихии и типу
+    BattleStat stat{BattleStat::Attack};                    // Buff и Debuff: что меняют
+    // Заклинание из лавки магии: круг 1-8 (0 — не продаётся), школа и кто может выучить
+    int spellLevel{0};
+    bool white{false};
+    std::vector<SpecializationNames> learners;
+    [[nodiscard]] bool isSpell() const { return spellLevel > 0; }
+    [[nodiscard]] bool learnableBy(SpecializationNames c) const
+    {
+        for (auto k : learners) if (k == c) return true;
+        return false;
+    }
 };
 
 enum class ItemEffectType

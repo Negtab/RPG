@@ -179,7 +179,7 @@ void UIManager::drawDialog()
 }
 
 // ─────────────────────────────────────────
-// Магазин
+// Магазин, лавка магии, гостиница, церковь
 // ─────────────────────────────────────────
 
 void UIManager::openShop(const ShopDef& def)
@@ -188,7 +188,23 @@ void UIManager::openShop(const ShopDef& def)
     shopPhase = ShopPhase::Command;
     shopCommand = shopSel = shopScroll = 0;
     shopCount = 1;
-    shopSay(tr(def.greeting.empty() ? "Welcome!" : def.greeting));
+    if (def.kind == ShopKind::Inn)
+        shopSay(trf("A night's rest is {0}. Will you stay?", {gil(def.price)}));
+    else if (def.kind == ShopKind::Church)
+        shopSay(tr(def.greeting.empty() ? "Shall I return your fallen to life?" : def.greeting));
+    else
+        shopSay(tr(def.greeting.empty() ? "Welcome!" : def.greeting));
+}
+
+std::vector<const char*> UIManager::shopCommands() const
+{
+    if (!shop) return {};
+    if (shop->kind == ShopKind::Inn)
+        return shopPhase == ShopPhase::InnSave ? std::vector<const char*>{"Save", "Exit"}
+                                               : std::vector<const char*>{"Stay", "Exit"};
+    if (shop->kind == ShopKind::Church) return {"Revive", "Exit"};
+    if (shop->sellsSpells()) return {"Buy", "Exit"};                 // заклинания в FF1 не продают обратно
+    return {kShopCommands[0], kShopCommands[1], kShopCommands[2]};
 }
 
 int UIManager::shopPrice(const Item& item, bool selling) const
@@ -199,13 +215,27 @@ int UIManager::shopPrice(const Item& item, bool selling) const
 std::vector<std::pair<int, int>> UIManager::shopList() const
 {
     std::vector<std::pair<int, int>> out;
+    if (!shop) return out;
+    if (shop->kind == ShopKind::Church)                              // павшие герои и цена воскрешения
+    {
+        const auto& heroes = player.getHeroes();
+        for (int i = 0; i < static_cast<int>(heroes.size()); ++i)
+            if (!heroes[i].getIsAlive()) out.emplace_back(i, shop->price);
+        return out;
+    }
+    if (shop->sellsSpells())
+    {
+        for (int id : shop->goods)
+            out.emplace_back(id, kSpellPrice[std::clamp(game.getSkill(id).spellLevel, 1, kSpellLevels) - 1]);
+        return out;
+    }
     const bool selling = shopPhase == ShopPhase::Sell || (shopPhase == ShopPhase::Quantity && shopSelling);
     if (selling)
     {
         for (const auto& [id, count] : player.getItemCounts())
             if (count > 0) out.emplace_back(id, shopPrice(game.getItem(id), true));
     }
-    else if (shop)
+    else
         for (int id : shop->goods) out.emplace_back(id, shopPrice(game.getItem(id), false));
     return out;
 }
@@ -233,21 +263,125 @@ SDL_Rect UIManager::shopRowRect(int row) const
     return {kShopList.x + 16, kShopList.y + 12 + row * kShopRowH, kShopList.w - 32, kShopRowH - 4};
 }
 
+std::string UIManager::learnBlock(const Hero& hero, const Skill& spell) const
+{
+    if (!spell.learnableBy(hero.getClass())) return "Can't learn";
+    if (hero.knowsSkill(spell.id))           return "Knows it";
+    if (hero.spellsKnown(spell.spellLevel, spell.white) >= kSpellsPerLevel) return "Level full";
+    return "";
+}
+
 void UIManager::shopPick(int index)
 {
     const auto list = shopList();
     if (index < 0 || index >= static_cast<int>(list.size())) return;
     shopSel = index;
+    const int price = list[index].second;
+
+    if (shop->kind == ShopKind::Church)                              // воскрешаем выбранного павшего
+    {
+        if (player.getPlayerGold() < static_cast<uint32_t>(price)) { shopSay(tr("You don't have enough gil.")); return; }
+        Hero& hero = player.getLinkTOHeroes()[list[index].first];
+        player.setPlayerGold(player.getPlayerGold() - price);
+        hero.resurrectPerson(1);                                     // как в FF1: встаёт с 1 HP
+        shopSay(trf("{0} has returned to life!", {hero.getName()}));
+        game.sendPartyInfo();
+        if (shopList().empty()) shopPhase = ShopPhase::Command;
+        else shopSel = std::min(shopSel, static_cast<int>(shopList().size()) - 1);
+        return;
+    }
+
+    if (shop->sellsSpells())                                         // дальше — кто выучит
+    {
+        if (player.getPlayerGold() < static_cast<uint32_t>(price)) { shopSay(tr("You don't have enough gil.")); return; }
+        partySel = 0;
+        shopPhase = ShopPhase::LearnWho;
+        shopSay(trf("Who will learn {0}?", {game.getSkill(list[index].first).name}));
+        return;
+    }
+
     shopSelling = shopPhase == ShopPhase::Sell;
     const Item& item = game.getItem(list[index].first);
-
-    if (shopSelling && list[index].second <= 0) { shopSay(tr("I have no use for that.")); return; }
-    if (!shopSelling && player.getPlayerGold() < static_cast<uint32_t>(list[index].second)) { shopSay(tr("You don't have enough gil.")); return; }
+    if (shopSelling && price <= 0) { shopSay(tr("I have no use for that.")); return; }
+    if (!shopSelling && player.getPlayerGold() < static_cast<uint32_t>(price)) { shopSay(tr("You don't have enough gil.")); return; }
     if (shopMaxCount() <= 0) { shopSay(tr("You can't carry any more.")); return; }
 
     shopCount = 1;
     shopPhase = ShopPhase::Quantity;
     shopSay(shopSelling ? tr("How many will you sell?") : trf("{0}? How many?", {item.name}));
+}
+
+void UIManager::learnSpell(int heroIndex)
+{
+    const auto list = shopList();
+    auto& heroes = player.getLinkTOHeroes();
+    if (shopSel >= static_cast<int>(list.size()) || heroIndex < 0 || heroIndex >= static_cast<int>(heroes.size())) return;
+    const Skill& spell = game.getSkill(list[shopSel].first);
+    Hero& hero = heroes[heroIndex];
+    if (const std::string why = learnBlock(hero, spell); !why.empty())
+    {
+        shopSay(trf(why == "Can't learn" ? "{0} can't learn that." : why == "Knows it" ? "{0} already knows it."
+                                                                    : "{0} can't learn more spells of this level.",
+                    {hero.getName()}));
+        return;
+    }
+    player.setPlayerGold(player.getPlayerGold() - list[shopSel].second);
+    hero.learnSkill(spell.id);
+    game.sendPartyInfo();                                            // напарник и хост узнают о новом заклинании
+    shopPhase = ShopPhase::Buy;
+    shopSay(trf("{0} learned {1}!", {hero.getName(), spell.name}));
+}
+
+void UIManager::restAtInn()
+{
+    // Затемнение, ночь, утро: живые встают с полными HP и MP. Павших поднимает только церковь
+    game.startTransition([this]() {
+        for (auto& h : player.getLinkTOHeroes())
+            if (h.getIsAlive())
+            {
+                h.setCurrentHp(h.getMaxHp());
+                h.setCurrentMp(h.getMaxMp());
+            }
+        game.sendPartyInfo();
+    });
+    shopPhase = ShopPhase::InnSave;
+    shopCommand = 0;
+    shopSay(tr("Good morning! Would you like to save?"));
+}
+
+void UIManager::shopRunCommand(int index)
+{
+    const auto commands = shopCommands();
+    if (index < 0 || index >= static_cast<int>(commands.size())) return;
+    const std::string cmd = commands[index];
+    if (cmd == "Exit") { game.closeShop(); return; }
+    if (cmd == "Stay")
+    {
+        if (player.getPlayerGold() < static_cast<uint32_t>(shop->price)) { shopSay(tr("You don't have enough gil.")); return; }
+        player.setPlayerGold(player.getPlayerGold() - shop->price);
+        restAtInn();
+        return;
+    }
+    if (cmd == "Save") { game.openSaveScreen(true); return; }
+    if (cmd == "Revive")
+    {
+        shopSel = shopScroll = 0;
+        if (shopList().empty()) { shopSay(tr("Your party is in fine health.")); return; }
+        shopPhase = ShopPhase::Buy;
+        shopSay(tr("Whom shall I revive?"));
+        return;
+    }
+    if (cmd == "Buy")
+    {
+        shopPhase = ShopPhase::Buy;
+        shopSel = shopScroll = 0;
+        shopSay(tr(shop->sellsSpells() ? "Which spell would you like?" : "What would you like to buy?"));
+        return;
+    }
+    shopPhase = ShopPhase::Sell;                                     // "Sell"
+    shopSel = shopScroll = 0;
+    if (shopList().empty()) { shopPhase = ShopPhase::Command; shopSay(tr("You have nothing to sell.")); }
+    else shopSay(tr("What will you sell?"));
 }
 
 void UIManager::shopDeal()
@@ -283,17 +417,19 @@ void UIManager::shopDeal()
 void UIManager::handleShopEvent(const SDL_Event& e)
 {
     if (!shop) { game.closeShop(); return; }
+    if (game.getFadeAlpha() > 0.0f) return;                         // ночь в гостинице: ждём утра
 
-    if (shopPhase == ShopPhase::Command)
+    if (shopPhase == ShopPhase::Command || shopPhase == ShopPhase::InnSave)
     {
+        const int n = static_cast<int>(shopCommands().size());
         if (backKey(e)) { game.closeShop(); return; }
-        if (keyIs(e, {SDL_SCANCODE_UP, SDL_SCANCODE_W}))   shopCommand = (shopCommand + 2) % 3;
-        if (keyIs(e, {SDL_SCANCODE_DOWN, SDL_SCANCODE_S})) shopCommand = (shopCommand + 1) % 3;
+        if (keyIs(e, {SDL_SCANCODE_UP, SDL_SCANCODE_W}))   shopCommand = (shopCommand + n - 1) % n;
+        if (keyIs(e, {SDL_SCANCODE_DOWN, SDL_SCANCODE_S})) shopCommand = (shopCommand + 1) % n;
         int activate = confirmKey(e) ? shopCommand : -1;
         if (isMouse(e))
         {
             const SDL_Point m = mousePos(e);
-            for (int r = 0; r < 3; ++r)
+            for (int r = 0; r < n; ++r)
             {
                 const SDL_Rect rr = shopCommandRect(r);
                 if (!SDL_PointInRect(&m, &rr)) continue;
@@ -301,21 +437,38 @@ void UIManager::handleShopEvent(const SDL_Event& e)
                 if (leftClick(e)) activate = r;
             }
         }
-        if (activate == 0)
+        if (activate >= 0) shopRunCommand(activate);
+        return;
+    }
+
+    if (shopPhase == ShopPhase::LearnWho)                            // герои — четыре колонки внизу
+    {
+        const int heroes = static_cast<int>(player.getHeroes().size());
+        if (backKey(e))
         {
             shopPhase = ShopPhase::Buy;
-            shopSel = shopScroll = 0;
-            shopSay(tr("What would you like to buy?"));
+            shopSay(tr("Which spell would you like?"));
+            return;
         }
-        else if (activate == 1)
+        if (heroes == 0) return;
+        if (keyIs(e, {SDL_SCANCODE_LEFT, SDL_SCANCODE_A, SDL_SCANCODE_UP, SDL_SCANCODE_W}))
+            partySel = (partySel + heroes - 1) % heroes;
+        if (keyIs(e, {SDL_SCANCODE_RIGHT, SDL_SCANCODE_D, SDL_SCANCODE_DOWN, SDL_SCANCODE_S}))
+            partySel = (partySel + 1) % heroes;
+        int pick = confirmKey(e) ? partySel : -1;
+        if (isMouse(e))
         {
-            shopPhase = ShopPhase::Sell;
-            shopSel = shopScroll = 0;
-            if (shopList().empty()) { shopPhase = ShopPhase::Command; shopSay(tr("You have nothing to sell.")); }
-            else shopSay(tr("What will you sell?"));
+            const SDL_Point m = mousePos(e);
+            const int colW = (kShopInfo.w - 40) / 4;
+            for (int i = 0; i < heroes && i < 4; ++i)
+            {
+                const SDL_Rect r{kShopInfo.x + 20 + i * colW, kShopInfo.y + 48, colW, 40};
+                if (!SDL_PointInRect(&m, &r)) continue;
+                partySel = i;
+                if (leftClick(e)) pick = i;
+            }
         }
-        else if (activate == 2)
-            game.closeShop();
+        if (pick >= 0) learnSpell(pick);
         return;
     }
 
@@ -337,15 +490,15 @@ void UIManager::handleShopEvent(const SDL_Event& e)
         return;
     }
 
-    // Список товаров или своих вещей
+    // Список товаров, своих вещей, заклинаний или павших
     const int count = static_cast<int>(shopList().size());
-    if (backKey(e))
+    if (backKey(e) || count == 0)
     {
+        if (count == 0 && !backKey(e)) return;
         shopPhase = ShopPhase::Command;
         shopSay(tr("Anything else?"));
         return;
     }
-    if (count == 0) return;
     if (keyIs(e, {SDL_SCANCODE_UP, SDL_SCANCODE_W}))   shopSel = (shopSel - 1 + count) % count;
     if (keyIs(e, {SDL_SCANCODE_DOWN, SDL_SCANCODE_S})) shopSel = (shopSel + 1) % count;
     if (e.type == SDL_MOUSEWHEEL)
@@ -408,6 +561,29 @@ void UIManager::drawShopInfo(const Item& item)
     }
 }
 
+void UIManager::drawSpellInfo(const Skill& spell)
+{
+    // Сверху: круг, MP и что делает; снизу — кто из отряда может выучить (при выборе героя — со стрелкой)
+    TTF_Font* font = ResourceManager::getFont(kUiFont);
+    const std::string head = trf("Level {0}   {1} MP", {std::to_string(spell.spellLevel), std::to_string(spell.manaCost)});
+    drawText(head, kShopInfo.x + kShopInfo.w - 20 - ResourceManager::measureText(head, font).w, kShopInfo.y + 14, kDim);
+    drawText(skillDescription(spell), kShopInfo.x + 20, kShopInfo.y + 14, kDim);
+
+    const auto& heroes = player.getHeroes();
+    const int colW = (kShopInfo.w - 40) / 4;
+    const int blink = static_cast<int>((SDL_GetTicks() / 220) % 2) * 2;
+    for (int i = 0; i < static_cast<int>(heroes.size()) && i < 4; ++i)
+    {
+        const Hero& h = heroes[i];
+        const int x = kShopInfo.x + 20 + i * colW, y = kShopInfo.y + 54;
+        const std::string why = learnBlock(h, spell);
+        const SDL_Color c = why.empty() ? (shopPhase == ShopPhase::LearnWho && i == partySel ? kHot : kText) : kDim;
+        const int w = drawText(h.getName() + " ", x + 16, y, c);
+        if (!why.empty()) drawText(why == "Can't learn" ? "—" : why == "Knows it" ? tr("knows") : "3/3", x + 16 + w, y, kDim);
+        if (shopPhase == ShopPhase::LearnWho && i == partySel) drawPointer(x + 10 - blink, y + 14, 2);
+    }
+}
+
 void UIManager::drawShop()
 {
     if (!shop) return;
@@ -429,30 +605,43 @@ void UIManager::drawShop()
     drawText(shopLine, kShopTalk.x + 20, kShopTalk.y + 14, kText);
 
     // Команды
-    window(kShopCmds);
-    for (int r = 0; r < 3; ++r)
+    const auto commands = shopCommands();
+    const bool onCommands = shopPhase == ShopPhase::Command || shopPhase == ShopPhase::InnSave;
+    window({kShopCmds.x, kShopCmds.y, kShopCmds.w, 24 + static_cast<int>(commands.size()) * kShopRowH});
+    for (int r = 0; r < static_cast<int>(commands.size()); ++r)
     {
         const SDL_Rect rr = shopCommandRect(r);
         const bool sel = r == shopCommand;
-        const bool active = shopPhase == ShopPhase::Command;
-        drawText(tr(kShopCommands[r]), rr.x + 22, rr.y + 6, sel && active ? kHot : (active ? kText : kDim));
-        if (sel && active) drawPointer(rr.x + 16 - blink, rr.y + rr.h / 2, 2);
+        drawText(tr(commands[r]), rr.x + 22, rr.y + 6, sel && onCommands ? kHot : (onCommands ? kText : kDim));
+        if (sel && onCommands) drawPointer(rr.x + 16 - blink, rr.y + rr.h / 2, 2);
     }
 
-    // Товары (на главной — ассортимент, приглушённо) или свои вещи на продажу
+    // Список: товары (на главной — приглушённо), свои вещи на продажу, заклинания или павшие герои
     window(kShopList);
     const auto list = shopList();
     const bool picking = shopPhase == ShopPhase::Buy || shopPhase == ShopPhase::Sell;
     const bool selling = shopPhase == ShopPhase::Sell || (shopPhase == ShopPhase::Quantity && shopSelling);
+    const bool church = shop->kind == ShopKind::Church;
+    if (shop->kind == ShopKind::Inn)
+    {
+        const std::string price = gil(shop->price);
+        drawText(tr("One night"), shopRowRect(0).x + 22, shopRowRect(0).y + 6, kText);
+        drawText(price, shopRowRect(0).x + shopRowRect(0).w - ResourceManager::measureText(price, font).w,
+                 shopRowRect(0).y + 6, kText);
+    }
+    if (church && list.empty())
+        drawText(tr("Everyone is alive and well."), shopRowRect(0).x + 22, shopRowRect(0).y + 6, kDim);
     for (int r = 0; r < kShopRows && shopScroll + r < static_cast<int>(list.size()); ++r)
     {
         const int i = shopScroll + r;
-        const Item& item = game.getItem(list[i].first);
         const SDL_Rect rr = shopRowRect(r);
-        const bool sel = i == shopSel && shopPhase != ShopPhase::Command;
+        const bool sel = i == shopSel && !onCommands;
         const bool affordable = selling || player.getPlayerGold() >= static_cast<uint32_t>(list[i].second);
-        const SDL_Color c = shopPhase == ShopPhase::Command ? kDim : !affordable ? kDim : sel ? kHot : kText;
-        drawText(item.name, rr.x + 22, rr.y + 6, c);
+        const SDL_Color c = onCommands ? kDim : !affordable ? kDim : sel ? kHot : kText;
+        const std::string name = church ? player.getHeroes()[list[i].first].getName()
+                               : shop->sellsSpells() ? game.getSkill(list[i].first).name
+                               : game.getItem(list[i].first).name;
+        drawText(name, rr.x + 22, rr.y + 6, c);
         std::string right = gil(list[i].second);
         if (selling)
         {
@@ -472,8 +661,11 @@ void UIManager::drawShop()
 
     // Описание выбранного
     window(kShopInfo);
-    if (shopPhase != ShopPhase::Command && shopSel < static_cast<int>(list.size()))
-        drawShopInfo(game.getItem(list[shopSel].first));
+    if (!onCommands && shopSel < static_cast<int>(list.size()) && !church)
+    {
+        if (shop->sellsSpells()) drawSpellInfo(game.getSkill(list[shopSel].first));
+        else                     drawShopInfo(game.getItem(list[shopSel].first));
+    }
 
     // Сколько штук
     if (shopPhase == ShopPhase::Quantity && shopSel < static_cast<int>(list.size()))
@@ -490,4 +682,7 @@ void UIManager::drawShop()
         drawText(total, kShopCount.x + kShopCount.w - 20 - ResourceManager::measureText(total, font).w,
                  kShopCount.y + 90, kText);
     }
+
+    if (const float a = game.getFadeAlpha(); a > 0.0f)               // ночь в гостинице
+        visualizer.fillRect(screen, {0, 0, 0, static_cast<Uint8>(255 * a)});
 }

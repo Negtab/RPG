@@ -36,6 +36,12 @@ public:
     [[nodiscard]] std::vector<SkillInstance> getAvailableSkills() const override { return skills; }
 
     [[nodiscard]] SpecializationNames getClass() const { return spec.name; }
+
+    // Заклинания из лавок магии (стартовые заклинания класса сюда не входят)
+    [[nodiscard]] bool knowsSkill(int skillId) const;
+    void learnSkill(int skillId);
+    [[nodiscard]] const std::vector<int>& getLearnedSkills() const noexcept { return learned; }
+    [[nodiscard]] int spellsKnown(int spellLevel, bool white) const;   // сколько заклинаний этого круга и школы
     void setLevel(int target);               // повышает до уровня target (понижать нельзя)
 
     void addXP(const uint32_t& xp);
@@ -48,6 +54,7 @@ private:
     uint32_t xpToNextLevel;
     Specialization spec;
     std::array<int, kEquipSlots> equipment{};
+    std::vector<int> learned;
 };
 
 #endif //PROJECT_NAME_HERO_H

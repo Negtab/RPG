@@ -576,6 +576,7 @@ void Game::openSaveScreen(bool saving)
 
 void Game::closeSaveScreen()
 {
+    if (prevState == GameState::Shop) { setGameState(GameState::Shop); return; }   // сохранялись в гостинице
     setGameState(prevState == GameState::GameMenu ? GameState::GameMenu : GameState::Menu);
 }
 
@@ -943,6 +944,10 @@ void Game::sendPartyInfo()
         p.heroes[i].name[sizeof(p.heroes[i].name) - 1] = '\0';
         for (int s = 0; s < kEquipSlots; ++s)
             p.heroes[i].equipment[s] = heroes[i].getEquipped(static_cast<EquipSlot>(s));
+        const auto& spells = heroes[i].getLearnedSkills();
+        p.heroes[i].spellCount = static_cast<uint8_t>(std::min<size_t>(spells.size(), std::size(p.heroes[i].spells)));
+        for (int s = 0; s < p.heroes[i].spellCount; ++s)
+            p.heroes[i].spells[s] = static_cast<int16_t>(spells[s]);
     }
     client.send(reinterpret_cast<const char*>(&p), sizeof(p));
 }
@@ -980,6 +985,9 @@ void Game::applyPartyInfo(const PartyInfoPacket& p)
         if (!cleaned.empty()) hero.setName(cleaned);
         for (int s = 0; s < kEquipSlots; ++s)                    // equip сам отбросит чужой слот, класс и неизвестный id
             hero.equip(static_cast<EquipSlot>(s), p.heroes[i].equipment[s]);
+        for (int s = 0; s < std::min<int>(p.heroes[i].spellCount, std::size(p.heroes[i].spells)); ++s)
+            if (const Skill* spell = findSkill(p.heroes[i].spells[s]); spell && spell->isSpell())
+                hero.learnSkill(spell->id);
         rebuilt.push_back(std::move(hero));
     }
     heroes = std::move(rebuilt);

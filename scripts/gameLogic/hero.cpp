@@ -76,13 +76,13 @@ namespace {
 
 uint32_t Hero::getAttackPower(const Skill* skill) const
 {
-    const uint32_t total = withBonus(attack, equipBonus(&Item::attack));
+    const uint32_t total = withBattleBonus(withBonus(attack, equipBonus(&Item::attack)), battleAttack);
     if (skill && skill->isDamaging)
         return total + skill->power;
     return total;
 }
 
-uint32_t Hero::getDefense() const { return withBonus(defence, equipBonus(&Item::defence)); }
+uint32_t Hero::getDefense() const { return withBattleBonus(withBonus(defence, equipBonus(&Item::defence)), battleDefence); }
 uint32_t Hero::getSpeed() const   { return std::max<uint32_t>(1, withBonus(agility, equipBonus(&Item::agility))); }
 
 int Hero::getEquipped(EquipSlot slot) const
@@ -116,6 +116,29 @@ void Hero::refreshResists()
         if (const auto it = items.find(id); id != 0 && it != items.end())
             for (Elemental e : it->second.resists)
                 if (std::find(resists.begin(), resists.end(), e) == resists.end()) resists.push_back(e);
+}
+
+bool Hero::knowsSkill(int skillId) const
+{
+    return std::any_of(skills.begin(), skills.end(), [&](const SkillInstance& s) { return s.skillId == skillId; });
+}
+
+void Hero::learnSkill(int skillId)
+{
+    if (knowsSkill(skillId)) return;
+    skills.push_back(SkillInstance{skillId, 0});
+    learned.push_back(skillId);
+}
+
+int Hero::spellsKnown(int spellLevel, bool white) const
+{
+    int n = 0;
+    const auto& all = GameData::instance().skills();
+    for (const auto& s : skills)
+        if (const auto it = all.find(s.skillId); it != all.end() && it->second.spellLevel == spellLevel &&
+                                                 it->second.white == white)
+            ++n;
+    return n;
 }
 
 void Hero::equipStarting()

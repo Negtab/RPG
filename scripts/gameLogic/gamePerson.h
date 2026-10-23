@@ -115,6 +115,17 @@ public:
 
     void setName(std::string n) { name = std::move(n); }
 
+    // Защита, Ярость, Ослабление: прибавка к атаке или защите до конца боя
+    void addBattleBonus(BattleStat stat, int32_t amount)
+    {
+        (stat == BattleStat::Attack ? battleAttack : battleDefence) += amount;
+    }
+    void clearBattleBonuses() noexcept { battleAttack = battleDefence = 0; }
+    [[nodiscard]] int32_t getBattleBonus(BattleStat stat) const noexcept
+    {
+        return stat == BattleStat::Attack ? battleAttack : battleDefence;
+    }
+
     [[nodiscard]] const std::vector<Elemental>& getResists() const { return resists; }
     [[nodiscard]] const std::vector<Elemental>& getVulnerabilities() const { return vulnerability; }
 
@@ -129,6 +140,12 @@ protected:
     std::vector<SkillInstance> skills;
     std::vector<Elemental> resists, immunities, vulnerability;
     std::map<int, uint16_t> currentCooldowns;
+    int32_t battleAttack{0}, battleDefence{0};
+
+    [[nodiscard]] static uint32_t withBattleBonus(uint32_t value, int32_t bonus)
+    {
+        return static_cast<uint32_t>(std::max<int64_t>(0, static_cast<int64_t>(value) + bonus));
+    }
 };
 
 #endif //PROJECT_NAME_GAMEPERSON_H
