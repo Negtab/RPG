@@ -21,8 +21,8 @@ Hero::Hero(Specialization spec) : spec(spec)
     maxHp   = static_cast<uint32_t>(def->hp);
     maxMp   = static_cast<uint32_t>(def->mp);
 
-    resists       = def->resists;
     vulnerability = def->vulnerabilities;
+    refreshResists();
     skills.clear();
     for (int id : def->skills)
         skills.push_back(SkillInstance{id, 0});
@@ -103,7 +103,19 @@ int Hero::equip(EquipSlot slot, int itemId)
     }
     const int old = equipment[i];
     equipment[i] = itemId;
+    refreshResists();
     return old;
+}
+
+void Hero::refreshResists()
+{
+    const HeroClassDef* def = GameData::instance().heroClass(spec.name);
+    resists = def ? def->resists : std::vector<Elemental>{};
+    const auto& items = GameData::instance().items();
+    for (int id : equipment)
+        if (const auto it = items.find(id); id != 0 && it != items.end())
+            for (Elemental e : it->second.resists)
+                if (std::find(resists.begin(), resists.end(), e) == resists.end()) resists.push_back(e);
 }
 
 void Hero::equipStarting()

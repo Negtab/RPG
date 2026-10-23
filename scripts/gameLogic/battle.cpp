@@ -416,7 +416,9 @@ void Battle::executeAttack(Hero& attacker, const std::vector<int>& targets)
     {
         ui->playEffectOn(hit, false, 0, idx, 0.3f);               // в середине замаха
         Enemy& target = enemies[idx];
-        target.takeDamage(physicalDamage(attacker.getAttackPower(nullptr), target.getDefense()));
+        const uint32_t damage = physicalDamage(attacker.getAttackPower(nullptr), target.getDefense());
+        if (weapon && weapon->hasElement) target.takeDamage(damage, weapon->element);   // Огненный меч: слабость к огню x1.5
+        else                              target.takeDamage(damage);
         tryCounterAttack(attacker, target);
     }
 }

@@ -5,6 +5,7 @@
 #include <SDL_image.h>
 
 #include "resourceManager.h"
+#include "../gameLogic/gameData.h"
 
 #include <algorithm>
 
@@ -572,8 +573,8 @@ bool ResourceManager::loadPlayer(const std::string& path, Player& player, SaveMe
     }
     for (const auto& e : d.enemies)
         player.addDiscoveredEnemy(e);
-    for (const auto& [id, count] : d.items)
-        player.addItem(id, count);
+    for (const auto& [id, count] : d.items)                  // вещи, которых больше нет в items.json (луки), пропадают
+        if (GameData::instance().items().contains(id)) player.addItem(id, count);
 
     auto& heroes = player.getLinkTOHeroes();
     for (const auto& s : d.heroes)

@@ -43,6 +43,7 @@ public:
 
 private:
     [[nodiscard]] int32_t equipBonus(int32_t Item::*stat) const;
+    void refreshResists();                   // сопротивления класса плюс надетой брони
 
     uint32_t xpToNextLevel;
     Specialization spec;

@@ -213,6 +213,9 @@ void GameData::loadItems(const fs::path& path)
         it.effect     = e.value("effect", std::string{});
         it.hitEffect  = e.value("hitEffect", std::string{});
         it.swing      = getIntOr(e, "swing", -1, 999, -1);
+        it.hasElement = e.contains("element");
+        if (it.hasElement) it.element = getEnum(e, "element", kElementals);
+        it.resists    = getElementals(e, "resists");
         if (!itemMap.emplace(it.id, it).second)
             throw runtime_error("duplicate item id " + std::to_string(it.id));
     });

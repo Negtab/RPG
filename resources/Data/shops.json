@@ -1,8 +1,55 @@
 [
-  // Заведения городов. title и greeting — по-английски, перевод в resources/Lang/ru.json. Продавца ставят в Tiled на слой "npcs" со свойством shop = id отсюда.
+  // Заведения городов. title и greeting — по-английски, перевод в resources/Lang/ru.json.
+  // Продавца ставят в Tiled на слой "npcs" со свойством shop = id отсюда.
   // kind: item, weapon, armor, whiteMagic, blackMagic, inn, church
   // goods — id из items.json в порядке на прилавке; price — цена ночлега (inn) или воскрешения (church)
+  // Ассортимент оружия и доспехов — как в FF1 (Final Fantasy Wiki); продавцы пока стоят только в Корнелии
+
+  // ── Корнелия ──
   { "id": "cornelia_item_shop", "kind": "item", "title": "Item Shop",
     "greeting": "Welcome! How may I help you?",
-    "goods": [1, 2, 3] }
+    "goods": [1, 2, 3] },
+  { "id": "cornelia_weapon_shop", "kind": "weapon", "title": "Weapon Shop",
+    "greeting": "Welcome! Looking for a weapon?",
+    "goods": [101, 103, 166, 170, 109] },
+  { "id": "cornelia_armor_shop", "kind": "armor", "title": "Armor Shop",
+    "greeting": "Welcome! Need some armor?",
+    "goods": [141, 142, 143] },
+
+  // ── Правока ──
+  { "id": "pravoka_weapon_shop", "kind": "weapon", "title": "Weapon Shop",
+    "greeting": "Welcome! Looking for a weapon?",
+    "goods": [163, 165, 168, 170] },
+  { "id": "pravoka_armor_shop", "kind": "armor", "title": "Armor Shop",
+    "greeting": "Welcome! Need some armor?",
+    "goods": [124, 142, 143, 181, 151] },
+
+  // ── Эльфхейм ──
+  { "id": "elfheim_weapon_shop", "kind": "weapon", "title": "Weapon Shop",
+    "greeting": "Welcome! Looking for a weapon?",
+    "goods": [102, 162, 105, 167, 172] },
+  { "id": "elfheim_armor_shop", "kind": "armor", "title": "Armor Shop",
+    "greeting": "Welcome! Need some armor?",
+    "goods": [122, 131, 132, 181, 183] },
+
+  // ── Мелмонд ──
+  { "id": "melmond_weapon_shop", "kind": "weapon", "title": "Weapon Shop",
+    "greeting": "Welcome! Looking for a weapon?",
+    "goods": [162, 104, 164, 172] },
+  { "id": "melmond_armor_shop", "kind": "armor", "title": "Armor Shop",
+    "greeting": "Welcome! Need some armor?",
+    "goods": [134, 182, 184, 152, 191] },
+
+  // ── Кресент-Лейк ──
+  { "id": "crescent_lake_weapon_shop", "kind": "weapon", "title": "Weapon Shop",
+    "greeting": "Welcome! Looking for a weapon?",
+    "goods": [161, 105, 169, 171] },
+  { "id": "crescent_lake_armor_shop", "kind": "armor", "title": "Armor Shop",
+    "greeting": "Welcome! Need some armor?",
+    "goods": [121, 123, 133, 144, 192] },
+
+  // ── Гайя: одна лавка снаряжения (Кошачьи когти FF1 носят только улучшенные классы — их пока нет) ──
+  { "id": "gaia_shop", "kind": "armor", "title": "Armor Shop",
+    "greeting": "Welcome! Need some armor?",
+    "goods": [185, 193] }
 ]

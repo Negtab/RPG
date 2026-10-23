@@ -2574,6 +2574,8 @@ std::string UIManager::itemDescription(const Item& item) const
         if (item.attack)  s += "   " + tr("ATK") + " " + signedValue(item.attack);
         if (item.defence) s += "   " + tr("DEF") + " " + signedValue(item.defence);
         if (item.agility) s += "   " + tr("AGI") + " " + signedValue(item.agility);
+        if (item.hasElement) s += "   " + tr(elementName(item.element));
+        if (!item.resists.empty()) s += "   " + trf("Resists: {0}", {elementList(item.resists)});
         std::string who;
         for (auto c : item.classes)
             who += (who.empty() ? "" : ", ") + tr(specializationNamesString.at(c));

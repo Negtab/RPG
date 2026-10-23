@@ -6,40 +6,53 @@
   { "id": 4, "name": "Attack Scroll",    "cost": 100, "power": 10, "consumable": true, "effectType": "Buff",        "targetType": "Self",  "effect": "buff" },
   { "id": 5, "name": "Weaken Scroll",    "cost": 100, "power": 10, "consumable": true, "effectType": "Debuff",      "targetType": "Enemy", "effect": "debuff" },
 
-  // Экипировка: "slot" — Weapon, Shield, Head, Body или Arms; "classes" — кто может надеть (нет поля — все)
+  // Экипировка FF1, которую продают в лавках (Pixel Remaster, цены x2: враги тут дают больше золота).
+  // "slot" — Weapon, Shield, Head, Body или Arms; "classes" — кто может надеть (нет поля — все).
+  // "element" — стихия удара оружия, "resists" — сопротивления от брони. Сокровища подземелий добавятся с сундуками
   // Оружие
-  { "id": 101, "name": "Knife",          "cost": 5,   "slot": "Weapon", "attack": 5, "swing": 9, "hitEffect": "slash" },
-  { "id": 102, "name": "Dagger",         "cost": 20,  "slot": "Weapon", "attack": 8,  "classes": ["Warrior", "Thief", "RedMage", "BlackMage"], "swing": 7, "hitEffect": "slash" },
-  { "id": 103, "name": "Rapier",         "cost": 50,  "slot": "Weapon", "attack": 12, "classes": ["Warrior", "Thief", "RedMage"], "swing": 8, "hitEffect": "slash" },
-  { "id": 104, "name": "Long Sword",     "cost": 150, "slot": "Weapon", "attack": 18, "classes": ["Warrior"], "swing": 22, "hitEffect": "slash" },
-  { "id": 105, "name": "Mythril Sword",  "cost": 500, "slot": "Weapon", "attack": 26, "classes": ["Warrior", "Thief", "RedMage"], "swing": 23, "hitEffect": "slash" },
-  { "id": 106, "name": "Short Bow",      "cost": 40,  "slot": "Weapon", "attack": 10, "classes": ["RedMage"], "hitEffect": "hit" },
-  { "id": 107, "name": "Long Bow",       "cost": 150, "slot": "Weapon", "attack": 18, "classes": ["RedMage"], "hitEffect": "hit" },
-  { "id": 108, "name": "Mythril Bow",    "cost": 500, "slot": "Weapon", "attack": 26, "agility": 2, "classes": ["RedMage"], "hitEffect": "hit" },
-  { "id": 109, "name": "Staff",          "cost": 10,  "slot": "Weapon", "attack": 4,  "classes": ["Monk", "RedMage", "WhiteMage", "BlackMage"], "swing": 16, "hitEffect": "blunt" },
-  { "id": 110, "name": "Rod",            "cost": 120, "slot": "Weapon", "attack": 7,  "agility": 1, "classes": ["RedMage", "WhiteMage", "BlackMage"], "swing": 20, "hitEffect": "blunt" },
+  { "id": 101, "name": "Knife",          "cost": 8,     "slot": "Weapon", "attack": 5,  "classes": ["Warrior", "Thief", "RedMage", "BlackMage"], "swing": 9, "hitEffect": "slash" },
+  { "id": 102, "name": "Dagger",         "cost": 280,   "slot": "Weapon", "attack": 7,  "classes": ["Warrior", "Thief", "RedMage", "BlackMage"], "swing": 7, "hitEffect": "slash" },
+  { "id": 161, "name": "Mythril Knife",  "cost": 1280,  "slot": "Weapon", "attack": 10, "classes": ["Warrior", "Thief", "RedMage", "BlackMage"], "swing": 11, "hitEffect": "slash" },
+  { "id": 103, "name": "Rapier",         "cost": 16,    "slot": "Weapon", "attack": 9,  "classes": ["Warrior", "Thief", "RedMage"], "swing": 8, "hitEffect": "slash" },
+  { "id": 162, "name": "Saber",          "cost": 720,   "slot": "Weapon", "attack": 13, "classes": ["Warrior", "Thief", "RedMage"], "swing": 24, "hitEffect": "slash" },
+  { "id": 165, "name": "Broadsword",     "cost": 900,   "slot": "Weapon", "attack": 15, "classes": ["Warrior", "RedMage"], "swing": 26, "hitEffect": "slash" },
+  { "id": 104, "name": "Longsword",      "cost": 2400,  "slot": "Weapon", "attack": 20, "classes": ["Warrior", "RedMage"], "swing": 22, "hitEffect": "slash" },
+  { "id": 105, "name": "Mythril Sword",  "cost": 6400,  "slot": "Weapon", "attack": 23, "classes": ["Warrior", "RedMage"], "swing": 23, "hitEffect": "slash" },
+  { "id": 163, "name": "Scimitar",       "cost": 320,   "slot": "Weapon", "attack": 10, "classes": ["Warrior", "Thief", "RedMage"], "swing": 31, "hitEffect": "slash" },
+  { "id": 164, "name": "Falchion",       "cost": 720,   "slot": "Weapon", "attack": 15, "classes": ["Warrior", "Thief", "RedMage"], "swing": 32, "hitEffect": "slash" },
+  { "id": 166, "name": "Nunchaku",       "cost": 16,    "slot": "Weapon", "attack": 12, "classes": ["Monk"], "swing": 14, "hitEffect": "blunt" },
+  { "id": 167, "name": "Iron Nunchaku",  "cost": 320,   "slot": "Weapon", "attack": 16, "classes": ["Monk"], "swing": 13, "hitEffect": "blunt" },
+  { "id": 168, "name": "Battle Axe",     "cost": 900,   "slot": "Weapon", "attack": 16, "classes": ["Warrior"], "swing": 0, "hitEffect": "slash" },
+  { "id": 169, "name": "Mythril Axe",    "cost": 7200,  "slot": "Weapon", "attack": 25, "classes": ["Warrior"], "swing": 1, "hitEffect": "slash" },
+  { "id": 170, "name": "Hammer",         "cost": 16,    "slot": "Weapon", "attack": 9,  "classes": ["Warrior", "WhiteMage"], "swing": 4, "hitEffect": "blunt" },
+  { "id": 171, "name": "Mythril Hammer", "cost": 4000,  "slot": "Weapon", "attack": 12, "classes": ["Warrior", "WhiteMage"], "swing": 5, "hitEffect": "blunt" },
+  { "id": 109, "name": "Staff",          "cost": 8,     "slot": "Weapon", "attack": 6,  "classes": ["Warrior", "Monk", "RedMage", "WhiteMage", "BlackMage"], "swing": 16, "hitEffect": "blunt" },
+  { "id": 172, "name": "Crosier",        "cost": 320,   "slot": "Weapon", "attack": 14, "classes": ["Warrior", "Monk"], "swing": 17, "hitEffect": "blunt" },
 
   // Щиты
-  { "id": 121, "name": "Buckler",        "cost": 25,  "slot": "Shield", "defence": 3,  "classes": ["Warrior", "Thief", "RedMage"] },
-  { "id": 122, "name": "Iron Shield",    "cost": 100, "slot": "Shield", "defence": 6,  "classes": ["Warrior"] },
-  { "id": 123, "name": "Mythril Shield", "cost": 400, "slot": "Shield", "defence": 10, "classes": ["Warrior"] },
-
+  { "id": 124, "name": "Leather Shield",  "cost": 24,     "slot": "Shield", "defence": 2, "classes": ["Warrior"] },
+  { "id": 122, "name": "Iron Shield",     "cost": 160,    "slot": "Shield", "defence": 4, "classes": ["Warrior"] },
+  { "id": 121, "name": "Buckler",         "cost": 4000,   "slot": "Shield", "defence": 2, "classes": ["Warrior", "Thief", "RedMage"] },
+  { "id": 123, "name": "Mythril Shield",  "cost": 4000,   "slot": "Shield", "defence": 8, "classes": ["Warrior"] },
   // Голова
-  { "id": 131, "name": "Leather Cap",    "cost": 15,  "slot": "Head", "defence": 2 },
-  { "id": 132, "name": "Iron Helm",      "cost": 100, "slot": "Head", "defence": 5,  "classes": ["Warrior"] },
-  { "id": 133, "name": "Mythril Helm",   "cost": 400, "slot": "Head", "defence": 8,  "classes": ["Warrior", "Thief", "RedMage"] },
-
-  // Тело
-  { "id": 141, "name": "Clothes",        "cost": 10,  "slot": "Body", "defence": 2 },
-  { "id": 142, "name": "Leather Armor",  "cost": 50,  "slot": "Body", "defence": 5,  "classes": ["Warrior", "Thief", "Monk", "RedMage"] },
-  { "id": 143, "name": "Chain Mail",     "cost": 200, "slot": "Body", "defence": 10, "agility": -1, "classes": ["Warrior"] },
-  { "id": 144, "name": "Mythril Mail",   "cost": 800, "slot": "Body", "defence": 16, "classes": ["Warrior"] },
-  { "id": 145, "name": "Robe",           "cost": 30,  "slot": "Body", "defence": 4,  "classes": ["Monk", "RedMage", "WhiteMage", "BlackMage"] },
-  { "id": 146, "name": "Black Robe",     "cost": 300, "slot": "Body", "defence": 8,  "agility": 1, "classes": ["WhiteMage", "BlackMage"] },
-
+  { "id": 131, "name": "Leather Cap",     "cost": 130,    "slot": "Head", "defence": 1 },
+  { "id": 132, "name": "Helm",            "cost": 160,    "slot": "Head", "defence": 3, "classes": ["Warrior"] },
+  { "id": 134, "name": "Great Helm",      "cost": 720,    "slot": "Head", "defence": 5, "classes": ["Warrior"] },
+  { "id": 133, "name": "Mythril Helm",    "cost": 4000,   "slot": "Head", "defence": 6, "classes": ["Warrior"] },
+  // Тело (браслеты FF1 — тоже доспех)
+  { "id": 141, "name": "Clothes",         "cost": 16,     "slot": "Body", "defence": 1 },
+  { "id": 142, "name": "Leather Armor",   "cost": 80,     "slot": "Body", "defence": 4, "classes": ["Warrior", "Thief", "Monk", "RedMage"] },
+  { "id": 143, "name": "Chain Mail",      "cost": 130,    "slot": "Body", "defence": 15, "classes": ["Warrior", "RedMage"] },
+  { "id": 181, "name": "Iron Armor",      "cost": 1280,   "slot": "Body", "defence": 24, "classes": ["Warrior"] },
+  { "id": 144, "name": "Mythril Mail",    "cost": 12000,  "slot": "Body", "defence": 18, "classes": ["Warrior", "RedMage"] },
+  { "id": 182, "name": "Knight's Armor",  "cost": 72000,  "slot": "Body", "defence": 34, "classes": ["Warrior"] },
+  { "id": 183, "name": "Copper Armlet",   "cost": 1600,   "slot": "Body", "defence": 4 },
+  { "id": 184, "name": "Silver Armlet",   "cost": 8000,   "slot": "Body", "defence": 15 },
+  { "id": 185, "name": "Ruby Armlet",     "cost": 80000,  "slot": "Body", "defence": 24 },
   // Руки
-  { "id": 151, "name": "Leather Gloves", "cost": 15,  "slot": "Arms", "defence": 1,  "agility": 1 },
-  { "id": 152, "name": "Bronze Bracers", "cost": 80,  "slot": "Arms", "defence": 3 },
-  { "id": 153, "name": "Power Gauntlet", "cost": 600, "slot": "Arms", "attack": 6,  "defence": 2, "classes": ["Warrior", "Thief", "Monk", "RedMage"] },
-  { "id": 154, "name": "Silver Bracers", "cost": 500, "slot": "Arms", "defence": 6,  "agility": 2 }
+  { "id": 151, "name": "Leather Gloves",  "cost": 100,    "slot": "Arms", "defence": 1 },
+  { "id": 152, "name": "Bronze Gloves",   "cost": 320,    "slot": "Arms", "defence": 2, "classes": ["Warrior"] },
+  { "id": 191, "name": "Steel Gloves",    "cost": 1200,   "slot": "Arms", "defence": 4, "classes": ["Warrior"] },
+  { "id": 192, "name": "Mythril Gloves",  "cost": 4000,   "slot": "Arms", "defence": 6, "classes": ["Warrior"] },
+  { "id": 193, "name": "Protect Ring",    "cost": 32000,  "slot": "Arms", "defence": 8 }
 ]

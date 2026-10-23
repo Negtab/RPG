@@ -128,6 +128,9 @@ struct Item
     std::string effect;                                    // боевой эффект при применении (effects.json)
     std::string hitEffect;                                 // оружие: эффект попадания по врагу
     int swing{-1};                                         // оружие: замах SwingNN.png, -1 — без замаха (лук)
+    bool hasElement{false};                                // оружие бьёт стихией element (Огненный меч)
+    Elemental element{Elemental::Physical};
+    std::vector<Elemental> resists;                        // броня: сопротивления надевшего (Ледяной доспех — огонь)
 
     [[nodiscard]] bool isEquipment() const { return slot != EquipSlot::None; }
     [[nodiscard]] bool canEquip(SpecializationNames c) const

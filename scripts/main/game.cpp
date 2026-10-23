@@ -23,7 +23,10 @@ static void initWalkAnimations(Player& p)
     { 0.2f, ResourceManager::getAnimation(name), {}, {0, 0, 0, 0}, 0, 0.f, false, AnimPlayMode::Loop };
 }
 
-namespace { constexpr int kDefaultEncounterRate = 8; }
+namespace {
+    constexpr int kDefaultEncounterRate = 8;
+    constexpr uint32_t kStartGold = 800;                      // 400 гил FF1: цены в лавках у нас вдвое выше
+}
 
 Game::Game(SDL_Window *window, SDL_Renderer* renderer) : window(window), renderer(renderer)
 {
@@ -2058,6 +2061,7 @@ void Game::buildParty(const std::vector<SpecializationNames>& classes, const std
 {
     Player& me = players.at(0);
     me.resetProgress();
+    me.setPlayerGold(kStartGold);
     resetVehicles();
     returnStack.clear();
     playSeconds = 0.0f;
