@@ -16,7 +16,7 @@
   Images/Battle/Battle<Набор>.png — все позы в бою как в листе: 2 колонки x 5 строк по 32x32
       (0 — стойка/шаг, 1 — шаг, 2 — удар, 3 — победа, 4 — ранен/пал)
   Images/Characters/Image{N}.png, Image{N}Dead.png и Animations/Hero{N}Animation/ — то, что
-      сейчас использует бой, для четырёх классов игры (номер N — heroLook в types.h)
+      сейчас использует бой, для шести классов игры (номер N — heroLook в types.h)
 Наборы (префиксы Walk/Battle, чтобы имена текстур не совпадали): Warrior, Thief, Monk, RedMage, WhiteMage, BlackMage и повышенные Knight, Ninja, Master,
 RedWizard, WhiteWizard, BlackWizard.
 """
@@ -32,8 +32,8 @@ RES = os.path.join(ROOT, "resources")
 
 SETS = ["Warrior", "Thief", "Monk", "RedMage", "WhiteMage", "BlackMage",
         "Knight", "Ninja", "Master", "RedWizard", "WhiteWizard", "BlackWizard"]
-# Класс игры -> набор FF1 и номер картинок (heroLook в types.h): Archer 1, Magician 2, Thief 3, Warrior 4
-GAME_CLASSES = {1: "RedMage", 2: "BlackMage", 3: "Thief", 4: "Warrior"}
+# Класс игры -> набор FF1 и номер картинок (heroLook в types.h)
+GAME_CLASSES = {1: "RedMage", 2: "BlackMage", 3: "Thief", 4: "Warrior", 5: "Monk", 6: "WhiteMage"}
 
 
 def load(path):

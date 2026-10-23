@@ -242,7 +242,7 @@ void Game::placePlayerAfterLoad(bool positionRestored)
     Player& me = players.at(0);
     if (me.getHeroes().empty())                               // сохранения до версии 3 без отряда: даём классический
         for (SpecializationNames cls : {SpecializationNames::Warrior, SpecializationNames::Thief,
-                                        SpecializationNames::Archer, SpecializationNames::Magician})
+                                        SpecializationNames::WhiteMage, SpecializationNames::BlackMage})
         {
             me.getLinkTOHeroes().emplace_back(Specialization(cls));
             me.getLinkTOHeroes().back().equipStarting();
@@ -936,8 +936,8 @@ void Game::sendPartyInfo()
         p.heroes[i].level     = heroes[i].getLevel();
         p.heroes[i].currentHp = static_cast<int32_t>(heroes[i].getCurrentHp());
         p.heroes[i].currentMp = static_cast<int32_t>(heroes[i].getCurrentMp());
-        std::strncpy(p.heroes[i].name, heroes[i].getName().c_str(), 12);
-        p.heroes[i].name[12] = '\0';
+        std::strncpy(p.heroes[i].name, heroes[i].getName().c_str(), sizeof(p.heroes[i].name) - 1);
+        p.heroes[i].name[sizeof(p.heroes[i].name) - 1] = '\0';
         for (int s = 0; s < kEquipSlots; ++s)
             p.heroes[i].equipment[s] = heroes[i].getEquipped(static_cast<EquipSlot>(s));
     }
@@ -948,8 +948,9 @@ void Game::applyPartyInfo(const PartyInfoPacket& p)
 {
     if (p.playerId == localPlayerId || p.heroCount > 4) return;
     for (int i = 0; i < p.heroCount; ++i)                        // данные из сети: проверяем
-        if (p.heroes[i].classId > static_cast<uint8_t>(SpecializationNames::Thief) ||
-            p.heroes[i].level < 1 || p.heroes[i].level > 99 || std::memchr(p.heroes[i].name, 0, 13) == nullptr)
+        if (p.heroes[i].classId >= kClassCount ||
+            p.heroes[i].level < 1 || p.heroes[i].level > 99 ||
+            std::memchr(p.heroes[i].name, 0, sizeof(p.heroes[i].name)) == nullptr)
             return;
 
     // Посреди хода хоста HP и MP считает только хост: чужие значения не принимаем
@@ -2091,7 +2092,7 @@ void Game::openOnlineMenu()
 {
     if (players.at(0).getHeroes().empty())               // без отряда в кооператив не зайти: берём классический
         buildParty({SpecializationNames::Warrior, SpecializationNames::Thief,
-                    SpecializationNames::Archer, SpecializationNames::Magician}, {});
+                    SpecializationNames::WhiteMage, SpecializationNames::BlackMage}, {});
     this->setGameState(GameState::Online);
     this->setPreviousGameState(GameState::Menu);
 }

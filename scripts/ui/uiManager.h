@@ -361,7 +361,7 @@ private:
     int configSelected = 0;                                    // 0 музыка, 1 звуки, 2 «Back»
     bool draggingVolume = false;
 
-    std::array<int, 4> pickedClass{0, 1, 2, 3};
+    std::array<int, 4> pickedClass{0, 1, 4, 5};
     std::array<SDL_Rect, 4> heroSlotRect{}, remoteSlotRect{};
     std::array<SDL_Rect, MAX_ENEMY_COUNT> enemySlotRect{};
     std::array<Uint32, MAX_ENEMY_COUNT> enemyHitAt{}, enemyDeathAt{}, enemyLungeAt{};   // 0 — не было

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "../gameLogic/action.h"
+#include "utf8.h"
 
 constexpr int MAX_ENEMY_COUNT = 9;
 constexpr int MAX_HERO_COUNT = 4;
@@ -18,12 +19,17 @@ enum class TurnOwner { Player, Enemy };
 enum class UIChooseState { ChooseAction, ChooseSkill, ChooseItem, ChooseTarget };
 
 enum class Elemental { Fire, Water, Earth, Air, Ice, Lava, Dark, Light, Physical, Poison, Lightning };
-enum class SpecializationNames { Archer, Magician, Warrior, Thief, None };
-const std::unordered_map<SpecializationNames, std::string> specializationNamesString = {
-    {SpecializationNames::Archer, "Archer"},
-    {SpecializationNames::Magician, "Magician"},
+// Шесть классов FF1. Числа 0-3 записаны в сохранениях и пакетах: бывший Лучник (0) стал Красным магом,
+// Маг (1) — Чёрным магом. Новые классы — только в конец, перед None
+enum class SpecializationNames { RedMage, BlackMage, Warrior, Thief, Monk, WhiteMage, None };
+constexpr int kClassCount = static_cast<int>(SpecializationNames::None);
+const std::unordered_map<SpecializationNames, std::string> specializationNamesString = {   // английское название — ключ перевода
     {SpecializationNames::Warrior, "Warrior"},
-    {SpecializationNames::Thief, "Thief"}
+    {SpecializationNames::Thief, "Thief"},
+    {SpecializationNames::Monk, "Monk"},
+    {SpecializationNames::RedMage, "Red Mage"},
+    {SpecializationNames::WhiteMage, "White Mage"},
+    {SpecializationNames::BlackMage, "Black Mage"}
 };
 
 inline const char* elementName(Elemental e)
@@ -163,11 +169,13 @@ inline const char* heroSpriteSet(SpecializationNames c)
 {
     switch (c)
     {
-    case SpecializationNames::Warrior:  return "Warrior";
-    case SpecializationNames::Thief:    return "Thief";
-    case SpecializationNames::Archer:   return "RedMage";
-    case SpecializationNames::Magician: return "BlackMage";
-    default:                            return "Warrior";
+    case SpecializationNames::Warrior:   return "Warrior";
+    case SpecializationNames::Thief:     return "Thief";
+    case SpecializationNames::Monk:      return "Monk";
+    case SpecializationNames::RedMage:   return "RedMage";
+    case SpecializationNames::WhiteMage: return "WhiteMage";
+    case SpecializationNames::BlackMage: return "BlackMage";
+    default:                             return "Warrior";
     }
 }
 
@@ -175,22 +183,26 @@ inline int heroLook(SpecializationNames c)        // номер картинки
 {
     switch (c)
     {
-    case SpecializationNames::Archer:   return 1;
-    case SpecializationNames::Magician: return 2;
-    case SpecializationNames::Thief:    return 3;
-    case SpecializationNames::Warrior:  return 4;
-    default:                            return 1;
+    case SpecializationNames::RedMage:   return 1;
+    case SpecializationNames::BlackMage: return 2;
+    case SpecializationNames::Thief:     return 3;
+    case SpecializationNames::Warrior:   return 4;
+    case SpecializationNames::Monk:      return 5;
+    case SpecializationNames::WhiteMage: return 6;
+    default:                             return 1;
     }
 }
 
-inline std::string sanitizeHeroName(const std::string& raw)   // только печатный ASCII, до 12 символов
+constexpr int kHeroNameChars = 12;
+inline std::string sanitizeHeroName(const std::string& raw)   // печатные символы (и русские), до 12 букв
 {
     std::string s;
-    for (char c : raw)
-        if (c >= 32 && c <= 126) s += c;
+    for (size_t i = 0; i < raw.size(); i = utf8::nextBoundary(raw, i))
+        if (utf8::printable(static_cast<unsigned char>(raw[i])))
+            s.append(raw, i, utf8::nextBoundary(raw, i) - i);
     while (!s.empty() && s.front() == ' ') s.erase(s.begin());
     while (!s.empty() && s.back() == ' ') s.pop_back();
-    if (s.size() > 12) s.resize(12);
+    if (utf8::length(s) > kHeroNameChars) s = utf8::prefix(s, kHeroNameChars);
     return s;
 }
 

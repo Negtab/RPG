@@ -259,20 +259,17 @@ void ResourceManager::initialize()
     addSound(pathToSounds.string() + "Menu\\ButtonHover.wav");
 
     addTexture(pathToCharacters.string() + "MovingCharacter.png");
-    addTexture(pathToCharacters.string() + "Image1.png");
-    addTexture(pathToCharacters.string() + "Image2.png");
-    addTexture(pathToCharacters.string() + "Image3.png");
-    addTexture(pathToCharacters.string() + "Image4.png");
-    addTexture(pathToCharacters.string() + "Image1Dead.png");
-    addTexture(pathToCharacters.string() + "Image2Dead.png");
-    addTexture(pathToCharacters.string() + "Image3Dead.png");
-    addTexture(pathToCharacters.string() + "Image4Dead.png");
+    for (int look = 1; look <= kClassCount; ++look)             // Image<N>, Image<N>Dead: N — heroLook() класса
+    {
+        addTexture(pathToCharacters.string() + "Image" + std::to_string(look) + ".png");
+        addTexture(pathToCharacters.string() + "Image" + std::to_string(look) + "Dead.png");
+    }
 
     addTexturesFromDirectory(pathToEnemies.string());
     addTexturesFromDirectory((mainPath / "resources" / "Images" / "Vehicles").string());   // Ship, Canoe, Airship
     addTexturesFromDirectory((mainPath / "resources" / "Images" / "Props").string());      // замки, башни, мосты
-    addTexturesFromDirectory((mainPath / "resources" / "Images" / "Overworld").string());
-    addTexturesFromDirectory((mainPath / "resources" / "Images" / "Npcs").string());       // Npc<Имя>: жители городов  // Walk<набор>: герой на карте
+    addTexturesFromDirectory((mainPath / "resources" / "Images" / "Overworld").string());  // Walk<набор>: герой на карте
+    addTexturesFromDirectory((mainPath / "resources" / "Images" / "Npcs").string());       // Npc<Имя>: жители городов
     addTexturesFromDirectory((mainPath / "resources" / "Images" / "Effects").string());    // боевые эффекты и замахи
     addTexturesFromDirectory((mainPath / "resources" / "Images" / "BattleBackgrounds").string());   // задники боя BB<имя>
 
@@ -288,10 +285,8 @@ void ResourceManager::initialize()
     addTexture(pathToEnvironment.string() + "TargetSelector.png");
     addImage(pathToEnvironment.string() + "Sword.png");
 
-    addAnimation(pathToAnimations.string() + "Hero1Animation");
-    addAnimation(pathToAnimations.string() + "Hero2Animation");
-    addAnimation(pathToAnimations.string() + "Hero3Animation");
-    addAnimation(pathToAnimations.string() + "Hero4Animation");
+    for (int look = 1; look <= kClassCount; ++look)
+        addAnimation(pathToAnimations.string() + "Hero" + std::to_string(look) + "Animation");
 
     addAnimation(pathToAnimations.string() + "MoveDownAnimation");
     addAnimation(pathToAnimations.string() + "MoveUpAnimation");
@@ -421,7 +416,7 @@ SaveData readSaveFile(const std::string& path)
                 for (auto& id : s.equipment) readPod(in, id);
                 s.hasEquipment = true;
             }
-            if (s.cls > static_cast<uint8_t>(SpecializationNames::Thief) || s.level < 1 || s.level > 99)
+            if (s.cls >= kClassCount || s.level < 1 || s.level > 99)
                 throw std::runtime_error("save file is corrupted (hero data)");
             d.heroes.push_back(std::move(s));
         }

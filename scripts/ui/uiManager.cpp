@@ -1632,9 +1632,10 @@ MapRenderer* UIManager::rendererFor(const MapData& map)
 }
 
 namespace {
-constexpr SpecializationNames kPickable[4] = {
-    SpecializationNames::Warrior, SpecializationNames::Thief,
-    SpecializationNames::Archer,  SpecializationNames::Magician };
+constexpr SpecializationNames kPickable[] = {                    // порядок выбора стрелками, как в FF1
+    SpecializationNames::Warrior,  SpecializationNames::Thief,     SpecializationNames::Monk,
+    SpecializationNames::RedMage,  SpecializationNames::WhiteMage, SpecializationNames::BlackMage };
+constexpr int kPickableCount = static_cast<int>(std::size(kPickable));
 }
 
 void UIManager::initCreateScene()
@@ -1663,9 +1664,9 @@ void UIManager::initCreateScene()
 
         addWindow("Slot" + n, "CreatePlayer", {x, top, slotW, slotH});
         addImage("Portrait" + n, "CreatePlayer", {x + slotW / 2 - 64, top + 16, 128, 128}, nullptr);
-        addButton("Prev" + n, "CreatePlayer", {x + 10, top + 160, 30, 30},
+        addButton("Prev" + n, "CreatePlayer", {x + 10, top + 65, 30, 30},
                   ResourceManager::getTextTexture("<", font, white), [this, i]() { cycleClass(i, -1); }, hover);
-        addButton("Next" + n, "CreatePlayer", {x + slotW - 40, top + 160, 30, 30},
+        addButton("Next" + n, "CreatePlayer", {x + slotW - 40, top + 65, 30, 30},
                   ResourceManager::getTextTexture(">", font, white), [this, i]() { cycleClass(i, +1); }, hover);
         addLabel("Class" + n, "CreatePlayer", {x + 48, top + 162, 0, 0}, nullptr, "", font, white, 4, 4);
         addLabel("Stats" + n, "CreatePlayer", {x + 14, top + 205, 0, 0}, nullptr, "", font, white, 4, 4);
@@ -1683,7 +1684,7 @@ void UIManager::initCreateScene()
 
 void UIManager::resetPartyCreation()
 {
-    pickedClass = {0, 1, 2, 3};
+    pickedClass = {0, 1, 4, 5};                                // Воин, Вор, Белый и Чёрный маг
     autoName.fill("");
     for (int i = 0; i < 4; ++i)
     {
@@ -1704,6 +1705,13 @@ void UIManager::refreshPartySlot(int slot)
     setTexture("Portrait" + n, "CreatePlayer", ResourceManager::getTexture("Image" + std::to_string(heroLook(cls))));
     const std::string className = tr(specializationNamesString.at(cls));
     setText("Class" + n, "CreatePlayer", className);
+    if (auto* label = dynamic_cast<Label*>(findUIObject("Class" + n, "CreatePlayer")))
+    {
+        const SDL_Rect card = getRect("Slot" + n, "CreatePlayer");
+        const int w = ResourceManager::measureText(className, ResourceManager::getFont(kUiFont)).w;
+        label->background.rect.x = card.x + (card.w - w) / 2 - label->paddingX;
+        label->rect.x = label->background.rect.x + label->paddingX;
+    }
     setText("Stats" + n, "CreatePlayer",
             "HP  " + std::to_string(def->hp) + "\nMP  " + std::to_string(def->mp) +
             "\n" + tr("ATK") + " " + std::to_string(def->attack) + "\n" + tr("DEF") + " " + std::to_string(def->defence) +
@@ -1717,7 +1725,7 @@ void UIManager::refreshPartySlot(int slot)
 
 void UIManager::cycleClass(int slot, int dir)
 {
-    pickedClass[slot] = (pickedClass[slot] + dir + 4) % 4;
+    pickedClass[slot] = (pickedClass[slot] + dir + kPickableCount) % kPickableCount;
     refreshPartySlot(slot);
 }
 
@@ -1822,6 +1830,22 @@ void UIManager::applyLanguage()
     {
         l->background.rect.x = 12 + commandsW + 16;
         l->rect.x = l->background.rect.x + l->paddingX;
+    }
+
+    // Окно списка умений и предметов — правее самой широкой команды, чтобы не закрывать её
+    SDL_Rect listWin = getRect("EnvironmentWindow", "Battle");
+    const int listX = std::max(84, 12 + commandsW + 12);
+    listWin.w += listWin.x - listX;
+    listWin.x = listX;
+    setRect("EnvironmentWindow", "Battle", listWin);
+    const int rows = ENV_BUTTON_COUNT / 2;
+    const int cellW = (listWin.w - 3 * 28) / 2;
+    for (int i = 0; i < ENV_BUTTON_COUNT; ++i)
+    {
+        listRect[i].x = listWin.x + 28 + (i / rows) * (cellW + 28);
+        listRect[i].w = cellW;
+        setRect("EnButton" + std::to_string(i + 1), "Battle", listRect[i]);
+        setRect("EnInfo" + std::to_string(i + 1), "Battle", listRect[i]);
     }
     setText("ResultHint", "Battle", tr("Press Enter"));
 

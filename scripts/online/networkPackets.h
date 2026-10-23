@@ -123,7 +123,7 @@ struct HeroInfo
     uint8_t level;
     int32_t currentHp;
     int32_t currentMp;
-    char    name[13];
+    char    name[25];     // до 12 букв в UTF-8 (русская — два байта) и нуль
     int32_t equipment[5];   // id предметов по слотам EquipSlot, 0 — пусто: хост считает урон напарника с ними
 };
 

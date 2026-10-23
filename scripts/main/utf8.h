@@ -1,6 +1,7 @@
 #ifndef PROJECT_NAME_UTF8_H
 #define PROJECT_NAME_UTF8_H
 
+#include <cctype>
 #include <string>
 
 // Тексты в UTF-8: русская буква занимает два байта, поэтому считаем и режем по символам, а не по байтам

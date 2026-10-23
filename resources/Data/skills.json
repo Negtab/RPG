@@ -1,7 +1,7 @@
 [
   { "id": 1, "name": "Attack",           "effectType": "Damage", "element": "Physical",  "power": 10, "manaCost": 0,  "maxCooldown": 0, "targetType": "Enemy", "targetCount": 1 },
-  { "id": 2, "name": "Fireball",         "effectType": "Damage", "element": "Fire",      "power": 25, "manaCost": 12, "maxCooldown": 2, "targetType": "Enemy", "targetCount": 1 },
-  { "id": 3, "name": "Heal",             "effectType": "Heal",   "element": "Physical",  "power": 20, "manaCost": 10, "maxCooldown": 1, "targetType": "Ally",  "targetCount": 1 },
+  { "id": 2, "name": "Fire",             "effectType": "Damage", "element": "Fire",      "power": 25, "manaCost": 12, "maxCooldown": 2, "targetType": "Enemy", "targetCount": 1 },
+  { "id": 3, "name": "Cure",             "effectType": "Heal",   "element": "Physical",  "power": 20, "manaCost": 10, "maxCooldown": 1, "targetType": "Ally",  "targetCount": 1 },
   { "id": 4, "name": "Lightning Strike", "effectType": "Damage", "element": "Lightning", "power": 30, "manaCost": 15, "maxCooldown": 3, "targetType": "Enemy", "targetCount": 1 },
   { "id": 5, "name": "Defense Up",       "effectType": "Buff",   "element": "Physical",  "power": 5,  "manaCost": 8,  "maxCooldown": 3, "targetType": "Self",  "targetCount": 1 },
   { "id": 6, "name": "Weaken",           "effectType": "Debuff", "element": "Physical",  "power": 5,  "manaCost": 14, "maxCooldown": 4, "targetType": "Enemy", "targetCount": 0 },

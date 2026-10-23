@@ -41,8 +41,9 @@ const std::vector<std::pair<std::string, ShopKind>> kShopKinds = {
     {"whiteMagic", ShopKind::WhiteMagic}, {"blackMagic", ShopKind::BlackMagic},
     {"inn", ShopKind::Inn}, {"church", ShopKind::Church}};
 const std::vector<std::pair<std::string, SpecializationNames>> kClasses = {
-    {"Archer", SpecializationNames::Archer}, {"Magician", SpecializationNames::Magician},
-    {"Warrior", SpecializationNames::Warrior}, {"Thief", SpecializationNames::Thief}};
+    {"Warrior", SpecializationNames::Warrior}, {"Thief", SpecializationNames::Thief}, {"Monk", SpecializationNames::Monk},
+    {"RedMage", SpecializationNames::RedMage}, {"WhiteMage", SpecializationNames::WhiteMage},
+    {"BlackMage", SpecializationNames::BlackMage}};
 
 template <class E>
 E parseEnum(const std::string& s, const std::vector<std::pair<std::string, E>>& table, const char* field)
