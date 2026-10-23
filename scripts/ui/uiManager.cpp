@@ -7,6 +7,7 @@
 #include "../main/game.h"
 #include "../gameLogic/gameData.h"
 #include "windowSkin.h"
+#include "widgets/Window.h"
 #include <SDL_log.h>
 
 constexpr int ENV_BUTTON_COUNT = 8;                 // список умений и предметов: 2 колонки по 4 строки
@@ -475,19 +476,26 @@ void UIManager::drawMinimap()
         SDL_RenderDrawRect(rr, &view);
     }
 
+    // Города и подземелья, где отряд уже был: синие точки по центру входа
+    if (map.mapId == 0)
+        for (const Portal& p : map.portals)
+            if (player.getVisited().contains(p.name))
+                dot(toMini(p.x + p.w * 0.5f, p.y + p.h * 0.5f), 4, {80, 150, 255, 255});
+
     // Стоящий транспорт, напарники, игрок (мигает)
     static const SDL_Color vehicleColor[kVehicleKinds] = {{220, 170, 110, 255}, {170, 100, 50, 255}, {240, 210, 80, 255}};
     for (int i = 0; i < kVehicleKinds; ++i)
     {
         const VehicleState& vs = player.getVehicles()[i];
-        if (vs.available && vs.mapId == player.getMove().mapId && player.getRiding() != static_cast<Vehicle>(i + 1))
+        if (vs.available && vs.mapId == player.getMove().mapId && player.getRiding() != static_cast<Vehicle>(i + 1) &&
+            static_cast<Vehicle>(i + 1) != Vehicle::Canoe)
             dot(toMini(vs.cell.x + 0.5f, vs.cell.y + 0.5f), 3, vehicleColor[i]);
     }
     for (const auto& [id, remote] : game.getRemotePlayers())
         if (remote.getMove().mapId == player.getMove().mapId)
         {
             const Vec2f p = visualCell(remote.getMove());
-            dot(toMini(p.x + 0.5f, p.y + 0.5f), 4, {90, 160, 255, 255});
+            dot(toMini(p.x + 0.5f, p.y + 0.5f), 4, {110, 240, 130, 255});   // напарник: синий занят под места
         }
     const bool blink = (SDL_GetTicks() / 300) % 2 == 0;
     dot(toMini(me.x + 0.5f, me.y + 0.5f), 4, blink ? SDL_Color{255, 60, 60, 255} : SDL_Color{255, 255, 255, 255});
@@ -538,11 +546,8 @@ void UIManager::drawActor(const Player& p, int cellScreenX, int cellScreenY)
         drawVehicle(p.getRiding(), p.getMove().dir, cellScreenX, cellScreenY, flying, flying || p.getMove().moving))
         return;                                                   // на транспорте героя не видно
 
-    // Герой на карте — спрайт класса лидера (первого живого героя): Walk<набор>.png, 4 направления x 2 кадра
-    const auto& heroes = p.getHeroes();
-    const Hero* leader = heroes.empty() ? nullptr : &heroes.front();
-    for (const auto& h : heroes) if (h.getCurrentHp() > 0) { leader = &h; break; }
-    if (leader)
+    // Герой на карте — выбранный клавишей V (павший пропускается): Walk<набор>.png, 4 направления x 2 кадра
+    if (const Hero* leader = p.displayedHero())
         if (SDL_Texture* sheet = ResourceManager::getTexture(std::string("Walk") + heroSpriteSet(leader->getClass())))
         {
             int tw = 0, th = 0;
@@ -602,6 +607,7 @@ void UIManager::drawMapWorld()
     {
         const VehicleState& v = player.getVehicles()[i];
         if (!v.available || v.mapId != localMove.mapId || player.getRiding() == static_cast<Vehicle>(i + 1)) continue;
+        if (static_cast<Vehicle>(i + 1) == Vehicle::Canoe) continue;           // каноэ не стоит: оно при отряде
         drawVehicle(static_cast<Vehicle>(i + 1), v.dir, v.cell.x * CELL_PX - camX, v.cell.y * CELL_PX - camY, false, false);
     }
 
@@ -1906,6 +1912,14 @@ void UIManager::setBattleBackground(const std::string& name)
     if (!tex) tex = ResourceManager::getTexture("BBPlains");
     if (!tex) tex = ResourceManager::getTexture("BattleImage0");
     setTexture("BattleBackground", "Battle", tex);
+
+    // Заполняем весь экран без искажения: масштаб по большей стороне, лишнее по бокам (или снизу) обрезаем
+    int tw = 0, th = 0;
+    if (tex) SDL_QueryTexture(tex, nullptr, nullptr, &tw, &th);
+    if (tw <= 0 || th <= 0) return;
+    const float scale = std::max(static_cast<float>(screen.w) / tw, static_cast<float>(screen.h) / th);
+    const int sw = std::min(tw, static_cast<int>(screen.w / scale)), sh = std::min(th, static_cast<int>(screen.h / scale));
+    setSrcRect("BattleBackground", "Battle", {(tw - sw) / 2, 0, sw, sh});
 }
 
 void UIManager::hideBattleResults()
@@ -1925,13 +1939,16 @@ void UIManager::initBattleScene()
     const int colW = 200;                     // ширина окон со статусом
 
     // ── Всё, что лежит ПОД панелями, добавляется до addPanel ─────────────
+    // Задник на весь экран, как в Pixel Remaster: нижние окна полупрозрачные и лежат поверх него
     addImage("BattleBackground", "Battle",
-             {0, 0, screen.w, barY}, ResourceManager::getTexture("BattleImage0"));
+             {0, 0, screen.w, screen.h}, ResourceManager::getTexture("BattleImage0"));
 
     addWindow("CommandWindow", "Battle", {0, barY, screen.w - 3 * colW, barH});
     addWindow("HerosWindow",   "Battle", {screen.w - 3 * colW, barY, colW, barH});
     addWindow("EnemiesWindow", "Battle", {screen.w - 2 * colW, barY, colW, barH});
     addWindow("RemoteWindow",  "Battle", {screen.w - colW,     barY, colW, barH});
+    for (const char* id : {"CommandWindow", "HerosWindow", "EnemiesWindow", "RemoteWindow"})
+        if (auto* w = dynamic_cast<Window*>(findUIObject(id, "Battle"))) w->alpha = 205;
 
     // Тексты статусов тоже под панелями: когда открыт список умений, он их закрывает.
     // Метка ставит текст в (x + paddingX, y + paddingY), а ширину и высоту берёт по тексту.
@@ -1973,6 +1990,7 @@ void UIManager::initBattleScene()
     // Две колонки по четыре строки: слева название, справа стоимость или количество.
     const SDL_Rect listWin{84, barY, screen.w - 84, barH};
     addWindow("EnvironmentWindow", "Battle", listWin, "EnvironmentPanel");
+    if (auto* w = dynamic_cast<Window*>(findUIObject("EnvironmentWindow", "Battle"))) w->alpha = 225;
     const int rows = ENV_BUTTON_COUNT / 2;
     const int cellW = (listWin.w - 3 * 28) / 2;
     const int cellH = (barH - 20) / rows;

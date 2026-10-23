@@ -13,6 +13,8 @@ void Player::resetProgress()
     move = MoveState{};
     riding = Vehicle::None;
     vehicles = {};
+    leaderIndex = 0;
+    visited.clear();
 }
 
 uint32_t Player::getNetworkId() const noexcept

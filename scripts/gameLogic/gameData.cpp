@@ -284,6 +284,7 @@ void GameData::loadEncounters(const fs::path& path)
         for (const Formation& f : g.formations)
             for (int id : f.enemies)
             {
+                if (std::find(g.roster.begin(), g.roster.end(), id) == g.roster.end()) g.roster.push_back(id);
                 auto& places = habitatMap[id];
                 if (std::find(places.begin(), places.end(), g.name) == places.end()) places.push_back(g.name);
             }
@@ -305,6 +306,12 @@ std::vector<int> GameData::pickFormation(const std::string& id) const
         roll -= f.weight;
     }
     return {};
+}
+
+std::vector<int> GameData::groupRoster(const std::string& id) const
+{
+    const auto it = encounterMap.find(id);
+    return it != encounterMap.end() ? it->second.roster : std::vector<int>{};
 }
 
 const std::vector<std::string>& GameData::habitats(int enemyId) const

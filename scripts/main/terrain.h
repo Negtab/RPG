@@ -2,6 +2,7 @@
 #define PROJECT_NAME_TERRAIN_H
 
 #include <cstdint>
+#include <cstdlib>
 #include <iterator>
 #include <vector>
 
@@ -30,6 +31,29 @@ inline std::vector<uint16_t> waterCoverage(const SDL_Surface* rgba, int tile, in
                     count += isWaterPixel(row + x * 4);
             }
             out[static_cast<size_t>(cy) * cellsW + cx] = count;
+        }
+    return out;
+}
+
+// Сколько светло-серых пикселей (камень пирсов, мостов, стен) в каждой клетке
+inline std::vector<uint16_t> greyCoverage(const SDL_Surface* rgba, int tile, int cellsW, int cellsH)
+{
+    std::vector<uint16_t> out(static_cast<size_t>(cellsW) * cellsH, 0);
+    const auto* pixels = static_cast<const Uint8*>(rgba->pixels);
+    for (int cy = 0; cy < cellsH; ++cy)
+        for (int cx = 0; cx < cellsW; ++cx)
+        {
+            uint16_t n = 0;
+            for (int y = 0; y < tile; ++y)
+            {
+                const Uint8* row = pixels + (cy * tile + y) * rgba->pitch + cx * tile * 4;
+                for (int x = 0; x < tile; ++x)
+                {
+                    const int r = row[x * 4], g = row[x * 4 + 1], b = row[x * 4 + 2];
+                    n += r >= 0x70 && std::abs(r - g) < 24 && std::abs(g - b) < 24;
+                }
+            }
+            out[static_cast<size_t>(cy) * cellsW + cx] = n;
         }
     return out;
 }

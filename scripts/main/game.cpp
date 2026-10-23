@@ -188,6 +188,21 @@ bool Game::loadFromSlot(int slot)
         playSeconds = static_cast<float>(meta.playSeconds);
         returnStack.clear();
         if (!meta.hasVehicles) resetVehicles();
+        players.at(0).getVehicles()[vehicleIndex(Vehicle::Canoe)].available = true;   // каноэ всегда при отряде
+
+        // Корабль из старого сохранения мог встать не у причала: тогда на него не сесть. Возвращаем в его порт
+        {
+            const MapData& world = maps.at(0);
+            VehicleState& ship = players.at(0).getVehicles()[vehicleIndex(Vehicle::Ship)];
+            bool atPort = false;
+            for (int dy = -1; dy <= 1; ++dy)
+                for (int dx = -1; dx <= 1; ++dx)
+                    atPort = atPort || world.isPort(ship.cell.x + dx, ship.cell.y + dy);
+            const auto home = world.vehicleMarkers[vehicleIndex(Vehicle::Ship)];
+            if (ship.available && ship.mapId == world.mapId && !atPort && home &&
+                players.at(0).getRiding() != Vehicle::Ship)
+                ship.cell = *home;
+        }
         placePlayerAfterLoad(positionRestored);
     }
     catch (const std::exception& e)
@@ -244,6 +259,7 @@ void Game::computeWater(MapData& m)
     int cw = 0, ch = 0;
     const auto coverage = waterCoverage(rgba, TILE_PX, cw, ch);
     const auto kinds = terrainCells(rgba, TILE_PX, cw, ch);
+    const auto grey = greyCoverage(rgba, TILE_PX, cw, ch);
     SDL_FreeSurface(rgba);
 
     // Хотя бы половина клетки — вода: так корабль подходит вплотную к берегу
@@ -256,7 +272,55 @@ void Game::computeWater(MapData& m)
             m.water[i] = coverage[j] >= TILE_PX * TILE_PX / 2;
             m.terrain[i] = kinds[j];
         }
-    if (m.mapId == 0) findRivers(m);                       // каноэ нужно только на карте мира
+    if (m.mapId == 0)                                      // каноэ и корабль нужны только на карте мира
+    {
+        findRivers(m);
+        findPorts(m, grey, cw);
+    }
+}
+
+void Game::findPorts(MapData& m, const std::vector<uint16_t>& grey, int greyW)
+{
+    // Причал FF1 — П-образный каменный пирс у воды: серая клетка суши рядом с водой.
+    // Одиночные клетки (мост, угол стены) отбрасываем: у пирса их минимум три
+    const int W = m.w, H = m.h;
+    std::vector<uint8_t> cand(static_cast<size_t>(W) * H, 0);
+    for (int y = 0; y < H; ++y)
+        for (int x = 0; x < W; ++x)
+        {
+            const size_t i = static_cast<size_t>(y) * W + x;
+            if (m.water[i] || grey[static_cast<size_t>(y) * greyW + x] < TILE_PX * TILE_PX * 3 / 10) continue;
+            for (int dy = -1; dy <= 1 && !cand[i]; ++dy)
+                for (int dx = -1; dx <= 1; ++dx)
+                    if (m.isWater(x + dx, y + dy)) { cand[i] = 1; break; }
+        }
+    m.port.assign(cand.size(), 0);
+    std::vector<uint8_t> seen(cand.size(), 0);
+    int ports = 0;
+    for (size_t s = 0; s < cand.size(); ++s)
+    {
+        if (!cand[s] || seen[s]) continue;
+        std::vector<int> part{static_cast<int>(s)};
+        seen[s] = 1;
+        for (size_t head = 0; head < part.size(); ++head)
+        {
+            const int i = part[head], x = i % W, y = i / W;
+            for (int dy = -1; dy <= 1; ++dy)
+                for (int dx = -1; dx <= 1; ++dx)
+                {
+                    const int nx = x + dx, ny = y + dy;
+                    if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+                    const int n = ny * W + nx;
+                    if (cand[n] && !seen[n]) { seen[n] = 1; part.push_back(n); }
+                }
+        }
+        if (part.size() < 3) continue;
+        ++ports;
+        for (int i : part) m.port[i] = 1;
+    }
+    for (const Point& p : m.portMarkers)                   // свои причалы из Tiled
+        if (m.inside(p.x, p.y)) { m.port[static_cast<size_t>(p.y) * W + p.x] = 1; ++ports; }
+    SDL_Log("Map '%s': %d ports", m.name.c_str(), ports);
 }
 
 void Game::findRivers(MapData& m)
@@ -366,14 +430,25 @@ void Game::resetVehicles()
         return best;
     };
 
-    for (Vehicle v : {Vehicle::Ship, Vehicle::Canoe, Vehicle::Airship})
+    // Каноэ не стоит на карте (как в FF1): оно просто есть у отряда, на реке герои садятся в него сами
+    vehicles[vehicleIndex(Vehicle::Canoe)] = {true, static_cast<uint16_t>(world.mapId), {-1, -1}, Direction::Down};
+
+    auto nearPort = [&](int x, int y) {
+        for (int dy = -1; dy <= 1; ++dy)
+            for (int dx = -1; dx <= 1; ++dx)
+                if (world.isPort(x + dx, y + dy)) return true;
+        return false;
+    };
+    for (Vehicle v : {Vehicle::Ship, Vehicle::Airship})
     {
         std::optional<Point> at = world.vehicleMarkers[vehicleIndex(v)];
         if (!at)
         {
             if (v == Vehicle::Airship)
                 at = nearest([&](int x, int y) { return world.isWalkable(x, y) && !world.portalAt(x, y); });
-            else if (v == Vehicle::Ship || world.hasRivers())        // каноэ без размеченных рек ставить некуда
+            else                                                     // корабль — у ближайшего причала
+                at = nearest([&](int x, int y) { return vehicleCanMove(world, v, x, y) && nearPort(x, y); });
+            if (!at && v == Vehicle::Ship)                           // причалов нет: хоть у берега
                 at = nearest([&](int x, int y) { return vehicleCanMove(world, v, x, y) && nearLand(x, y); });
         }
         if (!at) { SDL_Log("No place for the %s on the world map", vehicleName(v)); continue; }
@@ -400,16 +475,29 @@ bool Game::updateVehicleAfterStep(Point from)
     const MoveState& m = me.getMove();
     const Vehicle riding = me.getRiding();
 
-    if (riding == Vehicle::Ship || riding == Vehicle::Canoe)
+    if (riding == Vehicle::Canoe)                            // вышли на берег: каноэ просто убирается
     {
         if (vehicleCanMove(*currentMap, riding, m.cell.x, m.cell.y)) return false;
-        parkVehicle(from, m.mapId);                          // шагнули на берег: лодка остаётся у берега
+        me.setRiding(Vehicle::None);
+        return true;
+    }
+    if (riding == Vehicle::Ship)
+    {
+        if (vehicleCanMove(*currentMap, riding, m.cell.x, m.cell.y)) return false;
+        parkVehicle(from, m.mapId);                          // сошли на причал: корабль ждёт у него
         return true;
     }
     if (riding != Vehicle::None) return false;
 
+    if (currentMap->isRiver(m.cell.x, m.cell.y) && me.getVehicles()[vehicleIndex(Vehicle::Canoe)].available)
+    {
+        me.setRiding(Vehicle::Canoe);                        // на реке герои сами садятся в каноэ
+        return true;
+    }
+
     for (int i = 0; i < kVehicleKinds; ++i)                  // зашли на стоящий транспорт: садимся
     {
+        if (static_cast<Vehicle>(i + 1) == Vehicle::Canoe) continue;
         const VehicleState& v = me.getVehicles()[i];
         if (v.available && v.mapId == m.mapId && v.cell.x == m.cell.x && v.cell.y == m.cell.y)
         {
@@ -429,7 +517,7 @@ bool Game::canLandAirship() const
     for (int i = 0; i < kVehicleKinds; ++i)                  // на другой стоящий транспорт не садимся
     {
         const VehicleState& v = me.getVehicles()[i];
-        if (i != vehicleIndex(Vehicle::Airship) && v.available && v.mapId == me.getMove().mapId &&
+        if (i != vehicleIndex(Vehicle::Airship) && i != vehicleIndex(Vehicle::Canoe) && v.available && v.mapId == me.getMove().mapId &&
             v.cell.x == c.x && v.cell.y == c.y)
             return false;
     }
@@ -520,6 +608,12 @@ void Game::cycleMinimap()
 {
     setMinimapZoom((minimapZoom + 1) % (kMinimapZoomMax + 1));
     saveSettings();
+}
+
+void Game::cycleLeader()
+{
+    players.at(0).cycleLeader();
+    if (localPlayerId != 0) sendLocalPlayerState();          // напарник увидит другого героя
 }
 
 void Game::toggleEncounters()
@@ -797,6 +891,7 @@ void Game::followPortal(const Portal& portal, Point from)
         return;
     }
     const Point cell = p.hasTargetCell ? Point{p.targetX, p.targetY} : target->spawn;
+    if (currentMap->mapId == 0) players.at(0).markVisited(p.name);   // синяя точка на мини-карте
     const ReturnPoint back{currentMap->mapId, from};    // выйдем на клетку, с которой шагнули в портал
     if (applyMapChange(target->mapId, cell.x, cell.y))
     {
@@ -864,6 +959,7 @@ void Game::sendLocalPlayerState() {
     p.direction = static_cast<uint8_t>(m.dir);
     p.moving    = m.moving ? 1 : 0;
     p.vehicle   = static_cast<uint8_t>(players[0].getRiding());
+    p.leader    = static_cast<uint8_t>(players[0].getLeaderIndex());
     client.send(reinterpret_cast<const char*>(&p), sizeof(p));
 }
 
@@ -906,6 +1002,7 @@ void Game::processMovePacket(const PlayerMovePacket& p) {
     m.progress = 0.f;
     m.mapId  = p.mapId;
     ensureRemote(p.playerId).setRiding(static_cast<Vehicle>(p.vehicle));
+    if (p.leader < 4) ensureRemote(p.playerId).setLeaderIndex(p.leader);
 }
 
 void Game::processPacket(const char* data)
@@ -1165,7 +1262,7 @@ void Game::update(float dt)
 
         // Проходимость зависит от транспорта: пешком суша, на корабле море, в воздухе всё
         const Vehicle riding = me.getRiding();
-        auto passable = [&](Point t) { return canEnter(*currentMap, riding, t.x, t.y, me.getVehicles(), m.mapId); };
+        auto passable = [&](Point t) { return canEnter(*currentMap, riding, m.cell, t.x, t.y, me.getVehicles(), m.mapId); };
         const Point finishedFrom = stepFrom;           // новый шаг может начаться в этом же кадре и затереть его
         const bool fading = fadePhase != Fade::None;
         const Direction want = fading ? Direction::Idle : inputController->readMoveDirection();
@@ -1326,7 +1423,7 @@ void Game::beginBattle(const Zone* zone)
 
     setPreviousGameState(getGameState());
     setGameState(GameState::Battle);
-    battle->run(formation, pool);
+    battle->run(formation, pool, GameData::instance().groupRoster(group));
     uiManager->addEnemys();
     uiManager->addCharacters();
     battleStarted = true;

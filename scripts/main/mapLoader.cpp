@@ -229,6 +229,7 @@ MapData loadMap(const std::string& path)
                     m.spawn = at;
                     haveSpawn = true;
                 }
+                if (marker == "port") m.portMarkers.push_back(at);   // свой причал для корабля
                 // Стоянки транспорта: точки canoe, ship, airship
                 for (Vehicle v : {Vehicle::Canoe, Vehicle::Ship, Vehicle::Airship})
                 {

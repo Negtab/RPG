@@ -1,6 +1,8 @@
 #ifndef PROJECT_NAME_PLAYER_H
 #define PROJECT_NAME_PLAYER_H
 
+#include <set>
+
 #include "movement.h"
 #include "types.h"
 #include "../ui/animation/animPlayer.h"
@@ -75,6 +77,30 @@ public:
     [[nodiscard]] Point getPlayerCoords() const noexcept { return move.cell; }
     void setPlayerCoords(Point p) noexcept { move.cell = move.target = p; move.moving = false; move.progress = 0.f; }
 
+    // Города и подземелья карты мира, где отряд побывал (имена порталов): синие точки на мини-карте
+    [[nodiscard]] const std::set<std::string>& getVisited() const noexcept { return visited; }
+    void markVisited(const std::string& place) { if (!place.empty()) visited.insert(place); }
+
+    // Кого из отряда видно на карте. Павший не показывается — тогда следующий живой
+    [[nodiscard]] int getLeaderIndex() const noexcept { return leaderIndex; }
+    void setLeaderIndex(int i) noexcept { leaderIndex = i; }
+    [[nodiscard]] const Hero* displayedHero() const
+    {
+        const int n = static_cast<int>(heroes.size());
+        for (int k = 0; k < n; ++k)
+        {
+            const Hero& h = heroes[(leaderIndex + k) % n];
+            if (h.getCurrentHp() > 0) return &h;
+        }
+        return n ? &heroes.front() : nullptr;               // все пали: хоть кого-то показываем
+    }
+    void cycleLeader()                                       // V на карте: следующий живой
+    {
+        const int n = static_cast<int>(heroes.size());
+        for (int k = 1; k <= n; ++k)
+            if (heroes[(leaderIndex + k) % n].getCurrentHp() > 0) { leaderIndex = (leaderIndex + k) % n; return; }
+    }
+
     // Транспорт: на чём едет игрок и где стоят остальные. Пока на транспорте едут, его клетка — клетка игрока
     [[nodiscard]] Vehicle getRiding() const noexcept { return riding; }
     void setRiding(Vehicle v) noexcept { riding = v; }
@@ -99,6 +125,8 @@ private:
     std::map<int, uint8_t> itemIds;
 
     Vehicle riding{Vehicle::None};
+    int leaderIndex{0};
+    std::set<std::string> visited;
     std::array<VehicleState, kVehicleKinds> vehicles{};
 };
 

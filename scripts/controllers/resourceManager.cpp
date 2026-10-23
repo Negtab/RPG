@@ -299,7 +299,7 @@ void ResourceManager::initialize()
 }
 
 constexpr uint32_t kSaveMagic   = 0x504C5952;   // 'PLYR'
-constexpr uint32_t kSaveVersion = 6;            // 2: координаты в клетках + mapId; 3: герои; 4: локация, время игры, дата; 5: экипировка; 6: транспорт
+constexpr uint32_t kSaveVersion = 7;            // 2: координаты в клетках + mapId; 3: герои; 4: локация, время игры, дата; 5: экипировка; 6: транспорт; 7: посещённые места
 constexpr uint64_t kMaxString   = 1024;
 constexpr uint64_t kMaxCount    = 100000;
 
@@ -355,7 +355,8 @@ struct SaveData
     int64_t savedAt = 0;
     uint8_t riding = 0;
     std::array<VehicleState, kVehicleKinds> vehicles{};
-    bool hasVehicles = false;                            // до версии 6 транспорта не было: Game расставит его сам
+    bool hasVehicles = false;
+    std::vector<std::string> visited;                    // 7: где отряд побывал                            // до версии 6 транспорта не было: Game расставит его сам
 };
 
 // Бросает std::runtime_error, если файл не открыть или он испорчен
@@ -448,6 +449,13 @@ SaveData readSaveFile(const std::string& path)
         }
         d.hasVehicles = true;
     }
+
+    if (version >= 7)
+    {
+        uint16_t count = 0;
+        readPod(in, count);
+        for (int i = 0; i < count; ++i) d.visited.push_back(readString(in));
+    }
     return d;
 }
 }
@@ -526,6 +534,10 @@ bool ResourceManager::savePlayer(const std::string& path, const Player& player, 
             writePod<uint8_t>(out, static_cast<uint8_t>(v.dir));
         }
 
+        writePod<uint16_t>(out, static_cast<uint16_t>(player.getVisited().size()));
+        for (const auto& place : player.getVisited())
+            writeString(out, place);
+
         out.flush();
         if (!out)
         {
@@ -583,6 +595,9 @@ bool ResourceManager::loadPlayer(const std::string& path, Player& player, SaveMe
             hero.equipStarting();
         heroes.push_back(std::move(hero));
     }
+
+    for (const auto& place : d.visited)
+        player.markVisited(place);
 
     if (d.hasVehicles)
     {

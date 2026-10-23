@@ -56,6 +56,8 @@ struct MapData {
     std::vector<uint8_t> water;                        // w*h, 1 = клетка хотя бы наполовину вода (считается по картинке)
     std::vector<uint8_t> terrain;                      // w*h, Terrain из terrain.h — по цвету картинки
     std::vector<uint8_t> river;                        // w*h, 1 = узкая вода далеко от моря: по ней ходит каноэ
+    std::vector<uint8_t> port;                         // w*h, 1 = причал: только здесь садятся на корабль и сходят с него
+    std::vector<Point> portMarkers;                    // маркеры "port" из Tiled — свои причалы сверх найденных
     std::string exitMode;                              // "back": шаг за край карты — обратно, откуда пришли
     std::string entrance;                              // имя портала карты мира, который ведёт на эту карту
     std::vector<Prop> props;
@@ -99,6 +101,9 @@ struct MapData {
         for (uint8_t r : river) if (r) return true;
         for (const auto& z : zones) if (z.river) return true;
         return false;
+    }
+    [[nodiscard]] bool isPort(int x, int y) const {
+        return inside(x, y) && !port.empty() && port[static_cast<size_t>(y) * w + x];
     }
     [[nodiscard]] uint8_t terrainAt(int x, int y) const {
         return inside(x, y) && !terrain.empty() ? terrain[static_cast<size_t>(y) * w + x] : 0;
@@ -146,15 +151,27 @@ inline bool vehicleCanMove(const MapData& map, Vehicle v, int x, int y)
     }
 }
 
-// Можно ли шагнуть в клетку. Корабль и каноэ высаживают на сушу; пешком можно зайти на стоящий транспорт
-inline bool canEnter(const MapData& map, Vehicle riding, int x, int y,
+// Можно ли шагнуть из from в (x, y). Как в FF1: на корабль садятся и сходят только у причала,
+// а каноэ не стоит на карте — на реке герои садятся в него сами, если оно у них есть
+inline bool canEnter(const MapData& map, Vehicle riding, Point from, int x, int y,
                      const std::array<VehicleState, kVehicleKinds>& parked, uint16_t mapId)
 {
-    if (riding != Vehicle::None)
-        return vehicleCanMove(map, riding, x, y) || (riding != Vehicle::Airship && map.isWalkable(x, y));
+    switch (riding)
+    {
+    case Vehicle::Airship: return map.inside(x, y);
+    case Vehicle::Ship:    return vehicleCanMove(map, Vehicle::Ship, x, y) || (map.isWalkable(x, y) && map.isPort(x, y));
+    case Vehicle::Canoe:   return vehicleCanMove(map, Vehicle::Canoe, x, y) || map.isWalkable(x, y);
+    default: break;
+    }
     if (map.isWalkable(x, y)) return true;
-    for (const auto& v : parked)
-        if (v.available && v.mapId == mapId && v.cell.x == x && v.cell.y == y) return true;
+    if (parked[vehicleIndex(Vehicle::Canoe)].available && map.isRiver(x, y)) return true;
+    for (int i = 0; i < kVehicleKinds; ++i)
+    {
+        const VehicleState& v = parked[i];
+        if (static_cast<Vehicle>(i + 1) == Vehicle::Canoe) continue;           // каноэ не стоит, его не «заходят»
+        if (!v.available || v.mapId != mapId || v.cell.x != x || v.cell.y != y) continue;
+        return static_cast<Vehicle>(i + 1) != Vehicle::Ship || map.isPort(from.x, from.y);
+    }
     return false;
 }
 

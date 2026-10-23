@@ -23,6 +23,55 @@ uint32_t physicalDamage(uint32_t attack, uint32_t defence)
     const int64_t spread = 90 + rand() % 21;
     return static_cast<uint32_t>(std::max<int64_t>(1, base * spread / 100));
 }
+
+// Размер спрайта по классам, как в tools/make_encounters.py: мелкие толпой до 9, средние до 4, крупные по 1-2
+int sizeClass(const EnemyDef& def)
+{
+    const int side = std::max(def.srcRect.w, def.srcRect.h);
+    return side <= 36 ? 0 : side <= 52 ? 1 : side <= 80 ? 2 : 3;
+}
+
+// Формация из encounters.json рассчитана на окрепший отряд. На 1-м уровне от неё остаётся ~40%,
+// каждый уровень добавляет 15%, с 5-го — вся. Часть мест занимают другие враги группы:
+// не сильнее (по опыту) и не крупнее (по классу спрайта) тех, кто уже в формации
+std::vector<int> shapeFormation(const std::vector<int>& formation, const std::vector<int>& roster, int level)
+{
+    const auto& data = GameData::instance();
+    std::vector<int> picked;
+    for (int id : formation)
+        if (data.enemy(id)) picked.push_back(id);
+    const int n = static_cast<int>(picked.size());
+    if (n == 0) return picked;
+
+    const int percent = std::min(100, 40 + 15 * (std::max(1, level) - 1));
+    const int want = std::clamp((n * percent + 50) / 100, std::min(2, n), n);
+
+    for (int i = n - 1; i > 0; --i)                                 // остаются случайные want врагов формации
+        std::swap(picked[i], picked[rand() % (i + 1)]);
+    picked.resize(want);
+
+    int maxExp = 0, maxSize = 0;
+    for (int id : picked)
+    {
+        const EnemyDef* def = data.enemy(id);
+        maxExp  = std::max(maxExp, def->exp.at(level));
+        maxSize = std::max(maxSize, sizeClass(*def));
+    }
+    std::vector<int> mates;
+    for (int id : roster)
+        if (const EnemyDef* def = data.enemy(id); def && def->exp.at(level) <= maxExp && sizeClass(*def) <= maxSize)
+            mates.push_back(id);
+
+    if (mates.size() > 1)
+        for (int& id : picked)
+            if (rand() % 100 < 35) id = mates[rand() % mates.size()];
+
+    std::stable_sort(picked.begin(), picked.end(), [&](int a, int b) {   // крупные и сильные впереди, одинаковые рядом
+        const int ea = data.enemy(a)->exp.at(level), eb = data.enemy(b)->exp.at(level);
+        return ea != eb ? ea > eb : a < b;
+    });
+    return picked;
+}
 }
 
 const std::vector<Enemy> &Battle::getEnemies() const {
@@ -853,7 +902,7 @@ void Battle::spawnEnemies()
     const auto& data = GameData::instance();
     const int avgLvl = averageLevel();
 
-    for (int id : enemyFormation)                            // 1) готовая формация из encounters.json
+    for (int id : shapeFormation(enemyFormation, enemyRoster, avgLvl))   // 1) формация из encounters.json под уровень отряда
     {
         if (static_cast<int>(enemies.size()) >= MAX_ENEMY_COUNT) break;   // в интерфейсе девять слотов
         if (data.enemy(id)) enemies.emplace_back(id, avgLvl);
@@ -905,7 +954,7 @@ void Battle::prepairUI()
             ui->setSrcRect("Enemy" + std::to_string(i + 1), "Battle", def->srcRect);
 }
 
-void Battle::run(const std::vector<int>& formation, const std::vector<int>& pool)
+void Battle::run(const std::vector<int>& formation, const std::vector<int>& pool, const std::vector<int>& roster)
 {
     enemies.clear();
     rewards.clear();
@@ -915,6 +964,7 @@ void Battle::run(const std::vector<int>& formation, const std::vector<int>& pool
 
     enemyFormation = formation;
     enemyPool = pool;
+    enemyRoster = roster;
     spawnEnemies();
     prepairUI();
     determineFirstTurn();

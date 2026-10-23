@@ -78,6 +78,7 @@ class Game {
         void toggleEncounters();                      // H: с подсказкой на карте
         [[nodiscard]] bool isFullscreen() const { return fullscreen; }
         void setFullscreen(bool on);                  // на весь экран без смены разрешения, пропорции сохраняются
+        void cycleLeader();                           // V: следующий живой герой на карте
 
         // ── Сохранения: слот 0 — автосохранение при выходе, 1..4 — ручные ──
         static constexpr int kSaveSlots = 5;
@@ -187,6 +188,7 @@ class Game {
         bool updateVehicleAfterStep(Point from);     // посадка и высадка; true, если что-то сменилось
         void computeWater(MapData& m);
         void findRivers(MapData& m);                  // узкая вода вдали от моря — реки для каноэ
+        void findPorts(MapData& m, const std::vector<uint16_t>& grey, int greyW);   // причалы для корабля
         [[nodiscard]] std::string battleBackground(const Zone* zone, const std::string& group) const;
         void resetVehicles();                         // транспорт на стоянки: маркеры Tiled или ближайшее подходящее место
         void parkVehicle(Point at, uint16_t mapId);   // слезть с транспорта, оставив его в клетке at

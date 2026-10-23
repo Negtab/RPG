@@ -55,6 +55,7 @@ struct PlayerMovePacket {
     uint8_t  direction;
     uint8_t  moving;
     uint8_t  vehicle;     // Vehicle: на чём едет игрок, чтобы напарник рисовал корабль, а не героя
+    uint8_t  leader;      // кого из отряда видно на карте (клавиша V)
 };
 
 struct EnemyData

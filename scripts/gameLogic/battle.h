@@ -28,7 +28,8 @@ public:
     Battle(Player* player, UIManager* ui, Game* game) : player(player), ui(ui), game(game) {};
     ~Battle() = default;
 
-    void run(const std::vector<int>& formation = {}, const std::vector<int>& pool = {});
+    void run(const std::vector<int>& formation = {}, const std::vector<int>& pool = {},
+             const std::vector<int>& roster = {});
     void update();
 
     [[nodiscard]] BattleState getState() const;
@@ -122,7 +123,7 @@ private:
 
     std::unordered_set<uint32_t> readyPlayers;
 
-    std::vector<int> enemyFormation, enemyPool;                  // enemyPool уже был
+    std::vector<int> enemyFormation, enemyPool, enemyRoster;                  // enemyPool уже был
     std::vector<HeroRef> aliveHeroes() const;
     bool performEnemyAction(int enemyIndex);                     // false: целей нет, все герои мертвы
     bool enemyBasicAttack(Enemy& enemy, int hits);

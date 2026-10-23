@@ -68,6 +68,7 @@ void InputController::mapInput(const SDL_Event& event, Game& game)
     {
         if (event.key.keysym.scancode == SDL_SCANCODE_M) game.cycleMinimap();       // Off → x1 → x2 → x3
         if (event.key.keysym.scancode == SDL_SCANCODE_H) game.toggleEncounters();   // случайные бои вкл/выкл
+        if (event.key.keysym.scancode == SDL_SCANCODE_V) game.cycleLeader();        // другой герой на карте
     }                          // стартовое меню теперь только до игры и после «Return to Title»
 }
 
