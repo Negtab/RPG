@@ -8,6 +8,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <nlohmann/json.hpp>
+#include <SDL_log.h>
 
 using nlohmann::json;
 
@@ -216,6 +217,33 @@ MapData loadMap(const std::string& path)
                 p.targetY   = prop<int>(o, "targetY", -1);
                 p.hasTargetCell = p.targetX >= 0 && p.targetY >= 0;
                 m.portals.push_back(std::move(p));
+            }
+        }
+        else if (type == "objectgroup" && name == "npcs")
+        {
+            for (const auto& o : L.at("objects"))
+            {
+                NpcSpawn n;
+                n.name = o.value("name", std::string{});
+                const double x = o.value("x", 0.0), y = o.value("y", 0.0);
+                const uint32_t gid = o.value("gid", 0u) & 0x1FFFFFFFu;
+                if (const auto it = propTiles.find(static_cast<int>(gid)); gid && it != propTiles.end())
+                {
+                    // Тайл-объект: (x, y) — левый нижний угол. Клетка — та, где центр картинки
+                    n.sprite = it->second.sprite;
+                    n.cell = { cellOf(x + o.value("width", 0.0) / 2, tw), cellOf(y - o.value("height", 0.0) / 2, th) };
+                }
+                else
+                    n.cell = { cellOf(x, tw), cellOf(y, th) };
+                n.sprite = prop<std::string>(o, "sprite", n.sprite);
+                const std::string facing = prop<std::string>(o, "facing", "down");
+                n.facing = facing == "up" ? Direction::Up : facing == "left" ? Direction::Left
+                         : facing == "right" ? Direction::Right : Direction::Down;
+                n.shop = prop<std::string>(o, "shop", "");
+                n.text = prop<std::string>(o, "text", "");
+                if (n.sprite.empty())
+                    SDL_Log("Map '%s': NPC '%s' has no sprite", m.name.c_str(), n.name.c_str());
+                m.npcs.push_back(std::move(n));
             }
         }
         else if (type == "objectgroup" && name == "markers")

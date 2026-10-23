@@ -1,24 +1,20 @@
-//
-// Created by User on 21.10.2025.
-//
-
 #ifndef PROJECT_NAME_SHOPPERSON_H
 #define PROJECT_NAME_SHOPPERSON_H
-#include "gamePerson.h"
+#include "notGamePerson.h"
 
-class ShopPerson : public GamePerson
+struct ShopDef;
+
+// Продавец: разговор с ним открывает его заведение — магазин, гостиницу или церковь (shops.json)
+class ShopPerson : public NotGamePerson
 {
 public:
-    ShopPerson() = default;
-    ~ShopPerson() override = default;
+    ShopPerson(std::string name, std::string sprite, Point cell, Direction facing, const ShopDef& shop);
 
-    uint32_t getAttackPower(const Skill*) const override { return 0; }
-    [[nodiscard]] uint32_t getDefense() const override { return 0; }
-    [[nodiscard]] uint32_t getSpeed() const override { return 0; }
-    [[nodiscard]] std::vector<int> getAvailableSkills() const override { return {}; }
+    [[nodiscard]] const ShopDef& getShop() const noexcept { return shop; }
+    void talk(Game& game) override;
 
 private:
-    std::map<int, int> itemKeys;
+    const ShopDef& shop;                              // живёт в GameData всю игру
 };
 
 

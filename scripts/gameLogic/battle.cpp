@@ -432,7 +432,7 @@ void Battle::executeAction(const Action& action)
     if (targets.empty())
         return;
 
-    std::string what = "Attack";                             // плашка сверху: кто и что делает
+    std::string what = tr("Attack");                         // плашка сверху: кто и что делает
     if (action.type == ActionType::Magic)
         if (const Skill* s = game->findSkill(action.payloadId)) what = s->name;
     if (action.type == ActionType::Item)
@@ -1081,7 +1081,7 @@ void Battle::finishBattle(const bool& win)
     {
         player->addItem(id, static_cast<uint8_t>(count));
         const Item* item = game->findItem(id);
-        report.items.push_back((item ? item->name : "Item") + (count > 1 ? " x" + std::to_string(count) : ""));
+        report.items.push_back((item ? item->name : tr("Item")) + (count > 1 ? " x" + std::to_string(count) : ""));
     }
 
     game->sendPartyInfo();

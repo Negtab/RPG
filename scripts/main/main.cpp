@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "game.h"
 #include "../gameLogic/gameData.h"
+#include "lang.h"
 
 int main(int argc, char* args [])
 {
@@ -13,7 +14,9 @@ int main(int argc, char* args [])
     int exitCode = 0;
     try
     {
-        const auto dataDir = std::filesystem::current_path().remove_filename() / "resources" / "Data";
+        const auto resources = std::filesystem::current_path().remove_filename() / "resources";
+        loadLanguages(resources / "Lang");
+        const auto dataDir = resources / "Data";
         GameData::instance().loadAll(dataDir);
 
         Game game(ctx.window, ctx.renderer);

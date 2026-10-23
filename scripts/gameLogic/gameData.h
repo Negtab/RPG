@@ -88,6 +88,19 @@ struct HeroClassDef
     float xpGrowth = 1.3f;
 };
 
+// Заведение в городе (shops.json): что продаёт и сколько стоит ночлег или воскрешение
+enum class ShopKind { Item, Weapon, Armor, WhiteMagic, BlackMagic, Inn, Church };
+
+struct ShopDef
+{
+    std::string id;
+    ShopKind kind = ShopKind::Item;
+    std::string title;                      // заголовок окна: «Лавка предметов»
+    std::string greeting;                   // что говорит продавец, когда подходишь
+    std::vector<int> goods;                 // id предметов в порядке на прилавке
+    int price = 0;                          // гостиница и церковь: цена услуги
+};
+
 struct Drop
 {
     int itemId = 0;
@@ -108,6 +121,10 @@ public:
     [[nodiscard]] const HeroClassDef* heroClass(SpecializationNames id) const;
     [[nodiscard]] const std::vector<Drop>& drops(int enemyId) const;
     [[nodiscard]] const EffectDef* effect(const std::string& id) const;   // nullptr, если такого нет
+    [[nodiscard]] const ShopDef* shop(const std::string& id) const;       // nullptr, если такого нет
+
+    // Названия предметов, умений и врагов на текущем языке (lang.h). В JSON они английские — это ключи перевода
+    void applyLanguage();
 
     [[nodiscard]] bool hasEncounter(const std::string& id) const { return encounterMap.contains(id); }
     [[nodiscard]] std::vector<int> pickFormation(const std::string& id) const;   // пусто, если группы нет
@@ -126,6 +143,7 @@ private:
     void loadHeroes(const std::filesystem::path& path);
     void loadDrops(const std::filesystem::path& path);
     void loadEffects(const std::filesystem::path& path);
+    void loadShops(const std::filesystem::path& path);
 
     std::map<int, Item> itemMap;
     std::map<int, Skill> skillMap;
@@ -136,6 +154,8 @@ private:
     std::map<SpecializationNames, HeroClassDef> heroMap;
     std::map<int, std::vector<Drop>> dropMap;
     std::map<std::string, EffectDef> effectMap;
+    std::map<std::string, ShopDef> shopMap;
+    std::map<int, std::string> itemKeys, skillKeys, enemyKeys;   // английские названия из JSON
 };
 
 #endif

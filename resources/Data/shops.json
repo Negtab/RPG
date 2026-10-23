@@ -1,0 +1,8 @@
+[
+  // Заведения городов. title и greeting — по-английски, перевод в resources/Lang/ru.json. Продавца ставят в Tiled на слой "npcs" со свойством shop = id отсюда.
+  // kind: item, weapon, armor, whiteMagic, blackMagic, inn, church
+  // goods — id из items.json в порядке на прилавке; price — цена ночлега (inn) или воскрешения (church)
+  { "id": "cornelia_item_shop", "kind": "item", "title": "Item Shop",
+    "greeting": "Welcome! How may I help you?",
+    "goods": [1, 2, 3] }
+]

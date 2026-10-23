@@ -7,6 +7,7 @@
 #include "SDL_ttf.h"
 #include "../core/UIObject.h"
 #include "../../controllers/resourceManager.h"
+#include "../../main/utf8.h"
 
 class Visualizer;
 
@@ -100,16 +101,20 @@ public:
         if (containsPoint(x, y) && onHover) onHover();
     }
 
-    // SDL_TEXTINPUT: добавляет символы в позицию курсора
-    bool handleTextInput(const char* utf8) {
+    // SDL_TEXTINPUT: добавляет символы в позицию курсора. pos и maxLength: pos в байтах, длина — в символах
+    bool handleTextInput(const char* input) {
         bool changed = false;
-        for (const char* c = utf8; *c; ++c) {
-            const unsigned char ch = static_cast<unsigned char>(*c);
-            if (ch < 32 || ch > 126) continue;                // шрифту нужен печатный ASCII
-            if (static_cast<int>(text.size()) >= maxLength) break;
-            text.insert(text.begin() + pos, static_cast<char>(ch));
-            ++pos;
-            changed = true;
+        const std::string in(input);
+        for (size_t i = 0; i < in.size();) {
+            const size_t next = utf8::nextBoundary(in, i);
+            const bool ok = utf8::printable(static_cast<unsigned char>(in[i]));
+            if (ok && static_cast<int>(utf8::length(text)) >= maxLength) break;
+            if (ok) {
+                text.insert(static_cast<size_t>(pos), in, i, next - i);
+                pos += static_cast<int>(next - i);
+                changed = true;
+            }
+            i = next;
         }
         if (changed) dirty = true;
         return true;
@@ -120,13 +125,16 @@ public:
         const int n = static_cast<int>(text.size());
         switch (key) {
             case SDL_SCANCODE_BACKSPACE:
-                if (pos > 0) { text.erase(pos - 1, 1); --pos; dirty = true; }
+                if (pos > 0) {
+                    const int from = static_cast<int>(utf8::prevBoundary(text, pos));
+                    text.erase(from, pos - from); pos = from; dirty = true;
+                }
                 return true;
             case SDL_SCANCODE_DELETE:
-                if (pos < n) { text.erase(pos, 1); dirty = true; }
+                if (pos < n) { text.erase(pos, utf8::nextBoundary(text, pos) - pos); dirty = true; }
                 return true;
-            case SDL_SCANCODE_LEFT:  setPos(pos - 1); return true;
-            case SDL_SCANCODE_RIGHT: setPos(pos + 1); return true;
+            case SDL_SCANCODE_LEFT:  setPos(static_cast<int>(utf8::prevBoundary(text, pos))); return true;
+            case SDL_SCANCODE_RIGHT: setPos(static_cast<int>(utf8::nextBoundary(text, pos))); return true;
             case SDL_SCANCODE_HOME:  setPos(0);       return true;
             case SDL_SCANCODE_END:   setPos(n);       return true;
             case SDL_SCANCODE_RETURN:
@@ -183,21 +191,25 @@ private:
 
     std::string filter(const std::string& t) const {
         std::string out;
-        for (unsigned char ch : t)
-            if (ch >= 32 && ch <= 126 && static_cast<int>(out.size()) < maxLength)
-                out += static_cast<char>(ch);
+        for (size_t i = 0; i < t.size();) {
+            const size_t next = utf8::nextBoundary(t, i);
+            if (utf8::printable(static_cast<unsigned char>(t[i])) && static_cast<int>(utf8::length(out)) < maxLength)
+                out.append(t, i, next - i);
+            i = next;
+        }
         return out;
     }
 
     int posFromX(int x) const {                                          // ближайшая граница символа к клику
         if (!font) return static_cast<int>(text.size());
         const int local = x - (rect.x + paddingX) + scrollPx;
-        int prev = 0;
-        for (int i = 1; i <= static_cast<int>(text.size()); ++i) {
+        int prev = 0, prevPos = 0;
+        for (size_t i = utf8::nextBoundary(text, 0); prevPos < static_cast<int>(text.size()); i = utf8::nextBoundary(text, i)) {
             int w = 0, h = 0;
             TTF_SizeUTF8(font, text.substr(0, i).c_str(), &w, &h);
-            if (local < (prev + w) / 2) return i - 1;
+            if (local < (prev + w) / 2) return prevPos;
             prev = w;
+            prevPos = static_cast<int>(i);
         }
         return static_cast<int>(text.size());
     }

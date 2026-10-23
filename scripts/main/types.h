@@ -26,6 +26,13 @@ const std::unordered_map<SpecializationNames, std::string> specializationNamesSt
     {SpecializationNames::Thief, "Thief"}
 };
 
+inline const char* elementName(Elemental e)
+{
+    static const char* names[] = {"Fire", "Water", "Earth", "Air", "Ice", "Lava", "Dark", "Light",
+                                  "Physical", "Poison", "Lightning"};
+    return names[static_cast<int>(e)];
+}
+
 struct Point { int32_t x{0}, y{0}; };
 
 enum class Direction
@@ -210,8 +217,8 @@ struct VehicleState                                 // где стоит тра�
     Direction dir{Direction::Down};
 };
 
-enum class GameState { CreatePlayer, Menu, Battle, Inventory, Options, Map, Online, Saves, GameMenu };
-const std::unordered_map<GameState, std::string> gameStateString =  {{GameState::CreatePlayer, "CreatePlayer"}, {GameState::Menu, "Menu"}, {GameState::Battle, "Battle"}, {GameState::Inventory, "Inventory"}, {GameState::Map, "Map"}, {GameState::Options, "Options"}, {GameState::Online, "Online"}, {GameState::Saves, "Saves"}, {GameState::GameMenu, "GameMenu"}};
+enum class GameState { CreatePlayer, Menu, Battle, Inventory, Options, Map, Online, Saves, GameMenu, Shop };
+const std::unordered_map<GameState, std::string> gameStateString =  {{GameState::CreatePlayer, "CreatePlayer"}, {GameState::Menu, "Menu"}, {GameState::Battle, "Battle"}, {GameState::Inventory, "Inventory"}, {GameState::Map, "Map"}, {GameState::Options, "Options"}, {GameState::Online, "Online"}, {GameState::Saves, "Saves"}, {GameState::GameMenu, "GameMenu"}, {GameState::Shop, "Shop"}};
 
 
 #endif

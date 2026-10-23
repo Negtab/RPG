@@ -9,7 +9,7 @@ void InputController::chooseInput(SDL_Event event, Game& game, Battle& battle, P
     GameState state = game.getGameState();
     switch (state)
     {
-        case GameState::Map:        mapInput(event, game); break;
+        case GameState::Map:        mapInput(event, game, uiManager); break;
         case GameState::Menu:       menuInput(event, game, uiManager); break;
         case GameState::Battle:     battleInput(event, game, battle, uiManager); break;
         case GameState::Inventory:  inventoryInput(player); break;
@@ -18,6 +18,7 @@ void InputController::chooseInput(SDL_Event event, Game& game, Battle& battle, P
         case GameState::CreatePlayer: createInput(event, game, uiManager); break;
         case GameState::Saves:      uiManager.handleSavesEvent(event); break;
         case GameState::GameMenu:   uiManager.handleGameMenuEvent(event); break;
+        case GameState::Shop:       uiManager.handleShopEvent(event); break;
         default: ;
     }
 }
@@ -57,8 +58,20 @@ Direction InputController::readMoveDirection() {       // последняя н�
     return lastMoveDir = Direction::Idle;
 }
 
-void InputController::mapInput(const SDL_Event& event, Game& game)
+void InputController::mapInput(const SDL_Event& event, Game& game, UIManager& ui)
 {
+    if (ui.isDialogOpen())                            // окно разговора забирает весь ввод, пока не закроется
+    {
+        ui.handleDialogEvent(event);
+        return;
+    }
+    if (event.type == SDL_KEYDOWN && event.key.repeat == 0 &&
+        (event.key.keysym.scancode == SDL_SCANCODE_RETURN || event.key.keysym.scancode == SDL_SCANCODE_KP_ENTER ||
+         event.key.keysym.scancode == SDL_SCANCODE_SPACE))
+    {
+        game.talk();                                  // заговорить с тем, на кого смотрим
+        return;
+    }
     if (input.isKeyPressed(SDL_SCANCODE_ESCAPE))
         game.openGameMenu();
     if (input.isKeyPressed(SDL_SCANCODE_E))

@@ -1,10 +1,10 @@
 [
   // Расходники. "start" — сколько отряд получает в новой игре
-  { "id": 1, "name": "Health Potion", "cost": 5,  "power": 15, "consumable": true, "effectType": "Heal",        "targetType": "Self", "start": 3, "effect": "heal" },
-  { "id": 2, "name": "Mana Potion",   "cost": 5,  "power": 20, "consumable": true, "effectType": "RestoreMana", "targetType": "Self", "start": 2, "effect": "mana" },
-  { "id": 3, "name": "Bomb",          "cost": 10, "power": 25, "consumable": true, "effectType": "Damage",      "targetType": "Enemy", "effect": "fire" },
-  { "id": 4, "name": "Attack Scroll", "cost": 8,  "power": 10, "consumable": true, "effectType": "Buff",        "targetType": "Self",  "effect": "buff" },
-  { "id": 5, "name": "Weaken Scroll", "cost": 8,  "power": 10, "consumable": true, "effectType": "Debuff",      "targetType": "Enemy", "effect": "debuff" },
+  { "id": 1, "name": "Potion",           "cost": 40,  "power": 15, "consumable": true, "effectType": "Heal",        "targetType": "Self", "start": 3, "effect": "heal" },
+  { "id": 2, "name": "Ether",            "cost": 150, "power": 20, "consumable": true, "effectType": "RestoreMana", "targetType": "Self", "start": 2, "effect": "mana" },
+  { "id": 3, "name": "Bomb",             "cost": 80,  "power": 25, "consumable": true, "effectType": "Damage",      "targetType": "Enemy", "effect": "fire" },
+  { "id": 4, "name": "Attack Scroll",    "cost": 100, "power": 10, "consumable": true, "effectType": "Buff",        "targetType": "Self",  "effect": "buff" },
+  { "id": 5, "name": "Weaken Scroll",    "cost": 100, "power": 10, "consumable": true, "effectType": "Debuff",      "targetType": "Enemy", "effect": "debuff" },
 
   // Экипировка: "slot" — Weapon, Shield, Head, Body или Arms; "classes" — кто может надеть (нет поля — все)
   // Оружие

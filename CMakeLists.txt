@@ -64,9 +64,11 @@ add_executable(${PROJECT_NAME} scripts/main/main.cpp
         scripts/main/mapRenderer.cpp
         scripts/main/mapLoader.h
         scripts/main/mapLoader.cpp
+        scripts/main/lang.cpp
         scripts/ui/windowSkin.h
         scripts/ui/windowSkin.cpp
         scripts/ui/bestiary.cpp
+        scripts/ui/shopScreen.cpp
         scripts/ui/widgets/Window.h
         scripts/gameLogic/gameData.h
         scripts/gameLogic/gameData.cpp

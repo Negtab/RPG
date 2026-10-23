@@ -26,12 +26,12 @@ TTF_Font *ResourceManager::getFont(const std::string &name) { return fonts[name]
 std::vector<SDL_Texture*>& ResourceManager::getAnimation(const std::string& name) {return animations.at(name);}
 
 
-bool ResourceManager::addFont(const std::string &path)
+bool ResourceManager::addFont(const std::string &path, int size)
 {
     if (fonts.contains(getName(path)))
         return false;
 
-    TTF_Font* font = TTF_OpenFont(path.c_str(), 24);
+    TTF_Font* font = TTF_OpenFont(path.c_str(), size);
     if (!font)
     {
         SDL_Log("Ошибка загрузки шрифта: %s", TTF_GetError());
@@ -58,7 +58,7 @@ bool ResourceManager::addTextTexture(const std::string& name, const std::string&
 {
     if (textures.contains(name))
         return false;
-    SDL_Surface* textSurface = TTF_RenderText_Solid( font, text.c_str(), color );
+    SDL_Surface* textSurface = TTF_RenderUTF8_Solid( font, text.c_str(), color );
     if (!textSurface)
         SDL_Log("Failed to render text: ", TTF_GetError());
     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(this->renderer, textSurface);
@@ -77,7 +77,7 @@ SDL_Texture* ResourceManager::getTextTexture(const std::string& text, TTF_Font* 
 
     SDL_Surface* textSurface;
     if (wrapWidth <= 0)
-        textSurface = TTF_RenderText_Solid( font, text.c_str(), color);
+        textSurface = TTF_RenderUTF8_Solid( font, text.c_str(), color);
     else
         textSurface = TTF_RenderUTF8_Blended_Wrapped( font, text.c_str(), color, wrapWidth);
     if (!textSurface)
@@ -250,7 +250,7 @@ void ResourceManager::initialize()
     std::filesystem::path pathToEnvironment {mainPath.string() + R"(\resources\Images\Environment\)"};
     std::filesystem::path pathToAnimations {mainPath.string() + R"(\resources\Animations\)"};
 
-    addFont((mainPath / "resources" / "Fonts" / "RetroByte.ttf").string());
+    addFont((mainPath / "resources" / "Fonts" / (std::string(kUiFont) + ".ttf")).string(), kUiFontSize);
     addMusic(pathToMusic.string() + "MenuTheme.mp3");
     addMusic(pathToMusic.string() + "MapTheme.mp3");
     addMusic(pathToMusic.string() + "BattleTheme.mp3");
@@ -271,7 +271,8 @@ void ResourceManager::initialize()
     addTexturesFromDirectory(pathToEnemies.string());
     addTexturesFromDirectory((mainPath / "resources" / "Images" / "Vehicles").string());   // Ship, Canoe, Airship
     addTexturesFromDirectory((mainPath / "resources" / "Images" / "Props").string());      // замки, башни, мосты
-    addTexturesFromDirectory((mainPath / "resources" / "Images" / "Overworld").string());  // Walk<набор>: герой на карте
+    addTexturesFromDirectory((mainPath / "resources" / "Images" / "Overworld").string());
+    addTexturesFromDirectory((mainPath / "resources" / "Images" / "Npcs").string());       // Npc<Имя>: жители городов  // Walk<набор>: герой на карте
     addTexturesFromDirectory((mainPath / "resources" / "Images" / "Effects").string());    // боевые эффекты и замахи
     addTexturesFromDirectory((mainPath / "resources" / "Images" / "BattleBackgrounds").string());   // задники боя BB<имя>
 

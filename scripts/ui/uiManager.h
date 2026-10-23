@@ -22,6 +22,7 @@
 
 class Game;
 class Player;
+class NotGamePerson;
 class UIObject;
 
 struct MenuListLayout { SDL_Rect area; int cols; int rows; int rowH; };   // список в две колонки с прокруткой
@@ -150,6 +151,15 @@ public:
     void closeBestiary();
     [[nodiscard]] bool isBestiaryOpen() const { return bestiaryOpen; }
     void handleBestiaryEvent(const SDL_Event& event);
+
+    void applyLanguage();                                   // язык сменили: пересоздать надписи-картинки
+
+    // ── Разговор с NPC и магазин (shopScreen.cpp) ──
+    void showDialog(const std::string& speaker, const std::vector<std::string>& pages);
+    [[nodiscard]] bool isDialogOpen() const { return !talkPages.empty(); }
+    void handleDialogEvent(const SDL_Event& event);
+    void openShop(const ShopDef& shop);
+    void handleShopEvent(const SDL_Event& event);
 
     bool handleTextEvent(const SDL_Event& event, const std::string& sceneId);   // true: событие поглотило поле ввода
     void styleEdit(const std::string& id, const std::string& sceneId,
@@ -307,6 +317,32 @@ private:
     bool bestiarySearching = false;
     std::string bestiaryQuery;
     int  bestiaryMatches = 0, bestiaryMatchPos = 0;           // для подписи «2/5»
+
+    // ── Жители на карте, окно разговора, магазин (shopScreen.cpp) ──
+    void drawNpc(const NotGamePerson& npc, int cellScreenX, int cellScreenY);
+    void drawDialog();
+    [[nodiscard]] std::vector<std::string> wrapText(const std::string& text, int width) const;
+    std::string talkSpeaker;
+    std::vector<std::string> talkPages;                        // пусто — окна нет
+    int talkPage = 0;
+    Uint32 talkStart = 0;                                      // когда страница начала печататься
+
+    enum class ShopPhase { Command, Buy, Sell, Quantity };
+    void drawShop();
+    void drawShopInfo(const Item& item);
+    [[nodiscard]] std::vector<std::pair<int, int>> shopList() const;   // (id, цена): товары или что можно продать
+    [[nodiscard]] int shopPrice(const Item& item, bool selling) const;
+    [[nodiscard]] int shopMaxCount() const;                    // сколько можно купить или продать выбранного
+    [[nodiscard]] SDL_Rect shopCommandRect(int row) const;
+    [[nodiscard]] SDL_Rect shopRowRect(int row) const;
+    void shopPick(int index);                                  // выбран товар: к выбору количества
+    void shopDeal();                                           // количество подтверждено: купить или продать
+    void shopSay(const std::string& line) { shopLine = line; }
+    const ShopDef* shop = nullptr;
+    ShopPhase shopPhase = ShopPhase::Command;
+    bool shopSelling = false;                                  // в Quantity: продаём, а не покупаем
+    int shopCommand = 0, shopSel = 0, shopScroll = 0, shopCount = 1;
+    std::string shopLine;                                      // что сейчас говорит продавец
 
     void drawConfig();
     [[nodiscard]] SDL_Rect configRowRect(int row) const;

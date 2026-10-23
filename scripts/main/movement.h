@@ -44,6 +44,16 @@ struct Portal {
     bool hasTargetCell = false;               // нет targetX/targetY — на spawn целевой карты
 };
 
+// NPC, как он стоит в Tiled на слое "npcs": тайл из npcs.tsx или точка со свойством sprite
+struct NpcSpawn {
+    std::string name;                         // имя объекта в Tiled: показывается в окне разговора
+    std::string sprite;                       // Npc<Имя>: лист resources/Images/Npcs/Npc<Имя>.png
+    Point cell{};
+    Direction facing = Direction::Down;
+    std::string shop;                         // id из shops.json: NPC — продавец
+    std::string text;                         // реплика; строки разделяются символом |
+};
+
 struct MapData {
     std::string name;
     int mapId = 0;
@@ -61,6 +71,7 @@ struct MapData {
     std::string exitMode;                              // "back": шаг за край карты — обратно, откуда пришли
     std::string entrance;                              // имя портала карты мира, который ведёт на эту карту
     std::vector<Prop> props;
+    std::vector<NpcSpawn> npcs;
     std::array<std::optional<Point>, kVehicleKinds> vehicleMarkers;   // маркеры canoe, ship, airship из Tiled
 
     // Временная карта без стен. 256x277 клеток = 4096x4432 px, как твоя картинка

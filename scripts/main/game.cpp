@@ -148,14 +148,37 @@ std::optional<SaveSummary> Game::getSlotSummary(int slot) const
     return resourceManager->readSaveSummary(slotPath(slot));
 }
 
+// Английское название места по имени карты (оно же ключ перевода): "cornelia" -> "Cornelia",
+// "cornelia_item_shop" -> "Item Shop". В доме город не пишем: строка в меню короткая
+std::string Game::locationName(const std::string& map)
+{
+    if (map.empty() || map == "overworld") return "World";
+    static const std::pair<const char*, const char*> rooms[] = {
+        {"_item_shop", "Item Shop"}, {"_weapon_shop", "Weapon Shop"}, {"_armor_shop", "Armor Shop"},
+        {"_white_magic", "White Magic Shop"}, {"_black_magic", "Black Magic Shop"}, {"_inn", "Inn"},
+        {"_church", "Church"}, {"_magic", "Magic Shop"}, {"_shop", "Shop"}};
+    for (const auto& [suffix, title] : rooms)
+    {
+        const auto at = map.find(suffix);
+        if (at != std::string::npos && at > 0) return title;
+    }
+    std::string name;                                          // crescent_lake -> Crescent Lake
+    bool word = true;
+    for (char c : map)
+    {
+        if (c == '_') { name += ' '; word = true; continue; }
+        name += word ? static_cast<char>(std::toupper(static_cast<unsigned char>(c))) : c;
+        word = false;
+    }
+    return name;
+}
+
 std::string Game::currentLocation() const
 {
     const Point c = players.at(0).getMove().cell;
     if (const Zone* z = currentMap->zoneAt(c.x, c.y); z && !z->name.empty())
         return z->name;
-    std::string name = currentMap->name.empty() ? "World" : currentMap->name;
-    name[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(name[0])));
-    return name;
+    return locationName(currentMap->name);
 }
 
 bool Game::canSave() const
@@ -587,11 +610,18 @@ void Game::loadSettings()
     std::ifstream in((saveDir.parent_path() / "settings.ini").string());
     std::string line;
     int music = AudioManager::getMusicVolume(), sound = AudioManager::getSoundVolume();
+    Language lang = currentLanguage();
     while (std::getline(in, line))
     {
         const auto eq = line.find('=');
         if (eq == std::string::npos) continue;
         const std::string key = line.substr(0, eq);
+        if (key == "language")
+        {
+            for (int i = 0; i < kLanguageCount; ++i)
+                if (line.substr(eq + 1) == languageCode(static_cast<Language>(i))) lang = static_cast<Language>(i);
+            continue;
+        }
         int value = 0;
         if (!(std::istringstream(line.substr(eq + 1)) >> value)) continue;
         if (key == "music")      music = value;
@@ -602,12 +632,23 @@ void Game::loadSettings()
     }
     AudioManager::setMusicVolume(music);                      // заодно применяем и зажимаем в 0..10
     AudioManager::setSoundVolume(sound);
+    setLanguage(lang, false);                                 // файл только что прочитан: сохранять нечего
 }
 
 void Game::cycleMinimap()
 {
     setMinimapZoom((minimapZoom + 1) % (kMinimapZoomMax + 1));
     saveSettings();
+}
+
+void Game::setLanguage(Language lang, bool save)
+{
+    ::setLanguage(lang);
+    GameData::instance().applyLanguage();
+    items  = GameData::instance().items();                    // у Game свои копии: обновляем названия и в них
+    skills = GameData::instance().skills();
+    uiManager->applyLanguage();
+    if (save) saveSettings();
 }
 
 void Game::cycleLeader()
@@ -620,7 +661,7 @@ void Game::toggleEncounters()
 {
     encounters = !encounters;
     saveSettings();
-    uiManager->showMapNotice(encounters ? "Encounters: On" : "Encounters: Off");
+    uiManager->showMapNotice(tr(encounters ? "Encounters: On" : "Encounters: Off"));
 }
 
 void Game::setFullscreen(bool on)
@@ -642,7 +683,8 @@ void Game::saveSettings() const
         << "sound=" << AudioManager::getSoundVolume() << "\n"
         << "encounters=" << (encounters ? 1 : 0) << "\n"
         << "minimap=" << minimapZoom << "\n"
-        << "fullscreen=" << (fullscreen ? 1 : 0) << "\n";
+        << "fullscreen=" << (fullscreen ? 1 : 0) << "\n"
+        << "language=" << languageCode(currentLanguage()) << "\n";
     if (!out) SDL_Log("Cannot write settings to %s", path.c_str());
 }
 
@@ -765,6 +807,85 @@ void Game::loadMaps()
     }
 
     currentMap = &maps.at(0);
+    spawnNpcs();
+}
+
+void Game::spawnNpcs()
+{
+    npcs.clear();
+    for (const auto& [id, m] : maps)
+        for (const NpcSpawn& n : m.npcs)
+        {
+            if (!m.inside(n.cell.x, n.cell.y))
+            {
+                SDL_Log("Map '%s': NPC '%s' is outside the map", m.name.c_str(), n.name.c_str());
+                continue;
+            }
+            std::vector<std::string> lines;                  // «Привет!|Как дела?» — две страницы разговора
+            std::stringstream ss(n.text);
+            for (std::string line; std::getline(ss, line, '|');)
+                if (!line.empty()) lines.push_back(line);
+
+            const ShopDef* shop = n.shop.empty() ? nullptr : GameData::instance().shop(n.shop);
+            if (!n.shop.empty() && !shop)
+                SDL_Log("Map '%s': NPC '%s' sells in unknown shop '%s'", m.name.c_str(), n.name.c_str(), n.shop.c_str());
+            if (shop)
+                npcs[id].push_back(std::make_unique<ShopPerson>(n.name, n.sprite, n.cell, n.facing, *shop));
+            else
+                npcs[id].push_back(std::make_unique<NotGamePerson>(n.name, n.sprite, n.cell, n.facing, std::move(lines)));
+        }
+}
+
+const std::vector<std::unique_ptr<NotGamePerson>>& Game::npcsHere() const
+{
+    static const std::vector<std::unique_ptr<NotGamePerson>> none;
+    const auto it = npcs.find(currentMap->mapId);
+    return it != npcs.end() ? it->second : none;
+}
+
+NotGamePerson* Game::npcAt(int mapId, Point cell) const
+{
+    const auto it = npcs.find(mapId);
+    if (it == npcs.end()) return nullptr;
+    for (const auto& n : it->second)
+        if (n->getCell().x == cell.x && n->getCell().y == cell.y) return n.get();
+    return nullptr;
+}
+
+void Game::talk()
+{
+    Player& me = players.at(0);
+    const MoveState& m = me.getMove();
+    if (state != GameState::Map || m.moving || fadePhase != Fade::None || me.getRiding() != Vehicle::None) return;
+
+    // Как в FF1: с продавцом говорят через прилавок — если перед нами стена, смотрим на клетку за ней
+    Point at = stepTo(m.cell, m.dir);
+    NotGamePerson* npc = npcAt(m.mapId, at);
+    if (!npc && currentMap->inside(at.x, at.y) && !currentMap->isWalkable(at.x, at.y))
+        npc = npcAt(m.mapId, stepTo(at, m.dir));
+    if (!npc) return;
+
+    static const Direction back[] = {Direction::Down, Direction::Up, Direction::Right, Direction::Left};
+    npc->setFacing(back[static_cast<int>(m.dir)]);                // поворачивается к нам
+    npc->talk(*this);
+}
+
+void Game::showDialog(const std::string& speaker, const std::vector<std::string>& lines)
+{
+    uiManager->showDialog(speaker, lines);
+}
+
+void Game::openShop(const ShopDef& shop)
+{
+    settle(players.at(0).getMove());
+    setPreviousGameState(GameState::Map);
+    setGameState(GameState::Shop);
+    uiManager->openShop(shop);
+}
+
+void Game::closeShop()
+{
+    setGameState(GameState::Map);
 }
 
 bool Game::applyMapChange(int mapId, int x, int y)
@@ -1219,7 +1340,7 @@ void Game::onConnectionLost(const std::string& reason)
         setPreviousGameState(GameState::Battle);
     }
 
-    uiManager->setText("NotifyLabel", "Online", "Disconnected: " + reason);
+    uiManager->setText("NotifyLabel", "Online", tr("Disconnected: ") + tr(reason));
 }
 
 const std::unordered_map<uint32_t, Player>& Game::getRemotePlayers() const noexcept
@@ -1262,10 +1383,12 @@ void Game::update(float dt)
 
         // Проходимость зависит от транспорта: пешком суша, на корабле море, в воздухе всё
         const Vehicle riding = me.getRiding();
-        auto passable = [&](Point t) { return canEnter(*currentMap, riding, m.cell, t.x, t.y, me.getVehicles(), m.mapId); };
+        auto passable = [&](Point t) {
+            return canEnter(*currentMap, riding, m.cell, t.x, t.y, me.getVehicles(), m.mapId) && !npcAt(m.mapId, t);
+        };
         const Point finishedFrom = stepFrom;           // новый шаг может начаться в этом же кадре и затереть его
         const bool fading = fadePhase != Fade::None;
-        const Direction want = fading ? Direction::Idle : inputController->readMoveDirection();
+        const Direction want = fading || uiManager->isDialogOpen() ? Direction::Idle : inputController->readMoveDirection();
         const MoveResult r = updateLocal(m, passable, want, dt, vehicleSpeed(riding));
         if (r.stepStarted) stepFrom = m.cell;
 
@@ -1469,12 +1592,12 @@ void Game::connectToServer(const std::string &ip)
 {
     if (this->isConnected())
     {
-        uiManager->setText("NotifyLabel", "Online", "You are already connected!");
+        uiManager->setText("NotifyLabel", "Online", tr("You are already connected!"));
         return;
     }
     if (this->isHost())
     {
-        uiManager->setText("NotifyLabel", "Online", "You are host");
+        uiManager->setText("NotifyLabel", "Online", tr("You are host"));
         return;
     }
 
@@ -1482,40 +1605,40 @@ void Game::connectToServer(const std::string &ip)
     {
         netRecvBuffer.clear();
         connectTicks = SDL_GetTicks();
-        uiManager->setText("NotifyLabel", "Online", "You are connected");
+        uiManager->setText("NotifyLabel", "Online", tr("You are connected"));
     }
     else
-        uiManager->setText("NotifyLabel", "Online", "You are not connected");
+        uiManager->setText("NotifyLabel", "Online", tr("You are not connected"));
 }
 
 void Game::startServer()
 {
     if (this->isConnected())
     {
-        uiManager->setText("NotifyLabel", "Online", "You are already connected!");
+        uiManager->setText("NotifyLabel", "Online", tr("You are already connected!"));
         return;
     }
     if (this->isHost())
     {
-        uiManager->setText("NotifyLabel", "Online", "You are already host");
+        uiManager->setText("NotifyLabel", "Online", tr("You are already host"));
         return;
     }
 
     if (!server.start())
     {
-        uiManager->setText("NotifyLabel", "Online", "Server not started (port busy?)");
+        uiManager->setText("NotifyLabel", "Online", tr("Server not started (port busy?)"));
         return;
     }
     if (!client.connectTo("127.0.0.1", 54000))
     {
         server.stop();
-        uiManager->setText("NotifyLabel", "Online", "Server not started. Something happened");
+        uiManager->setText("NotifyLabel", "Online", tr("Server not started. Something happened"));
         return;
     }
 
     netRecvBuffer.clear();
     connectTicks = SDL_GetTicks();
-    uiManager->setText("NotifyLabel", "Online", "Server started");
+    uiManager->setText("NotifyLabel", "Online", tr("Server started"));
 }
 
 std::string Game::getIP()

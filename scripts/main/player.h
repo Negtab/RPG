@@ -58,7 +58,7 @@ public:
     void resetProgress();
     [[nodiscard]] bool hasItem(int itemId) const;
     bool consumeItem(int itemId);
-    //void removeItem(int itemId);
+    void removeItem(int itemId, uint8_t count);          // продажа: убирает до count штук
 
 
     [[nodiscard]] uint32_t getNetworkId() const noexcept;

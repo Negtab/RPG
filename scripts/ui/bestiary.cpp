@@ -6,6 +6,8 @@
 #include "uiManager.h"
 #include "../main/game.h"
 #include "../gameLogic/gameData.h"
+#include "../main/lang.h"
+#include "../main/utf8.h"
 
 namespace {
     constexpr int P = 4;                                         // «пиксель» обложки и рамок
@@ -45,23 +47,15 @@ namespace {
 
     std::string elementNames(const std::vector<Elemental>& list)
     {
-        static const char* names[] = {"Fire", "Water", "Earth", "Air", "Ice", "Lava", "Dark", "Light",
-                                      "Physical", "Poison", "Lightning"};
         std::string s;
-        for (Elemental e : list) s += (s.empty() ? "" : ", ") + std::string(names[static_cast<int>(e)]);
-        return s.empty() ? "None" : s;
-    }
-
-    std::string lower(std::string s)
-    {
-        for (char& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-        return s;
+        for (Elemental e : list) s += (s.empty() ? "" : ", ") + tr(elementName(e));
+        return s.empty() ? tr("None") : s;
     }
 
     std::string number(int index)                               // 0 -> "No.001"
     {
         std::string n = std::to_string(index + 1);
-        return "No." + std::string(n.size() < 3 ? 3 - n.size() : 0, '0') + n;
+        return tr("No.") + std::string(n.size() < 3 ? 3 - n.size() : 0, '0') + n;
     }
 
     const std::vector<int>& entries() { return GameData::instance().enemyIds(); }   // порядок enemies.json
@@ -125,12 +119,12 @@ void UIManager::runBestiarySearch(bool next)
         return;
     }
 
-    const std::string q = lower(bestiaryQuery);
+    const std::string q = utf8::lower(bestiaryQuery);
     std::vector<int> hits;
     for (int i = 0; i < n; ++i)
     {
         const EnemyDef* def = GameData::instance().enemy(entries()[i]);
-        if (def && player.isEnemyDiscovered(def->id) && lower(def->name).find(q) != std::string::npos)
+        if (def && player.isEnemyDiscovered(def->id) && utf8::lower(def->name).find(q) != std::string::npos)
             hits.push_back(i);
     }
     if (hits.empty()) return;
@@ -158,10 +152,14 @@ void UIManager::handleBestiaryEvent(const SDL_Event& e)
     {
         if (e.type == SDL_TEXTINPUT)
         {
-            for (const char* c = e.text.text; *c; ++c)            // буквы, цифры, пробел, дефис и апостроф
-                if (bestiaryQuery.size() < kMaxQuery &&
-                    (std::isalnum(static_cast<unsigned char>(*c)) || *c == ' ' || *c == '-' || *c == '\''))
-                    bestiaryQuery += *c;
+            const std::string in(e.text.text);                    // буквы (и русские), цифры, пробел, дефис, апостроф
+            for (size_t i = 0; i < in.size(); i = utf8::nextBoundary(in, i))
+            {
+                const auto c = static_cast<unsigned char>(in[i]);
+                if (utf8::length(bestiaryQuery) < kMaxQuery &&
+                    (std::isalnum(c) || c == ' ' || c == '-' || c == '\'' || c >= 0xC0))
+                    bestiaryQuery.append(in, i, utf8::nextBoundary(in, i) - i);
+            }
             runBestiarySearch(false);
             return;
         }
@@ -170,7 +168,7 @@ void UIManager::handleBestiaryEvent(const SDL_Event& e)
             switch (k)
             {
                 case SDL_SCANCODE_BACKSPACE:
-                    if (!bestiaryQuery.empty()) bestiaryQuery.pop_back();
+                    if (!bestiaryQuery.empty()) utf8::popBack(bestiaryQuery);
                     runBestiarySearch(false);
                     break;
                 case SDL_SCANCODE_RETURN:
@@ -254,7 +252,7 @@ namespace {
 
 int UIManager::drawWrapped(const std::string& text, int x, int y, int width, int maxLines, SDL_Color color) const
 {
-    TTF_Font* font = ResourceManager::getFont("RetroByte");
+    TTF_Font* font = ResourceManager::getFont(kUiFont);
     std::vector<std::string> lines;
     std::string line, word;
     auto flush = [&]() {
@@ -273,7 +271,7 @@ int UIManager::drawWrapped(const std::string& text, int x, int y, int width, int
     {
         lines.resize(maxLines);
         std::string& last = lines.back();
-        while (!last.empty() && ResourceManager::measureText(last + "...", font).w > width) last.pop_back();
+        while (!last.empty() && ResourceManager::measureText(last + "...", font).w > width) utf8::popBack(last);
         while (!last.empty() && (last.back() == ',' || last.back() == ' ')) last.pop_back();
         last += "...";
     }
@@ -305,14 +303,14 @@ void UIManager::drawBestiaryCorner(const SDL_Rect& r, bool right, bool enabled)
 
 void UIManager::drawBestiaryLeft(int index, const SDL_Rect& page)
 {
-    TTF_Font* font = ResourceManager::getFont("RetroByte");
+    TTF_Font* font = ResourceManager::getFont(kUiFont);
     if (index < 0 || index >= entryCount()) return;
     const EnemyDef* def = GameData::instance().enemy(entries()[index]);
     if (!def) return;
     const bool known = player.isEnemyDiscovered(def->id);
 
     drawText(number(index), page.x + 28, page.y + 18, kInkDim);
-    const std::string title = "Bestiary";
+    const std::string title = tr("Bestiary");
     drawText(title, page.x + page.w - 28 - ResourceManager::measureText(title, font).w, page.y + 18, kInkRed);
 
     const std::string name = known ? def->name : "???";
@@ -357,7 +355,7 @@ void UIManager::drawBestiaryLeft(int index, const SDL_Rect& page)
     // Сколько открыто
     int seen = 0;
     for (int id : entries()) seen += player.isEnemyDiscovered(id) ? 1 : 0;
-    const std::string count = "Seen " + std::to_string(seen) + " / " + std::to_string(entryCount());
+    const std::string count = trf("Seen {0} / {1}", {std::to_string(seen), std::to_string(entryCount())});
     drawText(count, page.x + (page.w - ResourceManager::measureText(count, font).w) / 2, page.y + 424, kInkDim);
 
     const std::string folio = std::to_string(index * 2 + 1);           // номер страницы внизу
@@ -367,7 +365,7 @@ void UIManager::drawBestiaryLeft(int index, const SDL_Rect& page)
 
 void UIManager::drawBestiaryRight(int index, const SDL_Rect& page)
 {
-    TTF_Font* font = ResourceManager::getFont("RetroByte");
+    TTF_Font* font = ResourceManager::getFont(kUiFont);
     if (index < 0 || index >= entryCount()) return;
     const EnemyDef* def = GameData::instance().enemy(entries()[index]);
     if (!def) return;
@@ -384,7 +382,7 @@ void UIManager::drawBestiaryRight(int index, const SDL_Rect& page)
     std::string skills;
     for (const EnemyAbility& a : def->abilities)
     {
-        std::string s = "Attack";
+        std::string s = tr("Attack");
         if (a.skillId >= 0)
         {
             const auto it = GameData::instance().skills().find(a.skillId);
@@ -396,13 +394,13 @@ void UIManager::drawBestiaryRight(int index, const SDL_Rect& page)
     }
 
     std::string places;
-    for (const auto& h : GameData::instance().habitats(def->id)) places += (places.empty() ? "" : ", ") + h;
+    for (const auto& h : GameData::instance().habitats(def->id)) places += (places.empty() ? "" : ", ") + tr(h);
 
-    section("Weak",    elementNames(def->vulnerabilities), 1);
-    section("Resists", elementNames(def->resists), 1);
-    section("Immune",  elementNames(def->immunities), 1);
-    section("Habitat", places.empty() ? "Unknown" : places, 3);
-    section("Skills",  skills.empty() ? "None" : skills, 2);
+    section(tr("Weak"),    elementNames(def->vulnerabilities), 1);
+    section(tr("Resists"), elementNames(def->resists), 1);
+    section(tr("Immune"),  elementNames(def->immunities), 1);
+    section(tr("Habitat"), places.empty() ? tr("Unknown") : places, 3);
+    section(tr("Skills"),  skills.empty() ? tr("None") : skills, 2);
 
     // Поле поиска: рамка-«чернильница», при вводе мигает курсор
     const SDL_Rect box = kSearchBox;
@@ -414,12 +412,12 @@ void UIManager::drawBestiaryRight(int index, const SDL_Rect& page)
 
     std::string shown = bestiaryQuery;
     if (bestiarySearching && (SDL_GetTicks() / 400) % 2 == 0) shown += "_";
-    if (shown.empty() && !bestiarySearching) drawText("Search (Tab)", box.x + 10, box.y + 6, kInkDim);
+    if (shown.empty() && !bestiarySearching) drawText(tr("Search (Tab)"), box.x + 10, box.y + 6, kInkDim);
     else drawText(shown, box.x + 10, box.y + 6, kInk);
     if (!bestiaryQuery.empty())
     {
         const std::string info = bestiaryMatches > 0 ? std::to_string(bestiaryMatchPos) + "/" + std::to_string(bestiaryMatches)
-                                                     : "No match";
+                                                     : tr("No match");
         drawText(info, box.x + box.w - 10 - ResourceManager::measureText(info, font).w, box.y + 6,
                  bestiaryMatches > 0 ? kInkDim : kInkRed);
     }
@@ -502,7 +500,7 @@ void UIManager::drawBestiary()
     visualizer.fillRect({rx, kCover.y + rh, P, P}, kRibbon);
     visualizer.fillRect({rx + 3 * P, kCover.y + rh, P, P}, kRibbonDark);
 
-    const char* hint = bestiarySearching ? "Type a name or No.   Enter - next   Esc - clear"
-                                         : "A/D - turn   Q/E - 10 pages   Tab - search   Esc - close";
+    const std::string hint = tr(bestiarySearching ? "Type a name or No.   Enter - next   Esc - clear"
+                                                  : "A/D - turn   Q/E - 10 pages   Tab - search   Esc - close");
     drawOutlinedText(hint, screen.w / 2, kCover.y + kCover.h + 6, {255, 255, 255, 255}, 255);
 }

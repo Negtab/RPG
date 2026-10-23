@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <nlohmann/json.hpp>
 
+#include "../main/lang.h"
+
 namespace fs = std::filesystem;
 using nlohmann::json;
 using std::runtime_error;
@@ -34,6 +36,10 @@ const std::vector<std::pair<std::string, EquipSlot>> kSlots = {
     {"Weapon", EquipSlot::Weapon}, {"Shield", EquipSlot::Shield}, {"Head", EquipSlot::Head},
     {"Body", EquipSlot::Body}, {"Arms", EquipSlot::Arms}};
 
+const std::vector<std::pair<std::string, ShopKind>> kShopKinds = {
+    {"item", ShopKind::Item}, {"weapon", ShopKind::Weapon}, {"armor", ShopKind::Armor},
+    {"whiteMagic", ShopKind::WhiteMagic}, {"blackMagic", ShopKind::BlackMagic},
+    {"inn", ShopKind::Inn}, {"church", ShopKind::Church}};
 const std::vector<std::pair<std::string, SpecializationNames>> kClasses = {
     {"Archer", SpecializationNames::Archer}, {"Magician", SpecializationNames::Magician},
     {"Warrior", SpecializationNames::Warrior}, {"Thief", SpecializationNames::Thief}};
@@ -144,6 +150,20 @@ void GameData::loadAll(const fs::path& dir)
     loadHeroes(dir / "heroes.json");
     loadDrops(dir / "drops.json");
     loadEffects(dir / "effects.json");
+    loadShops(dir / "shops.json");               // после предметов: товары ссылаются на их id
+
+    itemKeys.clear(); skillKeys.clear(); enemyKeys.clear();
+    for (const auto& [id, it] : itemMap)  itemKeys[id] = it.name;
+    for (const auto& [id, s] : skillMap)  skillKeys[id] = s.name;
+    for (const auto& [id, e] : enemyMap)  enemyKeys[id] = e.name;
+    applyLanguage();
+}
+
+void GameData::applyLanguage()
+{
+    for (auto& [id, it] : itemMap)  it.name = tr(itemKeys[id]);
+    for (auto& [id, s] : skillMap)  s.name = tr(skillKeys[id]);
+    for (auto& [id, e] : enemyMap)  e.name = tr(enemyKeys[id]);
 }
 
 void GameData::loadSkills(const fs::path& path)
@@ -431,6 +451,34 @@ void GameData::loadEffects(const fs::path& path)
         }
         if (!effectMap.emplace(d.id, d).second) throw runtime_error("duplicate effect '" + d.id + "'");
     });
+}
+
+void GameData::loadShops(const fs::path& path)
+{
+    shopMap.clear();
+    if (!fs::exists(path)) return;
+    forEachEntry(path, [&](const json& e) {
+        ShopDef d;
+        d.id       = e.at("id").get<std::string>();
+        d.kind     = getEnum(e, "kind", kShopKinds);
+        d.title    = e.value("title", std::string{});
+        d.greeting = e.value("greeting", std::string{});
+        d.price    = getIntOr(e, "price", 0, 1000000, 0);
+        for (const auto& g : e.value("goods", json::array()))
+        {
+            const int id = g.get<int>();
+            if (!itemMap.contains(id)) throw runtime_error("unknown item " + std::to_string(id) + " in goods");
+            d.goods.push_back(id);
+        }
+        if (!shopMap.emplace(d.id, d).second)
+            throw runtime_error("duplicate shop id '" + d.id + "'");
+    });
+}
+
+const ShopDef* GameData::shop(const std::string& id) const
+{
+    const auto it = shopMap.find(id);
+    return it != shopMap.end() ? &it->second : nullptr;
 }
 
 const EffectDef* GameData::effect(const std::string& id) const

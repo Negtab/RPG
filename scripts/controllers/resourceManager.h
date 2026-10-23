@@ -37,6 +37,10 @@ struct SaveMeta {
     bool hasVehicles = true;                // при загрузке: false — файл старше версии 6, транспорт надо расставить
 };
 
+// Шрифт интерфейса: Pixelify Sans с кириллицей (resources/Fonts, лицензия OFL; готовит tools/patch_font.py)
+inline constexpr const char* kUiFont = "PixelifySans";
+inline constexpr int kUiFontSize = 22;                 // пиксель шрифта (~91 из 1000 единиц) — ровно 2 экранных пикселя: цифры не плывут
+
 class ResourceManager
 {
 public:
@@ -64,7 +68,7 @@ public:
     bool addImage(const std::string& path);
     bool addSound(const std::string& path);
     bool addMusic(const std::string& path);
-    bool addFont(const std::string& path);
+    bool addFont(const std::string& path, int size);
     bool addAnimation(const std::string& path);
     void addTexturesFromDirectory(const std::string& dir);
 

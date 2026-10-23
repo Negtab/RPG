@@ -1,2 +1,11 @@
 #include "notGamePerson.h"
-NotGamePerson::NotGamePerson(std::string name, std::vector<std::string> dialogs) : name(std::move(name)), dialogs(std::move(dialogs)) {}
+
+#include "../main/game.h"
+
+NotGamePerson::NotGamePerson(std::string name, std::string sprite, Point cell, Direction facing, std::vector<std::string> lines)
+    : name(std::move(name)), sprite(std::move(sprite)), cell(cell), facing(facing), lines(std::move(lines)) {}
+
+void NotGamePerson::talk(Game& game)
+{
+    if (!lines.empty()) game.showDialog(name, lines);
+}

@@ -16,11 +16,13 @@
 #include "../gameLogic/quest.h"
 #include "../controllers/inputManager.h"
 #include "../gameLogic/notGamePerson.h"
+#include "../gameLogic/shopPerson.h"
 
 #include "player.h"
 #include "types.h"
 #include "../ui/uiManager.h"
 #include "inputController.h"
+#include "lang.h"
 
 #include "../online/client.h"
 #include "../online/server.h"
@@ -61,7 +63,8 @@ class Game {
         void openGameMenu();
         void closeGameMenu();
         void returnToTitle();                         // автосохранение и выход на стартовый экран
-        [[nodiscard]] std::string currentLocation() const;
+        [[nodiscard]] std::string currentLocation() const;          // английское название — ключ перевода
+        [[nodiscard]] static std::string locationName(const std::string& map);
         [[nodiscard]] uint32_t getPlaySeconds() const { return static_cast<uint32_t>(playSeconds); }
         [[nodiscard]] const Player& getLocalPlayer() const { return players.at(0); }
         void loadSettings();                          // settings.ini: громкость, бои, мини-карта
@@ -79,6 +82,7 @@ class Game {
         [[nodiscard]] bool isFullscreen() const { return fullscreen; }
         void setFullscreen(bool on);                  // на весь экран без смены разрешения, пропорции сохраняются
         void cycleLeader();                           // V: следующий живой герой на карте
+        void setLanguage(Language lang, bool save = true);   // Настройки: язык интерфейса и названий
 
         // ── Сохранения: слот 0 — автосохранение при выходе, 1..4 — ручные ──
         static constexpr int kSaveSlots = 5;
@@ -134,6 +138,14 @@ class Game {
         // ── Переход между картами: затемнение, смена, осветление ──
         [[nodiscard]] float getFadeAlpha() const;     // 0 — ничего, 1 — экран чёрный
         void startTransition(std::function<void()> change);   // change вызывается в самый тёмный момент
+
+        // ── Жители и заведения ──
+        [[nodiscard]] const std::vector<std::unique_ptr<NotGamePerson>>& npcsHere() const;   // на текущей карте
+        [[nodiscard]] NotGamePerson* npcAt(int mapId, Point cell) const;
+        void talk();                                  // Enter на карте: заговорить с тем, на кого смотрим
+        void showDialog(const std::string& speaker, const std::vector<std::string>& lines);
+        void openShop(const ShopDef& shop);
+        void closeShop();
 
         // ── Транспорт ──
         void vehicleAction();                         // E на карте: посадить дирижабль
@@ -236,7 +248,8 @@ class Game {
         std::map<int, Item> items;
         std::map<int, Skill> skills;
         std::vector<Player> players;
-        std::vector<NotGamePerson> npss;
+        std::map<int, std::vector<std::unique_ptr<NotGamePerson>>> npcs;   // mapId -> жители карты
+        void spawnNpcs();                             // по слоям "npcs" загруженных карт
         std::vector<Quest> quests;
         std::filesystem::path saveDir;
 
