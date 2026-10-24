@@ -255,6 +255,7 @@ private:
     [[nodiscard]] SDL_Rect dialogOptionRect(bool yes) const;
     [[nodiscard]] static std::string slotName(int slot);
     void activateSlot(int slot);
+    void askDeleteSlot(int slot);                              // Del: спросить и стереть сохранение
     void answerDialog(bool yes);
     void showSavesNotice(const std::string& text);
 
@@ -264,6 +265,7 @@ private:
     std::array<std::optional<SaveSummary>, 5> slotCache;       // читаем файлы при открытии экрана, а не каждый кадр
     int  dialogSlot = -1;                                      // >= 0: открыт вопрос «точно?» про этот слот
     bool dialogYes = false;
+    bool dialogDelete = false;                                 // вопрос про удаление, а не про запись или загрузку
     std::string dialogLine1, dialogLine2;
     std::string savesNotice;
     Uint32 savesNoticeTicks = 0;

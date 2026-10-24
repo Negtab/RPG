@@ -95,6 +95,7 @@ class Game {
         void closeSaveScreen();
         bool saveToSlot(int slot);
         bool loadFromSlot(int slot);
+        bool deleteSlot(int slot);                    // стереть файл слота; true, если его больше нет
         [[nodiscard]] std::optional<SaveSummary> getSlotSummary(int slot) const;
         [[nodiscard]] bool canSave() const;
         [[nodiscard]] bool canLoad() const;

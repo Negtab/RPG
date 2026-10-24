@@ -2240,9 +2240,20 @@ void UIManager::showSavesNotice(const std::string& text)
     savesNoticeTicks = SDL_GetTicks();
 }
 
+void UIManager::askDeleteSlot(int slot)
+{
+    if (!slotCache[slot]) { showSavesNotice(trf("{0} is empty", {slotName(slot)})); return; }
+    dialogSlot = slot;
+    dialogYes = false;                                         // по умолчанию «Нет»: стирать случайно нельзя
+    dialogDelete = true;
+    dialogLine1 = trf("Delete {0}?", {slotName(slot)});
+    dialogLine2 = tr("This cannot be undone");
+}
+
 void UIManager::activateSlot(int slot)
 {
     const auto& s = slotCache[slot];
+    dialogDelete = false;
     if (savesSaving)
     {
         if (s)                                                 // занятый слот: сначала спросим
@@ -2277,6 +2288,15 @@ void UIManager::answerDialog(bool yes)
     const int slot = dialogSlot;
     dialogSlot = -1;
     if (!yes || slot < 0) return;
+
+    if (dialogDelete)
+    {
+        dialogDelete = false;
+        const bool ok = game.deleteSlot(slot);
+        slotCache[slot] = game.getSlotSummary(slot);
+        showSavesNotice(ok ? trf("{0} deleted", {slotName(slot)}) : tr("Could not delete"));
+        return;
+    }
 
     if (savesSaving)
     {
@@ -2346,6 +2366,11 @@ void UIManager::handleSavesEvent(const SDL_Event& e)
     if (keyDown && (k == SDL_SCANCODE_UP || k == SDL_SCANCODE_W))   savesSelected = (savesSelected - 1 + n) % n;
     if (keyDown && (k == SDL_SCANCODE_DOWN || k == SDL_SCANCODE_S)) savesSelected = (savesSelected + 1) % n;
     if (confirm) { activateSlot(savesRows[savesSelected]); return; }
+    if (fresh && (k == SDL_SCANCODE_DELETE || k == SDL_SCANCODE_BACKSPACE))
+    {
+        askDeleteSlot(savesRows[savesSelected]);
+        return;
+    }
 
     if (e.type == SDL_MOUSEMOTION || click)
         for (int r = 0; r < n; ++r)
@@ -2379,7 +2404,7 @@ void UIManager::drawSavesScreen()
     visualizer.drawNinePatch(skin, title, kWindowSkinSlice, 1);
     drawText(tr(savesSaving ? "Save game" : "Load game"), title.x + 20, title.y + 14, kSaveText);
     const bool noticeOn = !savesNotice.empty() && SDL_GetTicks() - savesNoticeTicks < 2500;
-    const std::string hint = noticeOn ? savesNotice : tr("Enter - select   Esc - back");
+    const std::string hint = noticeOn ? savesNotice : tr("Enter - select   Del - delete   Esc - back");
     const TextSize hs = ResourceManager::measureText(hint, font);
     drawText(hint, title.x + title.w - 20 - hs.w, title.y + 14, noticeOn ? kSaveHot : kSaveDim);
 

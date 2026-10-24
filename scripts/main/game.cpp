@@ -211,6 +211,16 @@ bool Game::saveToSlot(int slot)
     return ok;
 }
 
+bool Game::deleteSlot(int slot)
+{
+    if (slot < 0 || slot >= kSaveSlots) return false;
+    std::error_code ec;
+    std::filesystem::remove(slotPath(slot), ec);              // файла и так нет — тоже успех
+    if (ec) SDL_Log("Cannot delete %s: %s", slotPath(slot).c_str(), ec.message().c_str());
+    refreshLatestSave();                                       // «Continue» не должен вести в стёртый слот
+    return !ec;
+}
+
 bool Game::loadFromSlot(int slot)
 {
     if (slot < 0 || slot >= kSaveSlots || isConnected()) return false;
