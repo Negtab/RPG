@@ -6,8 +6,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -static-libgcc -static-libstdc++
 
 set(CMAKE_CXX_STANDARD 20)
 
-# Must set the path to the main.cpp, for example: scripts/main.cpp if it is inside a folder
-add_executable(${PROJECT_NAME} scripts/main/main.cpp
+# Вся игра, кроме main.cpp: её линкуют и exe, и тесты
+add_library(rpg_core STATIC
         scripts/main/types.h
         scripts/gameLogic/quest.h
         scripts/gameLogic/quest.cpp
@@ -47,7 +47,6 @@ add_executable(${PROJECT_NAME} scripts/main/main.cpp
         scripts/online/networkPackets.h
         scripts/ui/animation/animPlayer.h
         scripts/ui/core/UIObject.h
-        scripts/ui/core/UIObject.h
         scripts/ui/widgets/Button.h
         scripts/ui/widgets/Image.h
         scripts/ui/core/Panel.h
@@ -55,7 +54,6 @@ add_executable(${PROJECT_NAME} scripts/main/main.cpp
         scripts/ui/audio/MusicPlayer.h
         scripts/ui/core/Panel.cpp
         scripts/ui/core/Scene.cpp
-        scripts/ui/uiManager.cpp
         scripts/controllers/audioManager.h
         scripts/controllers/audioManager.cpp
         scripts/ui/animation/animPlayer.cpp
@@ -87,11 +85,29 @@ find_package(SDL2_image REQUIRED)
 find_package(SDL2_mixer REQUIRED)
 find_package(SDL2_ttf REQUIRED)
 
-include_directories(${CMAKE_SOURCE_DIR}/third_party)
-include_directories(${SDL2_INCLUDE_DIR})
-include_directories(${SDL2_IMAGE_INCLUDE_DIR})
-include_directories(${SDL2_MIXER_INCLUDE_DIR})
-include_directories(${SDL2_TTF_INCLUDE_DIR})
+target_include_directories(rpg_core PUBLIC
+        ${CMAKE_SOURCE_DIR}/third_party
+        ${SDL2_INCLUDE_DIR}
+        ${SDL2_IMAGE_INCLUDE_DIR}
+        ${SDL2_MIXER_INCLUDE_DIR}
+        ${SDL2_TTF_INCLUDE_DIR})
 
+target_link_libraries(rpg_core PUBLIC ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARIES} ${SDL2_MIXER_LIBRARIES} ${SDL2_TTF_LIBRARIES} ws2_32)
 
-target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARIES} ${SDL2_MIXER_LIBRARIES} ${SDL2_TTF_LIBRARIES} ws2_32)
+add_executable(${PROJECT_NAME} scripts/main/main.cpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE rpg_core)
+
+# --- ТЕСТЫ (GoogleTest) ---
+option(RPG_BUILD_TESTS "Собирать тесты GoogleTest" ON)
+if(RPG_BUILD_TESTS)
+    include(FetchContent)
+    FetchContent_Declare(googletest
+            URL https://github.com/google/googletest/archive/refs/tags/v1.15.2.zip
+            DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+    set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+
+    enable_testing()
+    add_subdirectory(tests)
+endif()
