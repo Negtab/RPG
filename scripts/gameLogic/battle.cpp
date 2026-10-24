@@ -1081,6 +1081,7 @@ void Battle::finishBattle(const bool& win)
     if (!win)                                  // поражение или побег: сразу на карту
     {
         leaveBattle();
+        if (aliveHeroes().empty()) game->gameOver();          // пали все: Game Over, как в FF1
         return;
     }
 

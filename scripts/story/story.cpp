@@ -82,6 +82,7 @@ void Story::load(const std::filesystem::path& dir)
 
 void Story::reset()
 {
+    if (thread) finish();                                         // сцена оборвалась (Game Over): не продолжаем её
     flags.clear();
     quests.clear();
 }

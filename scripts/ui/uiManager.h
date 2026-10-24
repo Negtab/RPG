@@ -138,6 +138,10 @@ public:
 
     // ── Экран сохранений ───────────────────────────────
     void openSaveScreen(bool saving);
+    void openGameOver();
+    void handleGameOverEvent(const SDL_Event& event);
+    void openIntro();
+    void handleIntroEvent(const SDL_Event& event);
     void handleSavesEvent(const SDL_Event& event);
 
     // ── Игровое меню и настройки ───────────────────────
@@ -241,6 +245,10 @@ private:
     void initGameMenuScene();
     void updateMenuButtons();
     void drawSavesScreen();
+    void drawGameOver();
+    void drawIntro();
+    Uint32 gameOverStart = 0;                                  // когда показали Game Over
+    Uint32 introStart = 0;                                     // когда началась заставка
     int  drawText(const std::string& text, int x, int y, SDL_Color color) const;    // возвращает ширину
     [[nodiscard]] SDL_Rect slotCardRect(int row) const;
     [[nodiscard]] SDL_Rect dialogOptionRect(bool yes) const;

@@ -620,6 +620,37 @@ void Game::returnToTitle()
     setGameState(GameState::Menu);
 }
 
+void Game::gameOver()
+{
+    // Автосейв не перезаписываем павшим отрядом: игра кончилась, продолжить можно только с сохранения
+    gameInProgress = false;
+    setPreviousGameState(GameState::Battle);
+    setGameState(GameState::GameOver);
+    uiManager->openGameOver();
+}
+
+void Game::leaveGameOver()
+{
+    if (isConnected() || isHost())
+        onConnectionLost("Game over");                       // из коопа выходим, как при возврате в меню
+    refreshLatestSave();
+    if (canLoad())
+    {
+        setGameState(GameState::Menu);                      // «назад» с экрана загрузки — в главное меню
+        openSaveScreen(false);
+    }
+    else
+        setGameState(GameState::Menu);
+}
+
+void Game::finishIntro()
+{
+    if (state != GameState::Intro) return;
+    startGame();
+    gameInProgress = true;                               // иначе до первого кадра на карте сохранять нельзя
+    autosave();                                          // новая игра сразу в автосохранении
+}
+
 void Game::loadSettings()
 {
     // Формат «ключ=значение» по строке: файл можно поправить руками. Нет файла — всё по умолчанию
@@ -976,6 +1007,7 @@ bool Game::applyMapChange(int mapId, int x, int y)
         parkVehicle(me.getMove().moving ? me.getMove().target : me.getMove().cell, me.getMove().mapId);
     for (auto& entry : remotePlayers) entry.second.setRiding(Vehicle::None);
 
+    const bool newMap = currentMap != &it->second;
     currentMap = &it->second;
 
     auto place = [&](MoveState& m) {
@@ -989,7 +1021,13 @@ bool Game::applyMapChange(int mapId, int x, int y)
 
     stepsSinceBattle = 0;
     if (localPlayerId != 0) sendLocalPlayerState();
+    if (newMap) autosave();                              // как в Pixel Remaster: вход в город, дом, подземелье
     return true;
+}
+
+void Game::autosave()
+{
+    if (canSave()) saveToSlot(0);                        // в бою и у гостя в коопе не сохраняем
 }
 
 void Game::sendPartyInfo()
@@ -2192,7 +2230,9 @@ void Game::buildParty(const std::vector<SpecializationNames>& classes, const std
 void Game::createParty(const std::vector<SpecializationNames>& classes, const std::vector<std::string>& names)
 {
     buildParty(classes, names);
-    startGame();
+    setPreviousGameState(GameState::Menu);
+    setGameState(GameState::Intro);                          // сначала заставка, её можно пропустить
+    uiManager->openIntro();
 }
 
 void Game::openOnlineMenu()

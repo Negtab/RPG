@@ -64,6 +64,10 @@ class Game {
         void openGameMenu();
         void closeGameMenu();
         void returnToTitle();                         // автосохранение и выход на стартовый экран
+        void gameOver();                              // отряд пал: экран Game Over
+        void leaveGameOver();                         // с экрана Game Over — к выбору сохранения (или в меню)
+        void finishIntro();                           // заставка новой игры кончилась или пропущена
+        void autosave();                              // слот 0: при смене карты и в начале новой игры
         [[nodiscard]] std::string currentLocation() const;          // английское название — ключ перевода
         [[nodiscard]] static std::string locationName(const std::string& map);
         [[nodiscard]] uint32_t getPlaySeconds() const { return static_cast<uint32_t>(playSeconds); }
@@ -85,7 +89,7 @@ class Game {
         void cycleLeader();                           // V: следующий живой герой на карте
         void setLanguage(Language lang, bool save = true);   // Настройки: язык интерфейса и названий
 
-        // ── Сохранения: слот 0 — автосохранение при выходе, 1..4 — ручные ──
+        // ── Сохранения: слот 0 — автосохранение (смена карты, новая игра, выход), 1..4 — ручные ──
         static constexpr int kSaveSlots = 5;
         void openSaveScreen(bool saving);
         void closeSaveScreen();

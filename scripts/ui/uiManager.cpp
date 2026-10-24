@@ -695,6 +695,10 @@ void UIManager::drawScene(const std::string &sceneId)
         drawConfig();
     if (sceneId == "Saves")
         drawSavesScreen();
+    if (sceneId == "GameOver")
+        drawGameOver();
+    if (sceneId == "Intro")
+        drawIntro();
     if (sceneId == "Battle")
         drawBattleOverlay();                          // поверх окон: стрелки и числа урона
     if (sceneId == "Battle" && bestiaryOpen)
@@ -1799,6 +1803,10 @@ void UIManager::initialize()
     addScene(gameStateString.at(GameState::Saves));
     addScene(gameStateString.at(GameState::GameMenu));
     addScene(gameStateString.at(GameState::Shop));      // окна рисует drawShop() поверх карты
+    addScene(gameStateString.at(GameState::Intro));     // текст рисует drawIntro()
+    addScene(gameStateString.at(GameState::GameOver));
+    findScene("Intro")->musicPlayer.music["IntroTheme"] = ResourceManager::getMusic("MenuTheme");
+    findScene("GameOver")->musicPlayer.music["GameOverTheme"] = nullptr;   // тишина
 
     initMapScene();
     initMenuScene();
@@ -3482,4 +3490,67 @@ void UIManager::drawConfig()
     };
     for (int i = 0; i < static_cast<int>(std::size(help)); ++i)
         drawText(tr(help[i]), win.x + 50, helpY + 32 + i * 26, kSaveDim);
+}
+
+// ─────────────────────────────────────────
+// Game Over и заставка новой игры
+// ─────────────────────────────────────────
+
+namespace {
+constexpr Uint32 kGameOverInputDelay = 1200;                   // клик, добивший бой, не должен сразу закрыть экран
+constexpr Uint32 kIntroLineMs = 4200;                          // сколько живёт строка заставки
+constexpr Uint32 kIntroFadeMs = 700;
+constexpr int kIntroLines = 4;                                 // intro.1 .. intro.4 в resources/Story/text_*.json
+}
+
+void UIManager::openGameOver()
+{
+    gameOverStart = SDL_GetTicks();
+}
+
+void UIManager::handleGameOverEvent(const SDL_Event& e)
+{
+    if (SDL_GetTicks() - gameOverStart < kGameOverInputDelay) return;
+    if (confirmKey(e) || backKey(e) || leftClick(e)) game.leaveGameOver();
+}
+
+void UIManager::drawGameOver()
+{
+    visualizer.fillRect(screen, {0, 0, 0, 255});
+    const Uint32 age = SDL_GetTicks() - gameOverStart;
+    const Uint8 alpha = static_cast<Uint8>(std::min<Uint32>(255, age * 255 / 1000));   // проявляется за секунду
+    drawOutlinedText(tr("Game Over"), screen.w / 2, screen.h / 2 - 30, {235, 70, 60, 255}, alpha);
+    if (age >= kGameOverInputDelay)                                   // теперь можно жать: подсказка
+        drawOutlinedText(tr("Press Enter"), screen.w / 2, screen.h / 2 + 40, {220, 220, 230, 255}, 255);
+}
+
+void UIManager::openIntro()
+{
+    introStart = SDL_GetTicks();
+}
+
+void UIManager::handleIntroEvent(const SDL_Event& e)
+{
+    if (confirmKey(e) || backKey(e) || leftClick(e)) game.finishIntro();      // пропустить
+}
+
+void UIManager::drawIntro()
+{
+    // Строки пророчества по одной: проявляются, держатся и гаснут. Последняя гаснет — начинается игра
+    visualizer.fillRect(screen, {0, 0, 0, 255});
+    const Uint32 age = SDL_GetTicks() - introStart;
+    const int line = static_cast<int>(age / kIntroLineMs);
+    if (line >= kIntroLines) { game.finishIntro(); return; }
+
+    const Uint32 t = age % kIntroLineMs;
+    const Uint32 a = t < kIntroFadeMs ? t * 255 / kIntroFadeMs
+                   : t > kIntroLineMs - kIntroFadeMs ? (kIntroLineMs - t) * 255 / kIntroFadeMs : 255;
+    const auto rows = wrapText(game.getStory().text("intro." + std::to_string(line + 1)), screen.w - 160);
+    int y = screen.h / 2 - static_cast<int>(rows.size()) * 18;
+    for (const auto& r : rows)
+    {
+        drawOutlinedText(r, screen.w / 2, y, {230, 230, 240, 255}, static_cast<Uint8>(a));
+        y += 36;
+    }
+    drawOutlinedText(tr("Enter - skip"), screen.w - 110, screen.h - 40, {150, 150, 170, 255}, 255);
 }
