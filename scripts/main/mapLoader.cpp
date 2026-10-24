@@ -126,6 +126,7 @@ MapData loadMap(const std::string& path)
     if (m.mapId > 65535) throw std::runtime_error("mapId must be 0..65535");
     m.exitMode = prop<std::string>(j, "exit", "");
     m.entrance = prop<std::string>(j, "entrance", "");
+    m.waterEffects = prop<bool>(j, "water", true);
 
     bool haveSpawn = false;
 
@@ -141,6 +142,21 @@ MapData loadMap(const std::string& path)
 
         if (type == "imagelayer" && name == "background")
             m.backgroundPath = (file.parent_path() / L.at("image").get<std::string>()).lexically_normal().string();
+        else if (type == "imagelayer" && name == "roomView")
+            m.roomViewPath = (file.parent_path() / L.at("image").get<std::string>()).lexically_normal().string();
+        else if (type == "objectgroup" && name == "rooms")
+        {
+            for (const auto& o : L.at("objects"))
+            {
+                MapRoom r;
+                const double px = o.value("x", 0.0), py = o.value("y", 0.0);
+                r.x = cellOf(px, tw);
+                r.y = cellOf(py, th);
+                r.w = std::max(1, static_cast<int>(std::ceil((px + o.value("width", 0.0)) / tw)) - r.x);
+                r.h = std::max(1, static_cast<int>(std::ceil((py + o.value("height", 0.0)) / th)) - r.y);
+                m.rooms.push_back(r);
+            }
+        }
         else if (type == "tilelayer" && name == "collision")
         {
             const auto& data = L.at("data");
@@ -196,6 +212,8 @@ MapData loadMap(const std::string& path)
                 p.w = std::max(1, right - left);
                 p.bottom = std::max(top + 1, bottom) - 1;
                 p.h = std::max(1, bottom - top);
+                p.showIf = prop<std::string>(o, "showIf", "");
+                p.hideIf = prop<std::string>(o, "hideIf", "");
                 p.collision = parseCollision(prop<std::string>(o, "collision",
                     t.collision == PropCollision::Walk ? "walk" : t.collision == PropCollision::None ? "none" : "solid"));
                 m.props.push_back(std::move(p));
@@ -241,9 +259,26 @@ MapData loadMap(const std::string& path)
                          : facing == "right" ? Direction::Right : Direction::Down;
                 n.shop = prop<std::string>(o, "shop", "");
                 n.text = prop<std::string>(o, "text", "");
+                n.script = prop<std::string>(o, "script", "");
+                n.showIf = prop<std::string>(o, "showIf", "");
+                n.hideIf = prop<std::string>(o, "hideIf", "");
                 if (n.sprite.empty())
                     SDL_Log("Map '%s': NPC '%s' has no sprite", m.name.c_str(), n.name.c_str());
                 m.npcs.push_back(std::move(n));
+            }
+        }
+        else if (type == "objectgroup" && name == "events")
+        {
+            for (const auto& o : L.at("objects"))
+            {
+                MapEvent e;
+                const double px = o.value("x", 0.0), py = o.value("y", 0.0);
+                e.x = cellOf(px, tw);
+                e.y = cellOf(py, th);
+                e.w = std::max(1, static_cast<int>(std::ceil((px + o.value("width", 0.0)) / tw)) - e.x);
+                e.h = std::max(1, static_cast<int>(std::ceil((py + o.value("height", 0.0)) / th)) - e.y);
+                e.script = prop<std::string>(o, "script", o.value("name", std::string{}));
+                if (!e.script.empty()) m.events.push_back(std::move(e));
             }
         }
         else if (type == "objectgroup" && name == "markers")

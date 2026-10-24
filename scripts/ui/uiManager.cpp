@@ -593,10 +593,17 @@ void UIManager::drawMapWorld()
     lastCamX = camX;
     lastCamY = camY;
 
-    if (MapRenderer* r = rendererFor(map))
+    // В комнате под крышей — вид изнутри: крыша снята, вокруг темно. Жители других комнат не видны
+    const int room = map.roomAt(localMove.cell.x, localMove.cell.y);
+    auto seen = [&](Point c) {
+        const int r = map.roomAt(c.x, c.y);
+        return r < 0 ? room < 0 || map.roomViewPath.empty() : r == room;
+    };
+    if (MapRenderer* r = rendererFor(map, room >= 0))
     {
         r->draw(visualizer.getRenderer(), camX, camY, scr.w, scr.h, PIXEL_SCALE);
-        r->drawWater(visualizer.getRenderer(), camX, camY, scr.w, scr.h, PIXEL_SCALE, SDL_GetTicks());
+        if (map.waterEffects)
+            r->drawWater(visualizer.getRenderer(), camX, camY, scr.w, scr.h, PIXEL_SCALE, SDL_GetTicks());
     }
 
     // Проходимые объекты (мосты) лежат на земле: герой ходит по ним сверху
@@ -616,7 +623,7 @@ void UIManager::drawMapWorld()
     std::vector<Actor> actors;
     actors.push_back({ &player, lp });
     for (const auto& [id, remote] : game.getRemotePlayers())
-        if (remote.getMove().mapId == localMove.mapId)           // игроки с другой карты не видны
+        if (remote.getMove().mapId == localMove.mapId && seen(remote.getMove().cell))   // с другой карты не видны
             actors.push_back({ &remote, visualCell(remote.getMove()) });
 
     // Замки и герои вместе сверху вниз: кто ниже на экране, тот ближе. Герой в ряду замка — перед ним.
@@ -626,7 +633,7 @@ void UIManager::drawMapWorld()
     for (const Prop& p : map.props)
         if (p.collision == PropCollision::Solid) list.push_back({static_cast<float>(p.bottom), 0, nullptr, &p});
     for (const auto& n : game.npcsHere())
-        list.push_back({static_cast<float>(n->getCell().y), 1, nullptr, nullptr, n.get()});
+        if (game.npcVisible(*n) && seen(n->getCell())) list.push_back({static_cast<float>(n->getCell().y), 1, nullptr, nullptr, n.get()});
     for (const Actor& a : actors)
         list.push_back({a.pos.y, a.p->getRiding() == Vehicle::Airship ? 2 : 1, &a, nullptr});
     std::sort(list.begin(), list.end(), [](const Drawable& a, const Drawable& b) {
@@ -1620,20 +1627,22 @@ void UIManager::updateRemoteAnimation(AnimPlayer &animPlayer, const Player &play
         animPlayer.play(it->second, false);
 }
 
-MapRenderer* UIManager::rendererFor(const MapData& map)
+MapRenderer* UIManager::rendererFor(const MapData& map, bool roomView)
 {
-    auto it = mapRenderers.find(map.mapId);
+    if (roomView && map.roomViewPath.empty()) roomView = false;
+    const int key = roomView ? -1 - map.mapId : map.mapId;               // вид изнутри — отдельная картинка
+    auto it = mapRenderers.find(key);
     if (it != mapRenderers.end())
         return it->second->width() > 0 ? it->second.get() : nullptr;      // загрузка не удалась: повторять не будем
 
     auto r = std::make_unique<MapRenderer>();
-    if (r->loadFile(visualizer.getRenderer(), map.backgroundPath) &&
+    if (r->loadFile(visualizer.getRenderer(), roomView ? map.roomViewPath : map.backgroundPath) &&
         (r->width() != map.w * TILE_PX || r->height() != map.h * TILE_PX))
         SDL_Log("Map '%s': image is %dx%d, but the grid is %dx%d cells (%dx%d px)",
                 map.name.c_str(), r->width(), r->height(), map.w, map.h, map.w * TILE_PX, map.h * TILE_PX);
 
     MapRenderer* raw = r.get();
-    mapRenderers.emplace(map.mapId, std::move(r));
+    mapRenderers.emplace(key, std::move(r));
     return raw->width() > 0 ? raw : nullptr;
 }
 
@@ -2486,6 +2495,7 @@ std::vector<UIManager::MenuCommand> UIManager::gameMenuCommands()
         {tr("Equipment"),       true,           pickHero(MenuPage::Equip)},
         {tr("Status"),          true,           pickHero(MenuPage::Status)},
         {tr("Bestiary"),        true,           [this]() { openBestiary(); }},
+        {tr("Journal"),         true,           [this]() { openMenuPage(MenuPage::Journal); }},
         {tr("Save"),            game.canSave(), [this]() { game.openSaveScreen(true); }},
         {tr("Load"),            game.canLoad(), [this]() { game.openSaveScreen(false); }},
         {tr("Config"),          true,           [this]() { game.openOptions(GameState::GameMenu); }},
@@ -2495,7 +2505,7 @@ std::vector<UIManager::MenuCommand> UIManager::gameMenuCommands()
 
 SDL_Rect UIManager::gameMenuRowRect(int row) const
 {
-    return {24 + 16, 24 + 14 + row * 40, 220 - 32, 36};
+    return {24 + 16, 24 + 14 + row * 38, 220 - 32, 36};
 }
 
 SDL_Rect UIManager::partyRowRect(int i) const
@@ -2574,6 +2584,7 @@ std::vector<int> UIManager::equipCandidates() const
 
 std::string UIManager::itemDescription(const Item& item) const
 {
+    if (item.keyItem) return item.info.empty() ? tr("Key item") : tr(item.info);
     if (item.isEquipment())
     {
         std::string s = tr(equipSlotName(item.slot));
@@ -2730,6 +2741,7 @@ void UIManager::handleGameMenuEvent(const SDL_Event& e)
         case MenuPage::Equip:
         case MenuPage::EquipPick:   handleMenuEquip(e); break;
         case MenuPage::Status:
+        case MenuPage::Journal:
             if (backKey(e) || confirmKey(e)) menuPage = MenuPage::Main;
             break;
     }
@@ -2997,13 +3009,14 @@ void UIManager::drawGameMenu()
         case MenuPage::Equip:
         case MenuPage::EquipPick:   drawEquipPage(); return;
         case MenuPage::Status:      drawStatusPage(); return;
+        case MenuPage::Journal:     drawJournalPage(); return;
         default: break;
     }
 
     // Главная страница: команды
     const auto commands = gameMenuCommands();
     const int n = static_cast<int>(commands.size());
-    visualizer.drawNinePatch(skin, {24, 24, 220, 28 + n * 40}, kWindowSkinSlice, 1);
+    visualizer.drawNinePatch(skin, {24, 24, 220, 28 + n * 38}, kWindowSkinSlice, 1);
     for (int r = 0; r < n; ++r)
     {
         const SDL_Rect rr = gameMenuRowRect(r);
@@ -3044,7 +3057,9 @@ void UIManager::drawItemsPage()
         const Item& item = game.getItem(list[i].first);
         const SDL_Rect cell = listCellRect(kItemList, listScroll, i);
         const bool sel = i == listSel;
-        const SDL_Color c = item.usableInField() ? (sel ? kSaveHot : kSaveText) : kSaveDim;
+        const SDL_Color keyColor{235, 200, 90, 255};
+        const SDL_Color c = item.keyItem ? (sel ? kSaveHot : keyColor)
+                          : item.usableInField() ? (sel ? kSaveHot : kSaveText) : kSaveDim;
         drawText(item.name, cell.x + 22, cell.y + 8, c);
         const std::string cnt = "x" + std::to_string(list[i].second);
         drawText(cnt, cell.x + cell.w - ResourceManager::measureText(cnt, font).w, cell.y + 8, c);
@@ -3170,6 +3185,29 @@ void UIManager::drawEquipPage()
     }
     if (cands.size() == 1)
         drawText(tr("Nothing else fits this slot"), kCandList.area.x + 22, kCandList.area.y + kCandList.rowH + 8, kSaveDim);
+}
+
+void UIManager::drawJournalPage()
+{
+    // Сначала текущие задания, под ними выполненные (приглушённо). У каждого — заголовок и пояснение
+    SDL_Texture* skin = getWindowSkin(visualizer.getRenderer());
+    drawMenuHeader(tr("Journal"), tr("Esc back"));
+    const SDL_Rect win{24, 84, 852, 492};
+    visualizer.drawNinePatch(skin, win, kWindowSkinSlice, 1);
+    const Story& story = game.getStory();
+    std::vector<const Story::Quest*> order;
+    for (const auto& q : story.getQuests()) if (q.state == Story::QuestState::Active) order.push_back(&q);
+    for (const auto& q : story.getQuests()) if (q.state == Story::QuestState::Done) order.push_back(&q);
+    if (order.empty()) drawText(tr("No quests yet"), win.x + 30, win.y + 24, kSaveDim);
+    int y = win.y + 20;
+    for (const auto* q : order)
+    {
+        if (y > win.y + win.h - 70) break;
+        const bool done = q->state == Story::QuestState::Done;
+        drawText((done ? "+ " : "- ") + story.text("quest." + q->id), win.x + 30, y, done ? kSaveDim : kSaveHot);
+        y = drawWrapped(story.text("quest." + q->id + ".desc"), win.x + 56, y + 32, win.w - 90, 2,
+                        done ? kSaveDim : kSaveText) + 10;
+    }
 }
 
 void UIManager::drawStatusPage()

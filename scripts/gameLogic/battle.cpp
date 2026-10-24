@@ -98,7 +98,7 @@ bool Battle::isPlayerChoosing() const
 
 bool Battle::canEscape() const
 {
-    return !escapeUsed && state != BattleState::Result;
+    return escapable && !escapeUsed && state != BattleState::Result;
 }
 
 int Battle::getCurrentActionIndex() const
@@ -994,6 +994,7 @@ void Battle::run(const std::vector<int>& formation, const std::vector<int>& pool
     escapeChance = 10;
     ui->hideBattleResults();
 
+    escapable = true;
     enemyFormation = formation;
     enemyPool = pool;
     enemyRoster = roster;

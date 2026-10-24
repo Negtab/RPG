@@ -7,5 +7,6 @@ NotGamePerson::NotGamePerson(std::string name, std::string sprite, Point cell, D
 
 void NotGamePerson::talk(Game& game)
 {
+    if (!script.empty() && game.getStory().start("npc", script)) return;
     if (!lines.empty()) game.showDialog(name, lines);
 }

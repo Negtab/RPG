@@ -17,6 +17,7 @@
 #include "../controllers/inputManager.h"
 #include "../gameLogic/notGamePerson.h"
 #include "../gameLogic/shopPerson.h"
+#include "../story/story.h"
 
 #include "player.h"
 #include "types.h"
@@ -147,6 +148,17 @@ class Game {
         void openShop(const ShopDef& shop);
         void closeShop();
 
+        // ── Сюжет (resources/Story/*.lua) ──
+        [[nodiscard]] Story& getStory() { return *story; }
+        [[nodiscard]] UIManager& getUI() { return *uiManager; }
+        [[nodiscard]] Player& localPlayer() { return players.at(0); }
+        [[nodiscard]] bool isFading() const { return fadePhase != Fade::None; }
+        [[nodiscard]] bool npcVisible(const NotGamePerson& npc) const;        // showIf/hideIf по флагам
+        void startStoryBattle(const std::vector<int>& enemies, const std::string& background);   // бой с боссом
+        void storyTeleport(const std::string& map, int x, int y);
+        void onStoryChanged();                        // флаги сменились: объекты карт (мост) пересчитать
+        void sendStoryState(uint8_t kind, const std::string& name, uint8_t value);
+
         // ── Транспорт ──
         void vehicleAction();                         // E на карте: посадить дирижабль
         [[nodiscard]] bool canLandAirship() const;
@@ -258,6 +270,7 @@ class Game {
         std::unique_ptr<ResourceManager> resourceManager;
         std::unique_ptr<Visualizer> visualizer;
         std::unique_ptr<UIManager> uiManager;
+        std::unique_ptr<Story> story;
         std::unique_ptr<InputManager> inputManager;
         std::unique_ptr<InputController> inputController;
 

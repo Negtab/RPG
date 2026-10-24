@@ -54,5 +54,8 @@
   { "id": 152, "name": "Bronze Gloves",   "cost": 320,    "slot": "Arms", "defence": 2, "classes": ["Warrior"] },
   { "id": 191, "name": "Steel Gloves",    "cost": 1200,   "slot": "Arms", "defence": 4, "classes": ["Warrior"] },
   { "id": 192, "name": "Mythril Gloves",  "cost": 4000,   "slot": "Arms", "defence": 6, "classes": ["Warrior"] },
-  { "id": 193, "name": "Protect Ring",    "cost": 32000,  "slot": "Arms", "defence": 8 }
+  { "id": 193, "name": "Protect Ring",    "cost": 32000,  "slot": "Arms", "defence": 8 },
+
+  // Сюжетные предметы: "key" — не продаются и не тратятся, "info" — описание (ключ перевода)
+  { "id": 301, "name": "Lute",            "cost": 0, "key": true, "info": "An old lute kept by the royal family of Cornelia." }
 ]

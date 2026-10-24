@@ -65,6 +65,7 @@ void InputController::mapInput(const SDL_Event& event, Game& game, UIManager& ui
         ui.handleDialogEvent(event);
         return;
     }
+    if (game.getStory().busy()) return;               // идёт сцена: ни меню, ни новых разговоров
     if (event.type == SDL_KEYDOWN && event.key.repeat == 0 &&
         (event.key.keysym.scancode == SDL_SCANCODE_RETURN || event.key.keysym.scancode == SDL_SCANCODE_KP_ENTER ||
          event.key.keysym.scancode == SDL_SCANCODE_SPACE))

@@ -833,6 +833,20 @@
          "name":"props",
          "objects":[
                 {
+                 "gid":8,
+                 "height":48,
+                 "id":61,
+                 "name":"Bridge",
+                 "opacity":1,
+                 "properties":[{"name":"showIf", "type":"string", "value":"bridge_built"}],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":32,
+                 "x":2320,
+                 "y":2352
+                }, 
+                {
                  "gid":2,
                  "height":48,
                  "id":45,
@@ -951,9 +965,31 @@
          "visible":true,
          "x":0,
          "y":0
+        }, 
+        {
+         "draworder":"topdown",
+         "id":8,
+         "name":"events",
+         "objects":[
+                {
+                 "height":48,
+                 "id":62,
+                 "name":"bridge_prologue",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":32,
+                 "x":2320,
+                 "y":2304
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
         }],
- "nextlayerid":8,
- "nextobjectid":61,
+ "nextlayerid":9,
+ "nextobjectid":63,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.2",

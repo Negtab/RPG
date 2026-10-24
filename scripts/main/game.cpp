@@ -54,6 +54,9 @@ Game::Game(SDL_Window *window, SDL_Renderer* renderer) : window(window), rendere
     items  = GameData::instance().items();
     skills = GameData::instance().skills();
 
+    story = std::make_unique<Story>(*this);
+    story->load(std::filesystem::current_path().remove_filename() / "resources" / "Story");
+
     SDL_SetWindowIcon(window, ResourceManager::getImage("Sword"));
     this->isRunning = true;
     this->setGameState(GameState::Menu);
@@ -170,9 +173,11 @@ std::string Game::locationName(const std::string& map)
     for (char c : map)
     {
         if (c == '_') { name += ' '; word = true; continue; }
-        name += word ? static_cast<char>(std::toupper(static_cast<unsigned char>(c))) : c;
+        const bool floor = c == 'f' && !name.empty() && std::isdigit(static_cast<unsigned char>(name.back()));
+        name += word || floor ? static_cast<char>(std::toupper(static_cast<unsigned char>(c))) : c;   // 2f -> 2F
         word = false;
     }
+    for (size_t at; (at = name.find(" Of ")) != std::string::npos;) name[at + 1] = 'o';   // Temple of Chaos
     return name;
 }
 
@@ -198,7 +203,9 @@ bool Game::canLoad() const
 bool Game::saveToSlot(int slot)
 {
     if (slot < 0 || slot >= kSaveSlots) return false;
-    const SaveMeta meta{currentLocation(), static_cast<uint32_t>(playSeconds)};
+    SaveMeta meta{currentLocation(), static_cast<uint32_t>(playSeconds)};
+    meta.storyFlags.assign(story->getFlags().begin(), story->getFlags().end());
+    for (const auto& q : story->getQuests()) meta.quests.emplace_back(q.id, static_cast<uint8_t>(q.state));
     const bool ok = resourceManager->savePlayer(slotPath(slot), players.at(0), meta);
     if (ok) refreshLatestSave();
     return ok;
@@ -212,6 +219,11 @@ bool Game::loadFromSlot(int slot)
         SaveMeta meta;
         const bool positionRestored = resourceManager->loadPlayer(slotPath(slot), players.at(0), &meta);
         playSeconds = static_cast<float>(meta.playSeconds);
+        story->reset();                                      // сюжет сохранения, а не прошлой игры
+        for (const auto& f : meta.storyFlags) story->setFlag(f, true, false);
+        for (const auto& [id, state] : meta.quests)
+            story->setQuest(id, state == 2 ? Story::QuestState::Done : Story::QuestState::Active, false);
+        onStoryChanged();
         returnStack.clear();
         if (!meta.hasVehicles) resetVehicles();
         players.at(0).getVehicles()[vehicleIndex(Vehicle::Canoe)].available = true;   // каноэ всегда при отряде
@@ -788,6 +800,7 @@ void Game::loadMaps()
         {
             if (p.targetMap.empty())                         // имя портала — имя карты или вход в город
             {
+                if (p.name == "back") continue;              // выход наружу, как шаг за край карты
                 if (!mapByName(p.name) && !mapWithEntrance(p.name))
                     SDL_Log("Map '%s': portal '%s' at (%d,%d) leads nowhere: no map named so and no entrance '%s'",
                             m.name.c_str(), p.name.c_str(), p.x, p.y, p.name.c_str());
@@ -837,6 +850,8 @@ void Game::spawnNpcs()
                 npcs[id].push_back(std::make_unique<ShopPerson>(n.name, n.sprite, n.cell, n.facing, *shop));
             else
                 npcs[id].push_back(std::make_unique<NotGamePerson>(n.name, n.sprite, n.cell, n.facing, std::move(lines)));
+            npcs[id].back()->setScript(n.script);
+            npcs[id].back()->setVisibility(n.showIf, n.hideIf);
         }
 }
 
@@ -852,8 +867,62 @@ NotGamePerson* Game::npcAt(int mapId, Point cell) const
     const auto it = npcs.find(mapId);
     if (it == npcs.end()) return nullptr;
     for (const auto& n : it->second)
-        if (n->getCell().x == cell.x && n->getCell().y == cell.y) return n.get();
+        if (n->getCell().x == cell.x && n->getCell().y == cell.y && npcVisible(*n)) return n.get();
     return nullptr;
+}
+
+bool Game::npcVisible(const NotGamePerson& npc) const
+{
+    return shownByFlags(npc.getShowIf(), npc.getHideIf(), [this](const std::string& f) { return story->flag(f); });
+}
+
+void Game::startStoryBattle(const std::vector<int>& enemies, const std::string& background)
+{
+    settle(players.at(0).getMove());
+    if (localPlayerId != 0) sendLocalPlayerState();
+    uiManager->setBattleBackground(background.empty() ? battleBackground(nullptr, "") : background);
+    setPreviousGameState(getGameState());
+    setGameState(GameState::Battle);
+    battle->run(enemies, {}, enemies);
+    battle->setEscapable(false);                       // от босса не убежать, как в FF1
+    uiManager->addEnemys();
+    uiManager->addCharacters();
+    battleStarted = true;
+    if (localPlayerId != 0)
+    {
+        sendBattleStart();
+        sendPartyInfo();
+    }
+}
+
+void Game::storyTeleport(const std::string& map, int x, int y)
+{
+    const MapData* target = mapByName(map);
+    if (!target) { SDL_Log("Story: teleport to unknown map '%s'", map.c_str()); return; }
+    const int id = target->mapId;
+    startTransition([this, id, x, y]() {
+        if (!applyMapChange(id, x, y)) return;
+        returnStack.clear();                           // выход из этой карты — к её порталу на карте мира
+        sendMapChange(id, x, y);
+    });
+}
+
+void Game::onStoryChanged()
+{
+    const auto flag = [this](const std::string& f) { return story->flag(f); };
+    for (auto& [id, m] : maps) m.applyProps(flag);
+}
+
+void Game::sendStoryState(uint8_t kind, const std::string& name, uint8_t value)
+{
+    if (!isConnected()) return;
+    StoryPacket p{};
+    p.header.type = PacketType::Story;
+    p.header.size = sizeof(p);
+    p.kind = kind;
+    p.value = value;
+    std::strncpy(p.name, name.c_str(), sizeof(p.name) - 1);
+    client.send(reinterpret_cast<const char*>(&p), sizeof(p));
 }
 
 void Game::talk()
@@ -1026,9 +1095,13 @@ void Game::followPortal(const Portal& portal, Point from)
     const Point cell = p.hasTargetCell ? Point{p.targetX, p.targetY} : target->spawn;
     if (currentMap->mapId == 0) players.at(0).markVisited(p.name);   // синяя точка на мини-карте
     const ReturnPoint back{currentMap->mapId, from};    // выйдем на клетку, с которой шагнули в портал
+    // Лестница вниз на карту со входом с карты мира (2 этаж замка -> 1 этаж): дальше выход — к её порталу,
+    // а не обратно наверх
+    const bool toTopLevel = !target->entrance.empty() && currentMap->mapId != 0;
     if (applyMapChange(target->mapId, cell.x, cell.y))
     {
-        returnStack.push_back(back);
+        if (toTopLevel) returnStack.clear();
+        else returnStack.push_back(back);
         sendMapChange(target->mapId, cell.x, cell.y);
     }
 }
@@ -1178,11 +1251,24 @@ void Game::processPacket(const char* data)
             if (packet->playerId != localPlayerId)
                 ensureRemote(packet->playerId);
             if (isHost())
+            {
                 gatherPartyAtHost();
+                for (const auto& f : story->getFlags()) sendStoryState(0, f, 1);   // новичок видит наш сюжет
+                for (const auto& q : story->getQuests()) sendStoryState(1, q.id, static_cast<uint8_t>(q.state));
+            }
             SDL_Log("Player joined: %d", packet->playerId);
             break;
         }
 
+        case PacketType::Story:
+        {
+            const auto* p = reinterpret_cast<const StoryPacket*>(data);
+            if (std::memchr(p->name, 0, sizeof(p->name)) == nullptr) break;
+            if (p->kind == 0) story->setFlag(p->name, p->value != 0, false);
+            else if (p->kind == 1 && (p->value == 1 || p->value == 2))
+                story->setQuest(p->name, static_cast<Story::QuestState>(p->value), false);
+            break;
+        }
         case PacketType::PartyInfo:
             applyPartyInfo(*reinterpret_cast<const PartyInfoPacket*>(data));
             break;
@@ -1400,7 +1486,8 @@ void Game::update(float dt)
         };
         const Point finishedFrom = stepFrom;           // новый шаг может начаться в этом же кадре и затереть его
         const bool fading = fadePhase != Fade::None;
-        const Direction want = fading || uiManager->isDialogOpen() ? Direction::Idle : inputController->readMoveDirection();
+        const Direction want = fading || uiManager->isDialogOpen() || story->busy() ? Direction::Idle
+                                                                                   : inputController->readMoveDirection();
         const MoveResult r = updateLocal(m, passable, want, dt, vehicleSpeed(riding));
         if (r.stepStarted) stepFrom = m.cell;
 
@@ -1429,6 +1516,7 @@ void Game::update(float dt)
     }
 
     updateFade(dt);
+    story->update();
     updateNetwork();
     uiManager->update(dt);
 }
@@ -1482,15 +1570,19 @@ void Game::onStepFinished(Point from)
     if (updateVehicleAfterStep(from) && localPlayerId != 0)
         sendLocalPlayerState();                          // напарник должен увидеть корабль, а не героя
 
+    const Point c = players.at(0).getMove().cell;
+    if (const MapEvent* ev = currentMap->eventAt(c.x, c.y); ev && story->start("event", ev->script))
+        return;                                          // сюжетная зона: сцену ведёт тот, кто наступил
+
     if (isConnected() && !isHost()) return;              // порталы и бои ведёт хост (или офлайн)
 
-    const Point c = players.at(0).getMove().cell;
     const Vehicle riding = players.at(0).getRiding();
     if (riding == Vehicle::Airship) return;              // в воздухе ни порталов, ни боёв
 
     if (const Portal* portal = currentMap->portalAt(c.x, c.y); portal && riding == Vehicle::None)
     {
-        startTransition([this, p = *portal, from]() { followPortal(p, from); });
+        if (portal->name == "back") startTransition([this]() { exitBack(); });   // дверь наружу посреди карты
+        else startTransition([this, p = *portal, from]() { followPortal(p, from); });
         return;
     }
 
@@ -1572,6 +1664,7 @@ void Game::beginBattle(const Zone* zone)
 
 void Game::endRandomBattle()
 {
+    if (!battle->isEscapable()) return;                  // бой с боссом
     int randomNumber = rand() / 100;
     if (randomNumber > 30)
     {
@@ -2070,6 +2163,8 @@ void Game::buildParty(const std::vector<SpecializationNames>& classes, const std
     Player& me = players.at(0);
     me.resetProgress();
     me.setPlayerGold(kStartGold);
+    story->reset();
+    onStoryChanged();
     resetVehicles();
     returnStack.clear();
     playSeconds = 0.0f;

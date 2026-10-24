@@ -224,6 +224,8 @@ void GameData::loadItems(const fs::path& path)
         }
         it.startCount = getIntOr(e, "start", 0, 99, 0);
         it.effect     = e.value("effect", std::string{});
+        it.keyItem    = e.value("key", false);
+        it.info       = e.value("info", std::string{});
         it.hitEffect  = e.value("hitEffect", std::string{});
         it.swing      = getIntOr(e, "swing", -1, 999, -1);
         it.hasElement = e.contains("element");

@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -158,6 +159,8 @@ public:
     void showDialog(const std::string& speaker, const std::vector<std::string>& pages);
     [[nodiscard]] bool isDialogOpen() const { return !talkPages.empty(); }
     void handleDialogEvent(const SDL_Event& event);
+    void showChoice(const std::string& speaker, const std::string& question);   // вопрос и «Да / Нет»
+    [[nodiscard]] std::optional<bool> takeChoice();          // ответ, когда игрок выбрал (один раз)
     void openShop(const ShopDef& shop);
     void handleShopEvent(const SDL_Event& event);
 
@@ -174,7 +177,7 @@ private:
     void drawMapWorld();
     void drawActor(const Player& p, int cellScreenX, int cellScreenY);
     bool drawVehicle(Vehicle v, Direction dir, int cellScreenX, int cellScreenY, bool flying, bool moving);   // false: нет спрайта
-    MapRenderer* rendererFor(const MapData& map);
+    MapRenderer* rendererFor(const MapData& map, bool roomView = false);   // roomView — вид изнутри комнат
     std::unordered_map<int, std::unique_ptr<MapRenderer>> mapRenderers;
 
     // ── Обновление данных ──────────────────────────────
@@ -263,7 +266,8 @@ private:
     void drawGameMenu();
 
     // Страницы игрового меню. *Target — выбор героя, на которого применить предмет или заклинание
-    enum class MenuPage { Main, PickHero, Items, ItemTarget, Magic, MagicTarget, Equip, EquipPick, Status };
+    enum class MenuPage { Main, PickHero, Items, ItemTarget, Magic, MagicTarget, Equip, EquipPick, Status, Journal };
+    void drawJournalPage();
     using ListLayout = MenuListLayout;
 
     void openMenuPage(MenuPage page);
@@ -326,6 +330,10 @@ private:
     [[nodiscard]] std::vector<std::string> wrapText(const std::string& text, int width) const;
     std::string talkSpeaker;
     std::vector<std::string> talkPages;                        // пусто — окна нет
+    bool talkChoice = false;                                   // последняя страница — вопрос «Да / Нет»
+    int choiceSel = 0;                                         // 0 — «Да»
+    std::optional<bool> choiceResult;
+    [[nodiscard]] SDL_Rect choiceRect(int row) const;
     int talkPage = 0;
     Uint32 talkStart = 0;                                      // когда страница начала печататься
 

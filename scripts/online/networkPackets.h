@@ -18,7 +18,8 @@ enum class PacketType : uint8_t
     BattleSnapshot = 6, // сервер рассылает состояние боя
     BattleEnd = 7,
     MapChange = 8,
-    PartyInfo = 9
+    PartyInfo = 9,
+    Story = 10         // флаг сюжета или запись журнала: кто изменил, тот и рассылает
 };
 
 #pragma pack(push, 1)
@@ -140,6 +141,14 @@ struct PartyInfoPacket
 #pragma pack(pop)
 
 
+struct StoryPacket
+{
+    PacketHeader header;
+    uint8_t kind;           // 0 — флаг (value 1 — поднят, 0 — снят), 1 — задание журнала (value — Story::QuestState)
+    uint8_t value;
+    char    name[48];
+};
+
 constexpr uint32_t kMaxPacket = 512;
 
 inline uint32_t expectedSize(PacketType t) {
@@ -154,6 +163,7 @@ inline uint32_t expectedSize(PacketType t) {
     case PacketType::BattleEnd:      return sizeof(BattleEndPacket);
     case PacketType::MapChange:      return sizeof(MapChangePacket);
     case PacketType::PartyInfo:      return sizeof(PartyInfoPacket);
+    case PacketType::Story:          return sizeof(StoryPacket);
     }
     return 0;   // неизвестный тип
 }

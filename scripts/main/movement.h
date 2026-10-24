@@ -2,6 +2,7 @@
 #define PROJECT_NAME_MOVEMENT_H
 
 #include <array>
+#include <functional>
 #include <cstdint>
 #include <optional>
 #include <vector>
@@ -33,6 +34,26 @@ struct Prop {
     int x0 = 0, bottom = 0;                   // клетки, покрытые больше чем наполовину: левая и нижний ряд
     int w = 1, h = 1;                         // их число по ширине и высоте
     PropCollision collision = PropCollision::Solid;
+    std::string showIf, hideIf;               // флаги сюжета: мост Корнелии появляется после спасения принцессы
+};
+
+// Есть ли у объекта карты право быть видимым при таких флагах сюжета
+inline bool shownByFlags(const std::string& showIf, const std::string& hideIf,
+                         const std::function<bool(const std::string&)>& flag)
+{
+    return (showIf.empty() || flag(showIf)) && (hideIf.empty() || !flag(hideIf));
+}
+
+// Сюжетная зона (слой "events" в Tiled): шаг в неё запускает сцену event.<script>
+struct MapEvent {
+    int x = 0, y = 0, w = 1, h = 1;
+    std::string script;
+};
+
+// Комната под крышей (слой "rooms" в Tiled): пока герой внутри, карта рисуется картинкой roomView —
+// крыши сняты, всё вокруг затемнено, как в Pixel Remaster
+struct MapRoom {
+    int x = 0, y = 0, w = 1, h = 1;
 };
 
 struct Portal {
@@ -52,12 +73,16 @@ struct NpcSpawn {
     Direction facing = Direction::Down;
     std::string shop;                         // id из shops.json: NPC — продавец
     std::string text;                         // реплика; строки разделяются символом |
+    std::string script;                       // сцена npc.<script> из resources/Story/*.lua
+    std::string showIf, hideIf;               // виден только при флаге / пропадает при флаге
 };
 
 struct MapData {
     std::string name;
     int mapId = 0;
     std::string backgroundPath;
+    bool waterEffects = true;                          // блики на воде; false — синий фон замка, а не море
+    std::string roomViewPath;                          // вид изнутри комнат (слой-картинка "roomView")
     int w = 0, h = 0;
     Point spawn{0, 0};
     std::vector<uint8_t> solid;                        // w*h, 1 = стена (позже грузим из Tiled)
@@ -72,6 +97,9 @@ struct MapData {
     std::string entrance;                              // имя портала карты мира, который ведёт на эту карту
     std::vector<Prop> props;
     std::vector<NpcSpawn> npcs;
+    std::vector<MapEvent> events;
+    std::vector<MapRoom> rooms;
+    std::vector<uint8_t> baseSolid, baseWater;         // стены и вода без объектов: для пересчёта по флагам
     std::array<std::optional<Point>, kVehicleKinds> vehicleMarkers;   // маркеры canoe, ship, airship из Tiled
 
     // Временная карта без стен. 256x277 клеток = 4096x4432 px, как твоя картинка
@@ -92,6 +120,18 @@ struct MapData {
     [[nodiscard]] const Portal* portalAt(int x, int y) const {
         for (const auto& p : portals)
             if (x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h) return &p;
+        return nullptr;
+    }
+    // Номер комнаты под клеткой или -1: снаружи
+    [[nodiscard]] int roomAt(int x, int y) const {
+        for (size_t i = 0; i < rooms.size(); ++i)
+            if (x >= rooms[i].x && x < rooms[i].x + rooms[i].w && y >= rooms[i].y && y < rooms[i].y + rooms[i].h)
+                return static_cast<int>(i);
+        return -1;
+    }
+    [[nodiscard]] const MapEvent* eventAt(int x, int y) const {
+        for (const auto& e : events)
+            if (x >= e.x && x < e.x + e.w && y >= e.y && y < e.y + e.h) return &e;
         return nullptr;
     }
     [[nodiscard]] const Portal* portalNamed(const std::string& n) const {
@@ -121,8 +161,14 @@ struct MapData {
     }
 
     // Проходимость под объектами. Вызывать после того, как посчитана вода: мост убирает её под собой
-    void applyProps() {
+    // Объекты меняют проходимость: замок — стена, мост — дорога над водой. Объект с условием (showIf/hideIf)
+    // действует только при нужных флагах, поэтому при смене флагов карту пересчитывают от сохранённой основы
+    void applyProps(const std::function<bool(const std::string&)>& flag = [](const std::string&) { return false; }) {
+        if (baseSolid.empty()) { baseSolid = solid; baseWater = water; }
+        solid = baseSolid;
+        water = baseWater;
         for (const Prop& p : props)
+            if (shownByFlags(p.showIf, p.hideIf, flag))
             for (int y = p.bottom - p.h + 1; y <= p.bottom; ++y)
                 for (int x = p.x0; x < p.x0 + p.w; ++x)
                 {

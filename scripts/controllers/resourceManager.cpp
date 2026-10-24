@@ -296,7 +296,7 @@ void ResourceManager::initialize()
 }
 
 constexpr uint32_t kSaveMagic   = 0x504C5952;   // 'PLYR'
-constexpr uint32_t kSaveVersion = 8;            // 2: координаты в клетках + mapId; 3: герои; 4: локация, время игры, дата; 5: экипировка; 6: транспорт; 7: посещённые места; 8: выученные заклинания
+constexpr uint32_t kSaveVersion = 9;            // 2: координаты в клетках + mapId; 3: герои; 4: локация, время игры, дата; 5: экипировка; 6: транспорт; 7: посещённые места; 8: выученные заклинания; 9: сюжет
 constexpr uint64_t kMaxString   = 1024;
 constexpr uint64_t kMaxCount    = 100000;
 
@@ -348,6 +348,8 @@ struct SaveData
     std::vector<std::string> enemies;
     std::vector<std::pair<int, uint8_t>> items;
     std::vector<Hero> heroes;
+    std::vector<std::string> storyFlags;
+    std::vector<std::pair<std::string, uint8_t>> quests;
     std::string location;
     uint32_t playSeconds = 0;
     int64_t savedAt = 0;
@@ -463,6 +465,21 @@ SaveData readSaveFile(const std::string& path)
             h.spells.resize(count);
             for (auto& id : h.spells) readPod(in, id);
         }
+
+    if (version >= 9)
+    {
+        uint16_t count = 0;
+        readPod(in, count);
+        for (int i = 0; i < count; ++i) d.storyFlags.push_back(readString(in));
+        readPod(in, count);
+        for (int i = 0; i < count; ++i)
+        {
+            std::string id = readString(in);
+            uint8_t state = 0;
+            readPod(in, state);
+            d.quests.emplace_back(std::move(id), state);
+        }
+    }
     return d;
 }
 }
@@ -553,6 +570,15 @@ bool ResourceManager::savePlayer(const std::string& path, const Player& player, 
                 writePod<int32_t>(out, spells[k]);
         }
 
+        writePod<uint16_t>(out, static_cast<uint16_t>(meta.storyFlags.size()));
+        for (const auto& f : meta.storyFlags) writeString(out, f);
+        writePod<uint16_t>(out, static_cast<uint16_t>(meta.quests.size()));
+        for (const auto& [id, state] : meta.quests)
+        {
+            writeString(out, id);
+            writePod<uint8_t>(out, state);
+        }
+
         out.flush();
         if (!out)
         {
@@ -628,6 +654,8 @@ bool ResourceManager::loadPlayer(const std::string& path, Player& player, SaveMe
         meta->location = d.location;
         meta->playSeconds = d.playSeconds;
         meta->hasVehicles = d.hasVehicles;
+        meta->storyFlags = d.storyFlags;
+        meta->quests = d.quests;
     }
     return d.hasPosition;
 }

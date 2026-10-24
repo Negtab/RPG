@@ -147,6 +147,8 @@ struct Item
     bool hasElement{false};                                // оружие бьёт стихией element (Огненный меч)
     Elemental element{Elemental::Physical};
     std::vector<Elemental> resists;                        // броня: сопротивления надевшего (Ледяной доспех — огонь)
+    bool keyItem{false};                                   // сюжетный (Лютня, Корона): не продаётся, не тратится
+    std::string info;                                      // описание (английское — ключ перевода)
 
     [[nodiscard]] bool isEquipment() const { return slot != EquipSlot::None; }
     [[nodiscard]] bool canEquip(SpecializationNames c) const

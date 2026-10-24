@@ -128,11 +128,57 @@ void UIManager::showDialog(const std::string& speaker, const std::vector<std::st
     talkStart = SDL_GetTicks();
 }
 
+void UIManager::showChoice(const std::string& speaker, const std::string& question)
+{
+    showDialog(speaker, {question});
+    talkChoice = true;
+    choiceSel = 0;
+    choiceResult.reset();
+}
+
+std::optional<bool> UIManager::takeChoice()
+{
+    const auto r = choiceResult;
+    choiceResult.reset();
+    return r;
+}
+
+SDL_Rect UIManager::choiceRect(int row) const
+{
+    return {kTalkBox.x + kTalkBox.w - 180, kTalkBox.y - 96 + 12 + row * 38, 150, 36};
+}
+
 void UIManager::handleDialogEvent(const SDL_Event& e)
 {
+    const size_t shown = talkStart == 0 ? std::string::npos
+                       : static_cast<size_t>(SDL_GetTicks() - talkStart) * kTalkCharsPerSec / 1000;
+    const bool typed = shown >= utf8::length(talkPages[talkPage]);
+    const bool asking = talkChoice && typed && talkPage + 1 == static_cast<int>(talkPages.size());
+    if (asking)                                                   // вопрос допечатан: «Да / Нет»
+    {
+        if (keyIs(e, {SDL_SCANCODE_UP, SDL_SCANCODE_W, SDL_SCANCODE_DOWN, SDL_SCANCODE_S,
+                      SDL_SCANCODE_LEFT, SDL_SCANCODE_A, SDL_SCANCODE_RIGHT, SDL_SCANCODE_D}))
+            choiceSel = 1 - choiceSel;
+        int pick = confirmKey(e) ? choiceSel : -1;
+        if (isMouse(e))
+        {
+            const SDL_Point m = mousePos(e);
+            for (int r = 0; r < 2; ++r)
+            {
+                const SDL_Rect rr = choiceRect(r);
+                if (!SDL_PointInRect(&m, &rr)) continue;
+                choiceSel = r;
+                if (leftClick(e)) pick = r;
+            }
+        }
+        if (pick < 0) return;
+        choiceResult = pick == 0;
+        talkChoice = false;
+        talkPages.clear();
+        return;
+    }
     if (!confirmKey(e) && !leftClick(e)) return;
-    const size_t shown = static_cast<size_t>(SDL_GetTicks() - talkStart) * kTalkCharsPerSec / 1000;
-    if (shown < utf8::length(talkPages[talkPage]))
+    if (!typed)
     {
         talkStart = 0;                                            // ещё печатается: показать всю страницу сразу
         return;
@@ -167,6 +213,21 @@ void UIManager::drawDialog()
         if (nl == std::string::npos) break;
         from = nl + 1;
         y += kTalkLineH;
+    }
+
+    // Вопрос допечатан: окошко «Да / Нет» над окном разговора
+    if (talkChoice && visible.size() == page.size() && talkPage + 1 == static_cast<int>(talkPages.size()))
+    {
+        visualizer.drawNinePatch(getWindowSkin(visualizer.getRenderer()),
+                                 {choiceRect(0).x - 12, choiceRect(0).y - 12, 174, 100}, kWindowSkinSlice, 1);
+        const int blink = static_cast<int>((SDL_GetTicks() / 220) % 2) * 2;
+        for (int r = 0; r < 2; ++r)
+        {
+            const SDL_Rect rr = choiceRect(r);
+            drawText(tr(r == 0 ? "Yes" : "No"), rr.x + 22, rr.y + 4, r == choiceSel ? kHot : kText);
+            if (r == choiceSel) drawPointer(rr.x + 14 - blink, rr.y + rr.h / 2, 2);
+        }
+        return;
     }
 
     // Страница допечатана: мигающий треугольник «дальше» в правом нижнем углу
@@ -233,7 +294,7 @@ std::vector<std::pair<int, int>> UIManager::shopList() const
     if (selling)
     {
         for (const auto& [id, count] : player.getItemCounts())
-            if (count > 0) out.emplace_back(id, shopPrice(game.getItem(id), true));
+            if (count > 0 && !game.getItem(id).keyItem) out.emplace_back(id, shopPrice(game.getItem(id), true));
     }
     else
         for (int id : shop->goods) out.emplace_back(id, shopPrice(game.getItem(id), false));

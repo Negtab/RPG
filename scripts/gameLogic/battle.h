@@ -45,6 +45,9 @@ public:
 
     void tryEscape();
     [[nodiscard]] bool canEscape() const;
+    [[nodiscard]] bool wasWon() const noexcept { return isWin; }
+    void setEscapable(bool on) noexcept { escapable = on; }   // бой с боссом: «Бежать» не сработает
+    [[nodiscard]] bool isEscapable() const noexcept { return escapable; }
 
     void startExecuteActions();
     void updateExecuteActions();
@@ -104,6 +107,7 @@ private:
 
     bool firstTurnIsPlayer = false;
     bool isWin = false;
+    bool escapable = true;
     bool isAnimationsStarted = false;
     uint32_t animStartTicks = 0;                       // когда начался показ действия: у врагов анимации нет, держим паузу
 

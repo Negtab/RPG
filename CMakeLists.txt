@@ -67,6 +67,7 @@ add_library(rpg_core STATIC
         scripts/ui/windowSkin.cpp
         scripts/ui/bestiary.cpp
         scripts/ui/shopScreen.cpp
+        scripts/story/story.cpp
         scripts/ui/widgets/Window.h
         scripts/gameLogic/gameData.h
         scripts/gameLogic/gameData.cpp
@@ -92,7 +93,12 @@ target_include_directories(rpg_core PUBLIC
         ${SDL2_MIXER_INCLUDE_DIR}
         ${SDL2_TTF_INCLUDE_DIR})
 
-target_link_libraries(rpg_core PUBLIC ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARIES} ${SDL2_MIXER_LIBRARIES} ${SDL2_TTF_LIBRARIES} ws2_32)
+# --- Lua 5.4 (third_party/lua, lua.org): сюжетные сценарии resources/Story/*.lua ---
+file(GLOB LUA_SOURCES ${CMAKE_SOURCE_DIR}/third_party/lua/*.c)
+add_library(lua STATIC ${LUA_SOURCES})
+target_include_directories(lua PUBLIC ${CMAKE_SOURCE_DIR}/third_party/lua)
+
+target_link_libraries(rpg_core PUBLIC ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARIES} ${SDL2_MIXER_LIBRARIES} ${SDL2_TTF_LIBRARIES} ws2_32 lua)
 
 add_executable(${PROJECT_NAME} scripts/main/main.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE rpg_core)

@@ -214,6 +214,8 @@ void Server::clientLoop(Client client) {
             case PacketType::MapChange:
                 if (client.id != hostId) { continue; }
                 break;
+            case PacketType::Story:          // сюжет: от любого игрока всем остальным
+                break;
 
             default:   // Connect / PlayerJoined / Disconnect шлёт только сервер
                 SDL_Log("[Server] client %u sent server-only packet %d, dropped", client.id, (int)h->type);

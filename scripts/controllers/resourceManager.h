@@ -35,6 +35,8 @@ struct SaveMeta {
     std::string location;                   // зона или карта, где сохранились
     uint32_t playSeconds = 0;
     bool hasVehicles = true;                // при загрузке: false — файл старше версии 6, транспорт надо расставить
+    std::vector<std::string> storyFlags;    // 9: флаги сюжета
+    std::vector<std::pair<std::string, uint8_t>> quests;   // 9: журнал (id, Story::QuestState)
 };
 
 // Шрифт интерфейса: Pixelify Sans с кириллицей (resources/Fonts, лицензия OFL; готовит tools/patch_font.py)
