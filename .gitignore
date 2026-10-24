@@ -4,3 +4,6 @@ build_maps/
 saves/
 settings.ini
 installer/Output/
+website/download/
+website/bugreport.config.php
+website/.bugreport-limits/

@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RPG — пошаговая ретро-RPG в духе Final Fantasy</title>
+<meta name="description" content="Пошаговая ретро-RPG на C++ и SDL2 в духе классической Final Fantasy: открытый мир, корабли и дирижабль, 126 врагов, шесть классов, города с магазинами и кооператив по сети. Бесплатно для Windows.">
+<meta property="og:title" content="RPG — ретро-RPG в духе Final Fantasy">
+<meta property="og:description" content="Открытый мир, пошаговые бои, 126 врагов, шесть классов и кооператив. Бесплатно для Windows.">
+<meta property="og:image" content="assets/shots/battle-attack.png">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0b0f2e">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+@font-face {
+  font-family: "Pixelify";
+  src: url("assets/fonts/PixelifySans.ttf") format("truetype");
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+:root {
+  --night: #070a24;
+  --night-2: #0d1238;
+  --win-top: #2a3fae;
+  --win-bot: #0f1a63;
+  --win-edge: #e8ecff;
+  --gold: #ffd25a;
+  --gold-2: #ff9f1c;
+  --red: #ff5a5a;
+  --hp: #4fe08a;
+  --mp: #63a8ff;
+  --text: #eef1ff;
+  --muted: #a9b2e6;
+  --pixel: "Pixelify", "Courier New", monospace;
+  --body: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius: 10px;
+  --max: 1180px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--text);
+  font: 17px/1.6 var(--body);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+.pix { image-rendering: pixelated; image-rendering: crisp-edges; }
+a { color: var(--gold); }
+h1, h2, h3 { font-family: var(--pixel); font-weight: 700; line-height: 1.1; margin: 0; letter-spacing: .5px; }
+.wrap { width: 100%; max-width: var(--max); margin: 0 auto; padding: 0 20px; }
+
+/* ───── Звёздное небо на фоне всей страницы ───── */
+.sky {
+  position: fixed; inset: 0; z-index: -2;
+  background:
+    radial-gradient(1200px 700px at 80% -10%, #27307a 0%, transparent 60%),
+    radial-gradient(900px 600px at -10% 30%, #1b1f5c 0%, transparent 60%),
+    linear-gradient(180deg, #070a24 0%, #0b0f33 50%, #060818 100%);
+}
+.stars, .stars2 {
+  position: fixed; inset: -50%; z-index: -1; pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 20px 30px, #fff, transparent),
+    radial-gradient(1px 1px at 120px 80px, #cfe0ff, transparent),
+    radial-gradient(2px 2px at 220px 150px, #fff, transparent),
+    radial-gradient(1px 1px at 300px 40px, #ffe9b0, transparent),
+    radial-gradient(1px 1px at 380px 210px, #fff, transparent),
+    radial-gradient(1px 1px at 60px 260px, #bcd0ff, transparent);
+  background-size: 420px 300px;
+  animation: drift 240s linear infinite;
+  opacity: .55;
+}
+.stars2 { background-size: 610px 470px; animation-duration: 400s; opacity: .35; filter: blur(.3px); }
+@keyframes drift { to { transform: translate3d(-420px, -300px, 0); } }
+
+/* ───── Окно в стиле меню FF ───── */
+.window {
+  position: relative;
+  background: linear-gradient(180deg, var(--win-top), var(--win-bot));
+  border: 3px solid var(--win-edge);
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 3px #0a0f3d, 0 18px 50px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.08);
+}
+
+/* ───── Шапка ───── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  transition: background .3s, box-shadow .3s, padding .3s;
+  padding: 18px 0;
+}
+.nav.scrolled { background: rgba(7,10,36,.86); backdrop-filter: blur(10px); box-shadow: 0 1px 0 rgba(255,255,255,.08); padding: 10px 0; }
+.nav .wrap { display: flex; align-items: center; gap: 28px; }
+.logo { display: flex; align-items: center; gap: 10px; font-family: var(--pixel); font-size: 26px; color: #fff; text-decoration: none; font-weight: 700; }
+.logo i {
+  width: 32px; height: 32px; display: inline-block;
+  background: url(assets/sprites/heroes/warrior.png) 0 0 / 64px 160px; image-rendering: pixelated;
+}
+.nav ul { display: flex; gap: 22px; list-style: none; margin: 0 0 0 auto; padding: 0; }
+.nav ul a { color: var(--muted); text-decoration: none; font-weight: 500; font-size: 15px; transition: color .2s; }
+.nav ul a:hover { color: #fff; }
+.btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--pixel); font-size: 18px; font-weight: 700; text-decoration: none;
+  padding: 14px 26px; border-radius: 8px; cursor: pointer; border: 0;
+  transition: transform .15s, box-shadow .2s, filter .2s;
+}
+.btn:hover { transform: translateY(-2px); }
+.btn:active { transform: translateY(1px); }
+.btn-gold { color: #2a1600; background: linear-gradient(180deg, #ffe58a, var(--gold) 45%, var(--gold-2)); box-shadow: 0 4px 0 #a65a00, 0 10px 30px rgba(255,170,40,.35); }
+.btn-gold:hover { filter: brightness(1.08); box-shadow: 0 6px 0 #a65a00, 0 14px 40px rgba(255,170,40,.5); }
+.btn-ghost { color: #fff; background: rgba(255,255,255,.06); border: 2px solid rgba(255,255,255,.35); }
+.btn-ghost:hover { background: rgba(255,255,255,.12); }
+.btn-sm { font-size: 15px; padding: 9px 16px; box-shadow: 0 3px 0 #a65a00; }
+.burger { display: none; margin-left: auto; background: none; border: 0; color: #fff; font-size: 28px; cursor: pointer; }
+
+/* ───── Первый экран ───── */
+.hero { position: relative; isolation: isolate; min-height: 100vh; display: flex; align-items: center; padding: 120px 0 80px; overflow: hidden; }
+.hero-bg {
+  position: absolute; inset: 0; z-index: -2;
+  background: url(assets/shots/overworld.png) center / cover; image-rendering: pixelated;
+  opacity: .13; filter: saturate(1.2);
+  mask-image: linear-gradient(180deg, #000 30%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 30%, transparent 100%);
+}
+.hero .wrap { display: grid; grid-template-columns: 1fr 1.1fr; gap: 56px; align-items: center; }
+.kicker { display: inline-block; font-family: var(--pixel); color: var(--gold); font-size: 15px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 18px; }
+.hero h1 {
+  font-size: clamp(84px, 13vw, 168px);
+  background: linear-gradient(180deg, #fff 0%, #ffe9a8 45%, var(--gold-2) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 6px 0 #6a2c00) drop-shadow(0 0 40px rgba(255,180,60,.35));
+  letter-spacing: 6px;
+}
+.hero .lead { font-size: 21px; color: #dfe4ff; max-width: 520px; margin: 18px 0 34px; }
+.hero .cta { display: flex; flex-wrap: wrap; gap: 14px; }
+.hero .meta { margin-top: 18px; color: var(--muted); font-size: 14px; }
+
+/* Живая сцена боя */
+.stage-frame { padding: 10px; transform: rotate(-1.2deg); }
+.stage {
+  position: relative; aspect-ratio: 472 / 232; border-radius: 6px; overflow: hidden;
+  background: url(assets/bg/plains.png) center / cover; image-rendering: pixelated;
+}
+.stage .unit { position: absolute; image-rendering: pixelated; }
+.stage .enemy { animation: breathe 2.4s ease-in-out infinite; }
+.stage .enemy.hit { animation: hit .35s steps(2) 2; }
+@keyframes breathe { 50% { transform: translateY(-2px); } }
+@keyframes hit { 50% { opacity: .2; transform: translateX(4px); } }
+.sprite {
+  width: 96px; height: 96px;
+  background-size: 192px 480px; background-repeat: no-repeat;
+  image-rendering: pixelated;
+  --y: 0px;
+  animation: frames .8s steps(2) infinite;
+}
+@keyframes frames { from { background-position: 0 var(--y); } to { background-position: -192px var(--y); } }
+.stage .sprite { width: 15%; height: 30.5%; background-size: 200% 500%; animation: none; }
+.stage .sprite.step { transform: translateX(-30%); transition: transform .25s; }
+.dmg {
+  position: absolute; font-family: var(--pixel); font-weight: 700; font-size: clamp(16px, 2.4vw, 28px); color: #fff;
+  text-shadow: 2px 2px 0 #000, -1px -1px 0 #000; pointer-events: none;
+  animation: dmg 1s ease-out forwards;
+}
+.dmg.heal { color: var(--hp); }
+@keyframes dmg { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; transform: translateY(-14px); } 30% { transform: translateY(-6px); } 100% { opacity: 0; transform: translateY(-10px); } }
+.stage-ui { display: grid; grid-template-columns: 1fr 1.25fr; gap: 8px; margin-top: 8px; font-family: var(--pixel); font-size: 15px; }
+.stage-ui .window { padding: 10px 14px; border-width: 2px; box-shadow: none; }
+.stage-ui .row { display: flex; justify-content: space-between; }
+.stage-ui .cur::before { content: "▶ "; color: #fff; animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.airship {
+  position: absolute; width: 64px; height: 64px; top: 9%; left: -100px; z-index: -1; opacity: .9;
+  background: url(assets/sprites/airship.png) -192px -128px / 256px 256px; image-rendering: pixelated;
+  animation: fly 26s linear infinite, prop .2s steps(1) infinite;
+  filter: drop-shadow(0 30px 8px rgba(0,0,0,.35));
+}
+@keyframes fly { 0% { transform: translateX(0) translateY(0); } 50% { transform: translateX(60vw) translateY(30px); } 100% { transform: translateX(120vw) translateY(-10px); } }
+@keyframes prop { 0% { background-position-y: -128px; } 50% { background-position-y: -192px; } }
+
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 70px; }
+.stat { text-align: center; padding: 18px 10px; }
+.stat b { display: block; font-family: var(--pixel); font-size: 44px; color: var(--gold); line-height: 1; }
+.stat span { color: var(--muted); font-size: 14px; }
+
+/* ───── Секции ───── */
+section { padding: 110px 0; position: relative; }
+.head { text-align: center; max-width: 720px; margin: 0 auto 56px; }
+.head h2 { font-size: clamp(38px, 5vw, 58px); margin-bottom: 14px; }
+.head h2 em { font-style: normal; color: var(--gold); }
+.head p { color: var(--muted); font-size: 18px; margin: 0; }
+
+.split { display: grid; grid-template-columns: 1.15fr 1fr; gap: 56px; align-items: center; }
+.split.rev { grid-template-columns: 1fr 1.15fr; }
+.split.rev > :first-child { order: 2; }
+.shot { padding: 8px; }
+.shot img { border-radius: 4px; width: 100%; image-rendering: pixelated; }
+.shot-stack { position: relative; }
+.shot-stack .shot.small { position: absolute; width: 52%; right: -6%; bottom: -14%; transform: rotate(3deg); }
+.feat h3 { font-size: 30px; margin-bottom: 14px; }
+.feat p { color: #d6dbff; margin: 0 0 20px; }
+.list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.list li { display: flex; gap: 14px; align-items: flex-start; }
+.list li .ico { flex: 0 0 40px; height: 40px; display: grid; place-items: center; border-radius: 8px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); font-size: 20px; }
+.list li b { display: block; color: #fff; }
+.list li span { color: var(--muted); font-size: 15px; }
+
+.vehicles { display: flex; gap: 18px; margin-top: 26px; }
+.veh { flex: 1; text-align: center; padding: 16px 8px 12px; }
+.veh i { display: block; width: 64px; height: 64px; margin: 0 auto 8px; image-rendering: pixelated; background-size: 256px 256px; animation: bob 1.6s ease-in-out infinite; }
+.veh span { font-family: var(--pixel); font-size: 16px; }
+.veh small { display: block; color: var(--muted); font-size: 13px; }
+@keyframes bob { 50% { transform: translateY(-4px); } }
+
+/* Лента арен */
+.marquee { overflow: hidden; margin-top: 70px; mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); }
+.marquee .track { display: flex; gap: 14px; width: max-content; animation: scroll 60s linear infinite; }
+.marquee:hover .track { animation-play-state: paused; }
+.marquee figure { margin: 0; width: 260px; flex: none; position: relative; border-radius: 8px; overflow: hidden; border: 2px solid rgba(255,255,255,.25); }
+.marquee img { width: 100%; aspect-ratio: 472/232; object-fit: cover; image-rendering: pixelated; }
+.marquee figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 10px 6px; font-family: var(--pixel); font-size: 15px; background: linear-gradient(transparent, rgba(0,0,0,.75)); }
+@keyframes scroll { to { transform: translateX(-50%); } }
+
+/* Классы */
+.classes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.cls { padding: 22px 22px 20px; transition: transform .25s, box-shadow .25s; cursor: default; }
+.cls:hover { transform: translateY(-6px); box-shadow: 0 0 0 3px #0a0f3d, 0 0 0 6px var(--gold), 0 24px 60px rgba(0,0,0,.5); }
+.cls .top { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; }
+.cls .sprite { flex: none; background-color: rgba(0,0,0,.18); border-radius: 8px; }
+.cls:hover .sprite { --y: -288px; animation-duration: .5s; }
+.cls h3 { font-size: 28px; }
+.cls .role { color: var(--gold); font-size: 14px; font-weight: 500; }
+.cls p { color: #d6dbff; font-size: 15px; margin: 0 0 14px; min-height: 72px; }
+.bars { display: grid; gap: 6px; font-family: var(--pixel); font-size: 14px; }
+.bar { display: grid; grid-template-columns: 40px 1fr 34px; gap: 10px; align-items: center; }
+.bar .t { height: 8px; border-radius: 4px; background: rgba(0,0,0,.35); overflow: hidden; }
+.bar .t i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--c, #fff); transition: width 1.1s cubic-bezier(.2,.8,.2,1); }
+.bar .v { text-align: right; color: var(--muted); }
+
+/* Бестиарий */
+.bosses { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+@media (max-width: 980px) { .bosses { grid-template-columns: repeat(3, 1fr); } }
+.boss { text-align: center; padding: 18px 10px 14px; transition: transform .2s; }
+.boss:hover { transform: scale(1.05); }
+.boss .pic { height: 110px; display: grid; place-items: center; }
+.boss img { image-rendering: pixelated; max-height: 104px; width: auto; filter: drop-shadow(0 6px 4px rgba(0,0,0,.4)); }
+.boss:hover img { animation: hit .35s steps(2) 1; }
+.boss b { display: block; font-family: var(--pixel); font-size: 17px; margin-top: 8px; }
+.boss small { color: var(--muted); font-size: 12px; }
+.boss.fiend { background: linear-gradient(180deg, #5a1d6e, #210a36); }
+.boss.fiend small { color: #ffb3f0; }
+.boss.chaos { grid-column: span 2; background: linear-gradient(180deg, #7a1212, #200606); }
+.boss.chaos .pic { height: 110px; }
+.boss.chaos img { max-height: 110px; }
+
+/* Города */
+.towns { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 24px; }
+.towns span { font-family: var(--pixel); font-size: 16px; padding: 6px 14px; border-radius: 30px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.18); }
+.shops { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.shops div { padding: 12px; text-align: center; font-size: 14px; color: #d6dbff; }
+.shops div b { display: block; font-size: 26px; margin-bottom: 2px; }
+
+/* Кооператив */
+.coop { padding: 50px; display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center; overflow: hidden; }
+.coop h3 { font-size: 40px; margin-bottom: 12px; }
+.coop p { color: #d6dbff; margin: 0; max-width: 560px; }
+.coop .duo { display: flex; gap: 20px; align-items: flex-end; }
+.coop .duo .sprite { width: 128px; height: 128px; background-size: 256px 640px; }
+.coop .duo .sprite:last-child { transform: scaleX(-1); }
+.coop .link { font-family: var(--pixel); font-size: 28px; color: var(--gold); animation: blink 1.4s steps(2) infinite; align-self: center; }
+
+/* Галерея */
+.gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.gallery button { all: unset; cursor: zoom-in; position: relative; border-radius: 8px; overflow: hidden; border: 2px solid rgba(255,255,255,.2); transition: transform .25s, border-color .25s; }
+.gallery button:hover { transform: translateY(-4px); border-color: var(--gold); }
+.gallery button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.gallery img { width: 100%; aspect-ratio: 3/2; object-fit: cover; image-rendering: pixelated; }
+.gallery span { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 12px 8px; font-family: var(--pixel); font-size: 16px; background: linear-gradient(transparent, rgba(0,0,0,.8)); opacity: 0; transition: opacity .25s; }
+.gallery button:hover span, .gallery button:focus-visible span { opacity: 1; }
+.lightbox { position: fixed; inset: 0; z-index: 100; background: rgba(3,5,20,.92); display: none; place-items: center; padding: 24px; }
+.lightbox.open { display: grid; }
+.lightbox figure { margin: 0; max-width: 1100px; width: 100%; }
+.lightbox img { width: 100%; image-rendering: pixelated; border: 3px solid var(--win-edge); border-radius: 8px; }
+.lightbox figcaption { text-align: center; font-family: var(--pixel); font-size: 20px; margin-top: 12px; }
+.lightbox .x, .lightbox .prev, .lightbox .next { position: absolute; background: none; border: 0; color: #fff; font-size: 40px; cursor: pointer; font-family: var(--pixel); padding: 10px; }
+.lightbox .x { top: 14px; right: 20px; }
+.lightbox .prev { left: 10px; top: 50%; transform: translateY(-50%); }
+.lightbox .next { right: 10px; top: 50%; transform: translateY(-50%); }
+
+/* Скачать */
+.download { padding: 60px 50px; text-align: center; overflow: hidden; }
+.download::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; opacity: .18;
+  background: url(assets/bg/castlehall.png) center / cover; image-rendering: pixelated;
+}
+.download > * { position: relative; }
+.download h2 { font-size: clamp(38px, 5vw, 60px); margin-bottom: 12px; }
+.download p { color: #dfe4ff; margin: 0 auto 30px; max-width: 560px; }
+.download .btn { font-size: 22px; padding: 18px 34px; }
+.dl-meta { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 26px; margin-top: 22px; color: var(--muted); font-size: 14px; }
+.dl-meta b { color: #fff; font-weight: 500; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; text-align: left; }
+.steps div { padding: 18px; border-radius: 8px; background: rgba(0,0,0,.22); border: 1px solid rgba(255,255,255,.12); font-size: 15px; color: #d6dbff; }
+.steps b { display: block; font-family: var(--pixel); font-size: 20px; color: var(--gold); margin-bottom: 4px; }
+
+.keys { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 40px; margin-top: 50px; }
+.key-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px dashed rgba(255,255,255,.14); }
+.key-row span { color: #d6dbff; }
+kbd {
+  display: inline-block; min-width: 34px; text-align: center; margin-left: 4px;
+  font-family: var(--pixel); font-size: 15px; color: #fff; padding: 4px 9px; border-radius: 6px;
+  background: linear-gradient(180deg, #3a4bb8, #1b267a); border: 2px solid #c7d0ff; box-shadow: 0 3px 0 #0a0f3d;
+}
+
+/* Баг-репорт */
+.bug-cta { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 26px 30px; margin-top: 50px; }
+.bug-cta h3 { font-size: 26px; margin-bottom: 4px; }
+.bug-cta p { margin: 0; color: #d6dbff; font-size: 15px; }
+.bug-cta .sprite { flex: none; --y: -288px; }
+.bug-cta .txt { flex: 1; }
+.modal { position: fixed; inset: 0; z-index: 120; background: rgba(3,5,20,.88); display: none; overflow-y: auto; padding: 40px 16px; }
+.modal.open { display: block; }
+.modal .window { max-width: 640px; margin: 0 auto; padding: 28px 30px 30px; }
+.modal h3 { font-size: 30px; margin-bottom: 6px; }
+.modal .sub { color: var(--muted); font-size: 15px; margin: 0 0 22px; }
+.modal .x { position: absolute; top: 12px; right: 14px; background: none; border: 0; color: #fff; font-size: 26px; cursor: pointer; font-family: var(--pixel); }
+.form { display: grid; gap: 16px; }
+.form .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form label { display: grid; gap: 6px; font-family: var(--pixel); font-size: 16px; }
+.form label small { font-family: var(--body); color: var(--muted); font-size: 13px; }
+.form input, .form select, .form textarea {
+  font: 15px/1.5 var(--body); color: #fff; width: 100%;
+  background: rgba(0,0,0,.28); border: 2px solid rgba(255,255,255,.22); border-radius: 8px; padding: 10px 12px;
+  transition: border-color .2s, background .2s;
+}
+.form select option { background: #1b267a; }
+.form textarea { resize: vertical; min-height: 96px; }
+.form input:focus, .form select:focus, .form textarea:focus { outline: none; border-color: var(--gold); background: rgba(0,0,0,.4); }
+.form input[type=file] { padding: 8px; cursor: pointer; }
+.form input[type=file]::file-selector-button { font-family: var(--pixel); font-size: 14px; margin-right: 12px; padding: 6px 12px; border-radius: 6px; border: 0; background: #e8ecff; color: #1b267a; cursor: pointer; }
+.form .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.form .send { justify-self: start; }
+.form .send[disabled] { opacity: .6; cursor: wait; transform: none; }
+.form-msg { font-size: 15px; min-height: 22px; margin: 0; }
+.form-msg.err { color: #ff9a9a; }
+.done { text-align: center; padding: 20px 0 6px; }
+.done .sprite { margin: 0 auto 16px; --y: -288px; animation-duration: .5s; }
+.done h3 { margin-bottom: 8px; }
+.done p { color: #d6dbff; margin: 0 0 22px; }
+@media (max-width: 680px) {
+  .bug-cta { flex-direction: column; text-align: center; padding: 24px 20px; }
+  .form .two { grid-template-columns: 1fr; }
+  .modal .window { padding: 24px 18px; }
+}
+
+footer { padding: 50px 0 60px; text-align: center; color: var(--muted); font-size: 14px; border-top: 1px solid rgba(255,255,255,.08); }
+footer .walker {
+  width: 48px; height: 48px; margin: 0 auto 16px;
+  background: url(assets/sprites/walk-warrior.png) -144px 0 / 192px 96px; image-rendering: pixelated;
+  animation: walkr .5s steps(1) infinite;
+}
+@keyframes walkr { 0% { background-position-y: 0; } 50% { background-position-y: -48px; } }
+footer p { margin: 4px 0; }
+
+/* Появление при прокрутке */
+.reveal { opacity: 0; transform: translateY(30px); transition: opacity .8s ease, transform .8s ease; }
+.reveal.in { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .reveal { opacity: 1; transform: none; }
+}
+
+/* ───── Адаптив ───── */
+@media (max-width: 980px) {
+  .hero .wrap, .split, .split.rev { grid-template-columns: 1fr; gap: 40px; }
+  .split.rev > :first-child { order: 0; }
+  .hero { text-align: center; }
+  .hero .lead { margin-left: auto; margin-right: auto; }
+  .hero .cta { justify-content: center; }
+  .classes { grid-template-columns: repeat(2, 1fr); }
+  .coop { grid-template-columns: 1fr; text-align: center; padding: 36px 24px; }
+  .coop p { margin: 0 auto; }
+  .coop .duo { justify-content: center; }
+  .shot-stack .shot.small { position: relative; width: 70%; right: auto; bottom: auto; margin: -40px 0 0 auto; }
+  .nav ul { display: none; }
+  .nav.open ul { display: flex; position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; gap: 0; background: rgba(7,10,36,.97); padding: 10px 20px 20px; }
+  .nav.open ul a { display: block; padding: 12px 0; font-size: 18px; }
+  .burger { display: block; }
+  .nav .btn-sm { display: none; }
+}
+@media (max-width: 680px) {
+  body { font-size: 16px; }
+  .wrap { padding: 0 16px; }
+  section { padding: 76px 0; }
+  .stats { grid-template-columns: repeat(2, 1fr); margin-top: 46px; }
+  .classes, .gallery, .steps, .keys { grid-template-columns: 1fr; }
+  .shops { grid-template-columns: repeat(2, 1fr); }
+  .stage-ui { font-size: 12px; }
+  .stage-frame { transform: none; }
+  .vehicles { gap: 10px; }
+  .download { padding: 44px 20px; }
+  .boss.chaos { grid-column: span 1; }
+  .bosses { grid-template-columns: repeat(2, 1fr); }
+  .cls p { min-height: 0; }
+}
+</style>
+</head>
+<body>
+<div class="sky"></div><div class="stars"></div><div class="stars2"></div>
+
+<nav class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top"><i></i>RPG</a>
+    <ul>
+      <li><a href="#world">Мир</a></li>
+      <li><a href="#battle">Бои</a></li>
+      <li><a href="#classes">Классы</a></li>
+      <li><a href="#bestiary">Бестиарий</a></li>
+      <li><a href="#towns">Города</a></li>
+      <li><a href="#gallery">Скриншоты</a></li>
+      <li><a href="#bug" data-bug>Нашли баг?</a></li>
+    </ul>
+    <a class="btn btn-gold btn-sm" href="#download">Скачать</a>
+    <button class="burger" aria-label="Меню" onclick="nav.classList.toggle('open')">☰</button>
+  </div>
+</nav>
+
+<!-- ═════ Первый экран ═════ -->
+<header class="hero" id="top">
+  <div class="hero-bg"></div>
+  <div class="airship" aria-hidden="true"></div>
+  <div class="wrap">
+    <div>
+      <span class="kicker">Пошаговая ретро-RPG</span>
+      <h1>RPG</h1>
+      <p class="lead">Четыре Воина Света, огромный мир, корабли и дирижабль, сотня чудовищ и классические пошаговые бои — в духе той самой первой Final Fantasy.</p>
+      <div class="cta">
+        <a class="btn btn-gold" href="#download">⬇ Скачать бесплатно</a>
+        <a class="btn btn-ghost" href="#gallery">Скриншоты</a>
+      </div>
+      <div class="meta">Windows 10 / 11 · 64 бит · русский и английский</div>
+    </div>
+
+    <div class="stage-frame">
+      <div class="window" style="padding:10px">
+        <div class="stage" id="stage">
+          <img class="unit enemy pix" data-hp src="assets/sprites/enemies/wolf.png" alt="Волк" style="left:9%;top:16%;width:13%">
+          <img class="unit enemy pix" data-hp src="assets/sprites/enemies/garland.png" alt="Гарланд" style="left:30%;top:30%;width:19%">
+          <img class="unit enemy pix" data-hp src="assets/sprites/enemies/goblin.png" alt="Гоблин" style="left:10%;top:58%;width:13%">
+          <div class="unit sprite pc" style="right:5%;top:2%;background-image:url(assets/sprites/heroes/warrior.png)"></div>
+          <div class="unit sprite pc" style="right:9%;top:23%;background-image:url(assets/sprites/heroes/redmage.png)"></div>
+          <div class="unit sprite pc" style="right:5%;top:44%;background-image:url(assets/sprites/heroes/whitemage.png)"></div>
+          <div class="unit sprite pc" style="right:9%;top:65%;background-image:url(assets/sprites/heroes/blackmage.png)"></div>
+        </div>
+        <div class="stage-ui">
+          <div class="window">
+            <div class="cur" id="cmd">Атака</div>
+            <div style="opacity:.75">Магия</div>
+            <div style="opacity:.75">Бежать</div>
+          </div>
+          <div class="window">
+            <div class="row"><span>Воин</span><span>180/180</span></div>
+            <div class="row"><span>Красный маг</span><span>115/115</span></div>
+            <div class="row"><span>Белый маг</span><span>95/95</span></div>
+            <div class="row"><span>Чёрный маг</span><span>85/85</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stats reveal">
+    <div class="window stat"><b data-count="126">126</b><span>врагов и боссов</span></div>
+    <div class="window stat"><b data-count="6">6</b><span>классов героев</span></div>
+    <div class="window stat"><b data-count="8">8</b><span>городов с магазинами</span></div>
+    <div class="window stat"><b data-count="31">31</b><span>боевая арена</span></div>
+  </div>
+</div>
+
+<!-- ═════ Мир ═════ -->
+<section id="world">
+  <div class="wrap">
+    <div class="head reveal">
+      <h2>Целый <em>мир</em> для странствий</h2>
+      <p>Огромная карта с лесами, пустынями, реками и морями. Иди пешком, плыви на корабле или поднимись в небо.</p>
+    </div>
+    <div class="split">
+      <div class="shot-stack reveal">
+        <div class="window shot"><img src="assets/shots/overworld.png" alt="Карта мира рядом с Корнелией" loading="lazy"></div>
+        <div class="window shot small"><img src="assets/shots/cornelia-world.png" alt="Замок Корнелии на карте мира" loading="lazy"></div>
+      </div>
+      <div class="feat reveal">
+        <h3>Открытый мир</h3>
+        <p>Бескрайняя карта в стиле Pixel Remaster: от королевства Корнелия до заброшенных храмов на краю света. Мини-карта всегда под рукой, а встречи с монстрами зависят от того, где ты идёшь.</p>
+        <ul class="list">
+          <li><span class="ico">🗺️</span><div><b>Мини-карта с тремя масштабами</b><span>Включается одной клавишей прямо на ходу</span></div></li>
+          <li><span class="ico">🌊</span><div><b>Живая карта</b><span>Блики на воде, реки, мосты, замки и пещеры</span></div></li>
+          <li><span class="ico">👹</span><div><b>Честные встречи</b><span>Чем дальше от дома, тем сильнее враги</span></div></li>
+        </ul>
+        <div class="vehicles">
+          <div class="window veh"><i style="background-image:url(assets/sprites/ship.png);background-position:-192px 0"></i><span>Корабль</span><small>по морям</small></div>
+          <div class="window veh"><i style="background-image:url(assets/sprites/canoe.png);background-position:-192px 0"></i><span>Каноэ</span><small>по рекам</small></div>
+          <div class="window veh"><i style="background-image:url(assets/sprites/airship.png);background-position:-192px -128px"></i><span>Дирижабль</span><small>по небу</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════ Бои ═════ -->
+<section id="battle">
+  <div class="wrap">
+    <div class="head reveal">
+      <h2>Пошаговые <em>бои</em></h2>
+      <p>Классика жанра: выбери действие каждому герою — и смотри, как разворачивается сражение.</p>
+    </div>
+    <div class="split rev">
+      <div class="window shot reveal"><img src="assets/shots/battle-attack.png" alt="Бой с волками и гоблинами в лесу" loading="lazy"></div>
+      <div class="feat reveal">
+        <h3>Меч, магия и тактика</h3>
+        <p>До девяти врагов на поле, у каждого свои слабости и сопротивления. Подбирай стихию, лечи отряд вовремя и не забывай про предметы.</p>
+        <ul class="list">
+          <li><span class="ico">⚔️</span><div><b>Атаки, магия, предметы</b><span>47 навыков и заклинаний, 45 предметов и видов снаряжения</span></div></li>
+          <li><span class="ico">🔥</span><div><b>Стихии</b><span>Огонь, лёд, молния, свет и тьма — у врагов есть слабости</span></div></li>
+          <li><span class="ico">✨</span><div><b>Эффекты и анимации</b><span>Выпады, взмахи оружием, вспышки заклинаний и всплывающий урон</span></div></li>
+          <li><span class="ico">📖</span><div><b>Бестиарий прямо в бою</b><span>Подсмотри слабости врага, не выходя из сражения</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="marquee reveal" aria-hidden="true">
+    <div class="track" id="arenas"></div>
+  </div>
+</section>
+
+<!-- ═════ Классы ═════ -->
+<section id="classes">
+  <div class="wrap">
+    <div class="head reveal">
+      <h2>Собери свой <em>отряд</em></h2>
+      <p>Шесть классов из первой Final Fantasy. Возьми любых четырёх — хоть четырёх монахов.</p>
+    </div>
+    <div class="classes" id="classList"></div>
+  </div>
+</section>
+
+<!-- ═════ Бестиарий ═════ -->
+<section id="bestiary">
+  <div class="wrap">
+    <div class="head reveal">
+      <h2><em>126</em> чудовищ</h2>
+      <p>От гоблинов на равнинах Корнелии до четырёх Извергов стихий и самого Хаоса. Каждый встреченный враг попадает в бестиарий.</p>
+    </div>
+    <div class="split" style="margin-bottom:56px">
+      <div class="window shot reveal"><img src="assets/shots/bestiary.png" alt="Страница бестиария: Гоблин" loading="lazy"></div>
+      <div class="feat reveal">
+        <h3>Книга монстров</h3>
+        <p>Слабости, сопротивления, иммунитеты, умения и места обитания — всё, что нужно знать о враге. Листай страницы или ищи по имени.</p>
+        <ul class="list">
+          <li><span class="ico">🔎</span><div><b>Поиск по имени</b><span>Нажми Tab и начни печатать</span></div></li>
+          <li><span class="ico">🏆</span><div><b>Собери всех</b><span>Счётчик показывает, скольких ты уже встретил</span></div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="bosses" id="bossList"></div>
+  </div>
+</section>
+
+<!-- ═════ Города ═════ -->
+<section id="towns">
+  <div class="wrap">
+    <div class="head reveal">
+      <h2>Города и <em>магазины</em></h2>
+      <p>Отдохни в гостинице, купи новый меч и выучи заклинания посильнее.</p>
+    </div>
+    <div class="split">
+      <div class="shot-stack reveal">
+        <div class="window shot"><img src="assets/shots/town.png" alt="Улицы Корнелии" loading="lazy"></div>
+        <div class="window shot small"><img src="assets/shots/inn.png" alt="Гостиница Корнелии" loading="lazy"></div>
+      </div>
+      <div class="feat reveal">
+        <h3>Восемь городов</h3>
+        <p>У каждого города своя карта, жители и лавки. Подходи к прилавку и заговаривай с продавцом — прямо как в оригинале.</p>
+        <div class="towns">
+          <span>Корнелия</span><span>Правока</span><span>Эльфхейм</span><span>Мелмонд</span>
+          <span>Кресент-Лейк</span><span>Онрак</span><span>Гайя</span><span>Луфения</span>
+        </div>
+        <div class="shops">
+          <div class="window"><b>🗡️</b>Оружие</div>
+          <div class="window"><b>🛡️</b>Броня</div>
+          <div class="window"><b>🧪</b>Предметы</div>
+          <div class="window"><b>🤍</b>Белая магия</div>
+          <div class="window"><b>🖤</b>Чёрная магия</div>
+          <div class="window"><b>🛏️</b>Гостиница</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════ Кооператив ═════ -->
+<section style="padding-top:20px">
+  <div class="wrap">
+    <div class="window coop reveal">
+      <div>
+        <span class="kicker">Вдвоём веселее</span>
+        <h3>Кооператив по сети</h3>
+        <p>Один создаёт сервер, второй вводит IP — и вы путешествуете по миру и сражаетесь вместе. Работает по локальной сети или через интернет.</p>
+      </div>
+      <div class="duo" aria-hidden="true">
+        <div class="sprite" style="background-image:url(assets/sprites/heroes/monk.png)"></div>
+        <div class="link">⇄</div>
+        <div class="sprite" style="background-image:url(assets/sprites/heroes/thief.png)"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════ Галерея ═════ -->
+<section id="gallery">
+  <div class="wrap">
+    <div class="head reveal">
+      <h2><em>Скриншоты</em></h2>
+      <p>Нажми на картинку, чтобы открыть её целиком.</p>
+    </div>
+    <div class="gallery reveal" id="galleryList"></div>
+  </div>
+</section>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Скриншот">
+  <button class="x" aria-label="Закрыть">✕</button>
+  <button class="prev" aria-label="Предыдущий">‹</button>
+  <figure><img id="lbImg" alt=""><figcaption id="lbCap"></figcaption></figure>
+  <button class="next" aria-label="Следующий">›</button>
+</div>
+
+<!-- ═════ Скачать ═════ -->
+<section id="download">
+  <div class="wrap">
+    <div class="window download reveal">
+      <span class="kicker">Бесплатно</span>
+      <h2>Начни приключение</h2>
+      <p>Скачай установщик, запусти его — и через минуту ты уже в Корнелии. Права администратора не нужны.</p>
+      <a class="btn btn-gold" href="download/RPG-Setup-1.1.0.exe" download>⬇ Скачать для Windows</a>
+      <div class="dl-meta">
+        <span>Версия <b>1.1.0</b></span>
+        <span>Размер <b>~50 МБ</b></span>
+        <span>Система <b>Windows 10 / 11, 64 бит</b></span>
+      </div>
+      <div class="steps">
+        <div><b>1. Скачай</b>Файл RPG-Setup-1.1.0.exe. Если Windows предупредит о неизвестном издателе — «Подробнее» → «Выполнить в любом случае».</div>
+        <div><b>2. Установи</b>Игра ставится в папку пользователя. Сохранения и настройки при удалении не стираются.</div>
+        <div><b>3. Играй</b>Выбери отряд из четырёх героев и отправляйся спасать мир.</div>
+      </div>
+    </div>
+
+    <div class="keys reveal">
+      <div class="key-row"><span>Движение и меню</span><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / стрелки</span></div>
+      <div class="key-row"><span>Подтвердить, говорить</span><span><kbd>Enter</kbd><kbd>Space</kbd></span></div>
+      <div class="key-row"><span>Назад, игровое меню</span><span><kbd>Esc</kbd></span></div>
+      <div class="key-row"><span>Сесть в транспорт / выйти</span><span><kbd>E</kbd></span></div>
+      <div class="key-row"><span>Мини-карта</span><span><kbd>M</kbd></span></div>
+      <div class="key-row"><span>Случайные бои вкл / выкл</span><span><kbd>H</kbd></span></div>
+    </div>
+
+    <div class="window bug-cta reveal" id="bug">
+      <div class="sprite" style="background-image:url(assets/sprites/heroes/blackmage.png)" aria-hidden="true"></div>
+      <div class="txt">
+        <h3>Нашли ошибку?</h3>
+        <p>Игра вылетела, герой застрял в стене или магазин продаёт не то? Расскажите — репорт сразу придёт разработчику.</p>
+      </div>
+      <button class="btn btn-ghost" type="button" data-bug>🐞 Сообщить об ошибке</button>
+    </div>
+  </div>
+</section>
+
+<div class="modal" id="bugModal" role="dialog" aria-modal="true" aria-labelledby="bugTitle">
+  <div class="window">
+    <button class="x" type="button" aria-label="Закрыть" data-close>✕</button>
+    <div id="bugFormWrap">
+      <h3 id="bugTitle">Сообщить об ошибке</h3>
+      <p class="sub">Чем подробнее, тем быстрее получится найти и исправить.</p>
+      <form class="form" id="bugForm" novalidate>
+        <label>Коротко о проблеме
+          <input name="title" maxlength="120" required placeholder="Например: игра вылетает при входе в Правоку">
+        </label>
+        <div class="two">
+          <label>Где случилось
+            <select name="category">
+              <option>Бой</option>
+              <option>Карта мира</option>
+              <option>Город или магазин</option>
+              <option>Меню и интерфейс</option>
+              <option>Сохранения</option>
+              <option>Кооператив</option>
+              <option>Звук и музыка</option>
+              <option>Вылет или зависание</option>
+              <option>Установка</option>
+              <option selected>Другое</option>
+            </select>
+          </label>
+          <label>Версия игры
+            <select name="version">
+              <option selected>1.1.0</option>
+              <option>1.0.0</option>
+              <option>Другая / не знаю</option>
+            </select>
+          </label>
+        </div>
+        <label>Что случилось
+          <textarea name="details" maxlength="2000" required placeholder="Что вы ожидали и что произошло на самом деле"></textarea>
+        </label>
+        <label>Как повторить <small>необязательно</small>
+          <textarea name="steps" maxlength="1500" placeholder="1. Загрузил сохранение&#10;2. Пошёл на север от Корнелии&#10;3. …"></textarea>
+        </label>
+        <div class="two">
+          <label>Система <small>необязательно</small>
+            <input name="os" maxlength="60" placeholder="Windows 11">
+          </label>
+          <label>Как с вами связаться <small>необязательно</small>
+            <input name="contact" maxlength="100" placeholder="Telegram или почта">
+          </label>
+        </div>
+        <label>Скриншот <small>необязательно, до 8 МБ</small>
+          <input type="file" name="screenshot" accept="image/png,image/jpeg,image/webp,image/gif">
+        </label>
+        <div class="hp" aria-hidden="true"><input name="website" tabindex="-1" autocomplete="off"></div>
+        <input type="hidden" name="opened_at">
+        <p class="form-msg" id="bugMsg" role="status"></p>
+        <button class="btn btn-gold send" type="submit">Отправить</button>
+      </form>
+    </div>
+    <div class="done" id="bugDone" hidden>
+      <div class="sprite" style="background-image:url(assets/sprites/heroes/whitemage.png)" aria-hidden="true"></div>
+      <h3>Спасибо!</h3>
+      <p>Репорт отправлен. Вы помогаете сделать игру лучше.</p>
+      <button class="btn btn-ghost" type="button" data-close>Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="walker" aria-hidden="true"></div>
+  <p><b style="font-family:var(--pixel);font-size:20px;color:#fff">RPG</b></p>
+  <p>Фанатский некоммерческий проект на C++20 и SDL2. <a href="#bug" data-bug>Сообщить об ошибке</a></p>
+  <p>Final Fantasy и связанные с ней персонажи и графика принадлежат Square Enix.</p>
+</footer>
+
+<script>
+const nav = document.getElementById('nav');
+addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 30), { passive: true });
+nav.querySelectorAll('ul a').forEach(a => a.addEventListener('click', () => nav.classList.remove('open')));
+
+/* Классы */
+const classes = [
+  ['warrior',   'Воин',        'Танк и главный боец', 'Тяжёлая броня, мечи и самая крепкая защита. Принимает удар на себя и бьёт в ответ.', [180,30,12,18,6]],
+  ['thief',     'Вор',         'Ловкость и скорость', 'Ходит первым и наносит быстрые удары. Самый проворный герой в отряде.', [100,55,15,7,20]],
+  ['monk',      'Монах',       'Кулаки вместо меча',  'Дерётся голыми руками — и с каждым уровнем бьёт всё сильнее. Высочайшая атака.', [160,30,20,10,8]],
+  ['redmage',   'Красный маг', 'Мастер на все руки',  'Владеет мечом, а ещё понемногу белой и чёрной магией. Универсальный боец.', [115,110,13,9,12]],
+  ['whitemage', 'Белый маг',   'Целитель',            'Лечит раны, защищает отряд и изгоняет нежить. Без него долго не протянуть.', [95,160,8,8,7]],
+  ['blackmage', 'Чёрный маг',  'Разрушительная магия','Огонь, лёд и молния. Хрупкий, но способен испепелить целую группу врагов.', [85,180,8,6,8]],
+];
+const statInfo = [['HP',180,'var(--hp)'],['MP',180,'var(--mp)'],['Атк',20,'#ff7a5a'],['Защ',18,'#ffd25a'],['Лов',20,'#c58cff']];
+document.getElementById('classList').innerHTML = classes.map(([id, name, role, desc, st]) => `
+  <div class="window cls reveal">
+    <div class="top">
+      <div class="sprite" style="background-image:url(assets/sprites/heroes/${id}.png)"></div>
+      <div><h3>${name}</h3><div class="role">${role}</div></div>
+    </div>
+    <p>${desc}</p>
+    <div class="bars">${st.map((v, i) => `
+      <div class="bar"><span>${statInfo[i][0]}</span><span class="t"><i data-w="${Math.round(v / statInfo[i][1] * 100)}" style="--c:${statInfo[i][2]}"></i></span><span class="v">${v}</span></div>`).join('')}
+    </div>
+  </div>`).join('');
+
+/* Бестиарий */
+const bosses = [
+  ['goblin','Гоблин','Равнины Корнелии'], ['wolf','Волк','Леса'], ['garland','Гарланд','Храм Хаоса'],
+  ['astos','Астос','Тёмный эльф'], ['black-knight','Чёрный рыцарь','Рыцарь тьмы'], ['ochu','Очу','Болота'],
+  ['manticore','Мантикора','Чудовище'], ['vampire','Вампир','Нежить'], ['sphinx','Сфинкс','Пустыня'],
+  ['red-dragon','Красный дракон','Вулкан'], ['blue-dragon','Синий дракон','Дракон'], ['warmech','Боевой мех','Небесная крепость'],
+  ['lich','Лич','Изверг Земли','fiend'], ['marilith','Марилит','Изверг Огня','fiend'],
+  ['kraken','Кракен','Изверг Воды','fiend'], ['tiamat','Тиамат','Изверг Ветра','fiend'],
+  ['chaos','Хаос','Последний бой','chaos'],
+];
+document.getElementById('bossList').innerHTML = bosses.map(([id, name, sub, cls]) => `
+  <div class="window boss ${cls || ''} reveal">
+    <div class="pic"><img src="assets/sprites/enemies/${id}.png" alt="${name}" onload="this.style.height=Math.min(this.naturalHeight*2.4,104)+'px'"></div>
+    <b>${name}</b><small>${sub || '&nbsp;'}</small>
+  </div>`).join('');
+
+/* Арены */
+const arenas = [['plains','Равнины'],['forest','Лес'],['sea','Море'],['desert','Пустыня'],['icecave','Ледяная пещера'],['lava','Вулкан'],['marsh','Болото'],['waterfall','Водопад'],['sunkenruins','Затонувший храм'],['goldhall','Золотой зал'],['castlehall','Замок'],['space','Небесная крепость']];
+const arenaHtml = arenas.map(([f, n]) => `<figure><img src="assets/bg/${f}.png" alt="" loading="lazy"><figcaption>${n}</figcaption></figure>`).join('');
+document.getElementById('arenas').innerHTML = arenaHtml + arenaHtml;
+
+/* Галерея */
+const shots = [
+  ['battle-attack','Бой в лесу'], ['overworld','Карта мира'], ['bestiary','Бестиарий'],
+  ['party','Выбор отряда'], ['town','Корнелия'], ['inn','Гостиница'],
+  ['menu','Игровое меню'], ['battle','Начало боя'], ['cornelia-world','Замок Корнелии'],
+];
+document.getElementById('galleryList').innerHTML = shots.map(([f, n], i) =>
+  `<button data-i="${i}"><img src="assets/shots/${f}.png" alt="${n}" loading="lazy"><span>${n}</span></button>`).join('');
+const lb = document.getElementById('lightbox'), lbImg = document.getElementById('lbImg'), lbCap = document.getElementById('lbCap');
+let cur = 0;
+const show = i => { cur = (i + shots.length) % shots.length; lbImg.src = `assets/shots/${shots[cur][0]}.png`; lbImg.alt = lbCap.textContent = shots[cur][1]; };
+document.getElementById('galleryList').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { show(+b.dataset.i); lb.classList.add('open'); } });
+lb.addEventListener('click', e => {
+  if (e.target.closest('.prev')) show(cur - 1);
+  else if (e.target.closest('.next')) show(cur + 1);
+  else if (e.target === lb || e.target.closest('.x')) lb.classList.remove('open');
+});
+addEventListener('keydown', e => {
+  if (!lb.classList.contains('open')) return;
+  if (e.key === 'Escape') lb.classList.remove('open');
+  if (e.key === 'ArrowLeft') show(cur - 1);
+  if (e.key === 'ArrowRight') show(cur + 1);
+});
+
+/* Баг-репорт */
+(() => {
+  const modal = document.getElementById('bugModal'), form = document.getElementById('bugForm');
+  const msg = document.getElementById('bugMsg'), send = form.querySelector('.send');
+  const wrap = document.getElementById('bugFormWrap'), done = document.getElementById('bugDone');
+  const open = e => {
+    e.preventDefault();
+    nav.classList.remove('open');
+    wrap.hidden = false; done.hidden = true; msg.textContent = ''; msg.className = 'form-msg';
+    form.elements.opened_at.value = Date.now();
+    if (!form.elements.os.value) form.elements.os.value = /Windows NT 10/.test(navigator.userAgent) ? 'Windows 10 / 11' : '';
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => form.elements.title.focus(), 50);
+  };
+  const close = () => { modal.classList.remove('open'); document.body.style.overflow = ''; };
+  document.querySelectorAll('[data-bug]').forEach(b => b.addEventListener('click', open));
+  modal.addEventListener('click', e => { if (e.target === modal || e.target.closest('[data-close]')) close(); });
+  addEventListener('keydown', e => { if (e.key === 'Escape' && modal.classList.contains('open')) close(); });
+
+  const fail = text => { msg.textContent = text; msg.className = 'form-msg err'; };
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (form.elements.title.value.trim().length < 3) { form.elements.title.focus(); return fail('Напишите коротко, в чём проблема'); }
+    if (form.elements.details.value.trim().length < 10) { form.elements.details.focus(); return fail('Расскажите чуть подробнее, что случилось'); }
+    const file = form.elements.screenshot.files[0];
+    if (file && file.size > 8 * 1024 * 1024) return fail('Скриншот больше 8 МБ');
+    send.disabled = true; send.textContent = 'Отправляю…'; msg.textContent = ''; msg.className = 'form-msg';
+    try {
+      const res = await fetch('bugreport.php', { method: 'POST', body: new FormData(form) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Не удалось отправить. Попробуйте позже');
+      form.reset();
+      wrap.hidden = true; done.hidden = false;
+    } catch (err) {
+      fail(err.message === 'Failed to fetch' ? 'Нет связи с сервером. Проверьте интернет' : err.message);
+    } finally {
+      send.disabled = false; send.textContent = 'Отправить';
+    }
+  });
+})();
+
+/* Появление при прокрутке + полоски статов */
+const io = new IntersectionObserver(entries => entries.forEach(en => {
+  if (!en.isIntersecting) return;
+  en.target.classList.add('in');
+  en.target.querySelectorAll('[data-w]').forEach(i => i.style.width = i.dataset.w + '%');
+  io.unobserve(en.target);
+}), { threshold: .15 });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+/* Живая сцена боя на первом экране */
+(() => {
+  const stage = document.getElementById('stage');
+  const heroes = [...stage.querySelectorAll(".pc")];
+  const enemies = [...stage.querySelectorAll('.enemy')];
+  const cmd = document.getElementById('cmd');
+  const cmds = ['Атака', 'Атака', 'Огонь', 'Лечение'];
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const popup = (x, y, text, heal) => {
+    const d = document.createElement('div');
+    d.className = 'dmg' + (heal ? ' heal' : '');
+    d.textContent = text;
+    d.style.left = x + '%'; d.style.top = y + '%';
+    stage.appendChild(d);
+    setTimeout(() => d.remove(), 1000);
+  };
+  let turn = 0;
+  setInterval(() => {
+    const h = heroes[turn % 4];
+    cmd.textContent = cmds[turn % 4];
+    h.classList.add('step');
+    h.style.backgroundPosition = '0 50%';
+    setTimeout(() => {
+      if (turn % 4 === 3) {
+        const t = heroes[Math.floor(Math.random() * 4)];
+        popup(100 - parseFloat(t.style.right) - 12, parseFloat(t.style.top), Math.floor(20 + Math.random() * 30), true);
+      } else {
+        const e = enemies[Math.floor(Math.random() * enemies.length)];
+        e.classList.remove('hit'); void e.offsetWidth; e.classList.add('hit');
+        popup(parseFloat(e.style.left) + 3, parseFloat(e.style.top) - 4, Math.floor(8 + Math.random() * (turn % 4 === 2 ? 60 : 30)));
+      }
+    }, 300);
+    setTimeout(() => { h.classList.remove('step'); turn++; }, 900);
+  }, 1400);
+  // Персонажи «дышат» — переключаем кадр стойки
+  let f = 0;
+  setInterval(() => { f ^= 1; heroes.forEach(h => { if (!h.classList.contains('step')) h.style.backgroundPosition = f ? '100% 0' : '0 0'; }); }, 500);
+})();
+</script>
+</body>
+</html>
