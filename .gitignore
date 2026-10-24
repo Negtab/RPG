@@ -7,3 +7,4 @@ installer/Output/
 website/download/
 website/bugreport.config.php
 website/.bugreport-limits/
+__pycache__/
