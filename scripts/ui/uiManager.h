@@ -197,6 +197,7 @@ private:
 
     // ── Battle logic ───────────────────────────────────
     void onActionButton    (ActionType type);
+    void toggleAutoBattle  ();                          // кнопка Auto: повторять прошлый выбор каждого героя
     void onEnvironmentCLick(int id, bool isMagic);
 
     void initMagic();

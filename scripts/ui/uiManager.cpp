@@ -815,6 +815,10 @@ void UIManager::updateBattleData(Scene &scene)
     setTexture("ItemsButton", "Battle", ResourceManager::getTextTexture(tr("Items"), font, hasItems() ? white : gray));
     setTexture("MagicButton", "Battle",
                ResourceManager::getTextTexture(tr("Magic"), font, choosing && hasUsableSkill() ? white : gray));
+    const SDL_Color gold{255, 220, 90, 255};
+    const Battle* battle = game.getBattle();
+    setTexture("AutoButton", "Battle", ResourceManager::getTextTexture(
+        tr("Auto"), font, battle->isAuto() ? gold : battle->canUseAuto() ? white : gray));
 
     // Враги
     const auto& enemies = game.getBattle()->getEnemies();
@@ -1019,6 +1023,16 @@ bool UIManager::hasItems() const
     for (const auto& [id, count] : player.getItemCounts())
         if (count > 0 && game.getItem(id).usableInBattle()) return true;    // экипировка в бою не применяется
     return false;
+}
+
+void UIManager::toggleAutoBattle()
+{
+    Battle* battle = game.getBattle();
+    if (!battle->isAuto() && !battle->canUseAuto()) return;   // до первого своего хода — недоступно
+    closeList();                                               // включили посреди выбора: открытый список больше не нужен
+    uiState = UIChooseState::ChooseAction;
+    setEnVI("ActionPanel", "Battle", true);
+    battle->setAuto(!battle->isAuto());
 }
 
 void UIManager::onActionButton(ActionType type)
@@ -1587,7 +1601,7 @@ void UIManager::drawBattleOverlay()
     if (uiState == UIChooseState::ChooseSkill || uiState == UIChooseState::ChooseItem)
         for (int i = 0; i < ENV_BUTTON_COUNT; ++i) pointAt("EnButton" + std::to_string(i + 1));
     else if (uiState == UIChooseState::ChooseAction && game.getBattle()->isPlayerChoosing())
-        for (const char* id : {"AttackButton", "ItemsButton", "MagicButton", "BookButton", "Run"}) pointAt(id);
+        for (const char* id : {"AttackButton", "ItemsButton", "MagicButton", "BookButton", "Run", "AutoButton"}) pointAt(id);
 
     drawEffects();
 
@@ -1854,6 +1868,12 @@ void UIManager::applyLanguage()
         l->background.rect.x = 12 + commandsW + 16;
         l->rect.x = l->background.rect.x + l->paddingX;
     }
+    relabel("AutoButton", "Battle", tr("Auto"), white, 25);         // во второй колонке, под именем героя
+    {
+        SDL_Rect r = getRect("AutoButton", "Battle");
+        r.x = 12 + commandsW + 16 + 12;
+        setRect("AutoButton", "Battle", r);
+    }
 
     // Окно списка умений и предметов — правее самой широкой команды, чтобы не закрывать её
     SDL_Rect listWin = getRect("EnvironmentWindow", "Battle");
@@ -2101,6 +2121,9 @@ void UIManager::initBattleScene()
     addButton("Run", "Battle", {12, barY + 114, 60, 25},
               ResourceManager::getTextTexture("Run", font, white),
               [this]() { game.endRandomBattle(); }, hover, "ActionPanel");
+    addButton("AutoButton", "Battle", {96, barY + 114, 60, 25},
+              ResourceManager::getTextTexture("Auto", font, white),
+              [this]() { toggleAutoBattle(); }, hover, "ActionPanel");
     addButton("BookButton", "Battle", {12, barY + 88, 60, 25},
               ResourceManager::getTextTexture("Book", font, white),
               [this]() { openBestiaryFromBattle(); }, hover, "ActionPanel");

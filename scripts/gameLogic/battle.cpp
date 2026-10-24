@@ -134,6 +134,9 @@ void Battle::tryEscape()
 
 void Battle::runFromNetwork(const BattleStartPacket& packet)
 {
+    autoMode = false;
+    autoUnlocked = false;
+    lastActions = {};
     enemies.clear();
     rewards.clear();
     isWin = false;
@@ -285,6 +288,67 @@ void Battle::startPlayerChoose()
     state = BattleState::PlayerChoose;
 
     skipDeadHeroes();                                  // павший первый герой ход не держит
+    if (autoMode) chooseAutomatically();
+}
+
+void Battle::setAuto(bool on)
+{
+    if (on && !autoUnlocked) return;                   // до первого своего хода повторять нечего
+    autoMode = on;
+    if (autoMode) chooseAutomatically();               // включили посреди выбора: остальные герои — сами
+}
+
+void Battle::chooseAutomatically()
+{
+    while (state == BattleState::PlayerChoose && currentHeroIndex < static_cast<int>(player->getHeroes().size()))
+    {
+        const int before = currentHeroIndex;
+        confirmAction(autoActionFor(currentHeroIndex));
+        if (currentHeroIndex == before) break;         // на всякий случай: выбор не принят — не зацикливаемся
+    }
+}
+
+Action Battle::autoActionFor(int heroIndex) const
+{
+    auto firstAliveEnemy = [&]() {
+        for (int i = 0; i < static_cast<int>(enemies.size()); ++i)
+            if (enemies[i].getCurrentHp() > 0) return i;
+        return 0;
+    };
+    Action attack(heroIndex, ActionType::Attack, TargetType::Enemy, firstAliveEnemy());
+
+    if (heroIndex < 0 || heroIndex >= static_cast<int>(lastActions.size()) || !lastActions[heroIndex]) return attack;
+    Action a = *lastActions[heroIndex];
+    a.actorIndex = heroIndex;
+    const Hero& hero = player->getHeroes()[heroIndex];
+
+    // Повторить нельзя (кончилась мана, умение перезаряжается, предмета нет) — просто удар
+    if (a.type == ActionType::Magic)
+    {
+        const Skill* s = game->findSkill(a.payloadId);
+        if (!s || !hero.canCast(*s)) return attack;
+    }
+    if (a.type == ActionType::Item && !player->hasItem(a.payloadId)) return attack;
+    if (a.type == ActionType::Skip) return attack;
+
+    // Павшего союзника не лечим — лечим самого раненого из живых. Павшего врага добьёт resolveTargets
+    if (a.targetType == TargetType::Ally)
+    {
+        const auto& party = player->getHeroes();
+        const bool targetAlive = a.targetIndex >= 0 && a.targetIndex < static_cast<int>(party.size()) &&
+                                 party[a.targetIndex].getCurrentHp() > 0;
+        if (!targetAlive)
+        {
+            float worst = 2.0f;
+            for (int i = 0; i < static_cast<int>(party.size()); ++i)
+            {
+                if (party[i].getCurrentHp() == 0) continue;
+                const float ratio = static_cast<float>(party[i].getCurrentHp()) / std::max(1u, party[i].getMaxHp());
+                if (ratio < worst) { worst = ratio; a.targetIndex = i; }
+            }
+        }
+    }
+    return a;
 }
 
 void Battle::skipDeadHeroes()
@@ -315,6 +379,7 @@ void Battle::skipDeadHeroes()
     readyPlayers.insert(game->localPlayerId);
     playersReady++;
     state = BattleState::WaitingForHost;
+    autoUnlocked = true;                               // игрок сходил: теперь есть что повторять
 
     if ((game->isHost() && playersReady >= expectedPlayers) ||
         (!game->isHost() && !game->isConnected()))
@@ -341,6 +406,8 @@ void Battle::confirmAction(const Action& action)
     Action actionWithId = action;
     actionWithId.playerId = game->localPlayerId;
     plannedActions.push_back(actionWithId);
+    if (action.actorIndex >= 0 && action.actorIndex < static_cast<int>(lastActions.size()))
+        lastActions[action.actorIndex] = actionWithId;     // для автобоя
 
     // хост не знает инвентарь клиента, поэтому клиент списывает свой предмет сам
     if (action.type == ActionType::Item && game->isConnected() && !game->isHost())
@@ -995,6 +1062,9 @@ void Battle::run(const std::vector<int>& formation, const std::vector<int>& pool
     ui->hideBattleResults();
 
     escapable = true;
+    autoMode = false;
+    autoUnlocked = false;
+    lastActions = {};
     enemyFormation = formation;
     enemyPool = pool;
     enemyRoster = roster;

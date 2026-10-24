@@ -1,6 +1,7 @@
 #ifndef PROJECT_NAME_BATTLE_H
 #define PROJECT_NAME_BATTLE_H
 
+#include <array>
 #include <optional>
 #include <unordered_set>
 #include <vector>
@@ -38,6 +39,12 @@ public:
     [[nodiscard]] const std::vector<Enemy>& getEnemies() const;
     [[nodiscard]] int  getCurrentHeroIndex() const;
     [[nodiscard]] bool isPlayerChoosing() const;
+
+    // Автобой: каждый герой повторяет то, что игрок выбрал ему в прошлый раз.
+    // Доступен после первого хода игрока в этом бою
+    [[nodiscard]] bool canUseAuto() const { return autoUnlocked; }
+    [[nodiscard]] bool isAuto() const { return autoMode; }
+    void setAuto(bool on);
 
     void startPlayerChoose();
     void skipDeadHeroes();                             // к следующему живому герою; если таких нет, выбор окончен
@@ -115,6 +122,11 @@ private:
     int escapeChance = 40;
 
     std::vector<Action> plannedActions;
+    std::array<std::optional<Action>, 4> lastActions;  // последний выбор каждого своего героя
+    bool autoMode = false;
+    bool autoUnlocked = false;                         // игрок уже сходил в этом бою сам
+    [[nodiscard]] Action autoActionFor(int heroIndex) const;
+    void chooseAutomatically();
     int currentHeroIndex = 0;
     int currentEnemyIndex = 0;
     int currentActionIndex = 0;
