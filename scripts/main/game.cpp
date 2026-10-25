@@ -858,6 +858,9 @@ void Game::loadMaps()
                 SDL_Log("Map '%s': portal at (%d,%d) targets (%d,%d), a wall in '%s'",
                         m.name.c_str(), p.x, p.y, p.targetX, p.targetY, p.targetMap.c_str());
         }
+        for (const MapChest& c : m.chests)
+            if (c.gold <= 0 && !findItem(c.item))
+                SDL_Log("Map '%s': chest '%s' holds unknown item %d", m.name.c_str(), c.id.c_str(), c.item);
         for (const Zone& z : m.zones)
             if (!z.encounter.empty() && !GameData::instance().hasEncounter(z.encounter))
                 SDL_Log("Map '%s': zone '%s' uses unknown encounter group '%s'",
@@ -974,6 +977,8 @@ void Game::talk()
 
     // Как в FF1: с продавцом говорят через прилавок — если перед нами стена, смотрим на клетку за ней
     Point at = stepTo(m.cell, m.dir);
+    if (const MapChest* chest = currentMap->chestAt(at.x, at.y)) { openChest(*chest); return; }
+    if (lockedFor(*currentMap, at)) { showDialog("", {tr("The door is locked.")}); return; }
     NotGamePerson* npc = npcAt(m.mapId, at);
     if (!npc && currentMap->inside(at.x, at.y) && !currentMap->isWalkable(at.x, at.y))
         npc = npcAt(m.mapId, stepTo(at, m.dir));
@@ -982,6 +987,40 @@ void Game::talk()
     static const Direction back[] = {Direction::Down, Direction::Up, Direction::Right, Direction::Left};
     npc->setFacing(back[static_cast<int>(m.dir)]);                // поворачивается к нам
     npc->talk(*this);
+}
+
+namespace {
+    std::string chestFlag(const MapData& map, const MapChest& chest) { return "chest." + map.name + "." + chest.id; }
+}
+
+bool Game::chestOpened(const MapData& map, const MapChest& chest) const
+{
+    return story->flag(chestFlag(map, chest));
+}
+
+bool Game::lockedFor(const MapData& map, Point cell) const
+{
+    const MapLock* lock = map.lockAt(cell.x, cell.y);
+    return lock && !players.at(0).hasItem(lock->key);
+}
+
+void Game::openChest(const MapChest& chest)
+{
+    if (chestOpened(*currentMap, chest)) { showDialog("", {tr("The chest is empty.")}); return; }
+    story->setFlag(chestFlag(*currentMap, chest), true);   // открыт для всех: флаг уходит напарникам
+    Player& me = players.at(0);
+    if (chest.gold > 0)
+    {
+        me.setPlayerGold(me.getPlayerGold() + static_cast<uint32_t>(chest.gold));
+        showDialog("", {trf("Found {0} gil!", {std::to_string(chest.gold)})});
+        return;
+    }
+    const Item* item = findItem(chest.item);
+    if (!item) { SDL_Log("Map '%s': chest '%s' holds unknown item %d", currentMap->name.c_str(), chest.id.c_str(), chest.item); return; }
+    me.addItem(chest.item, static_cast<uint8_t>(std::clamp(chest.count, 1, 99)));
+    sendPartyInfo();
+    const std::string name = chest.count > 1 ? item->name + " x" + std::to_string(chest.count) : item->name;
+    showDialog("", {trf("Received {0}!", {name})});
 }
 
 void Game::showDialog(const std::string& speaker, const std::vector<std::string>& lines)
@@ -1530,7 +1569,8 @@ void Game::update(float dt)
         // Проходимость зависит от транспорта: пешком суша, на корабле море, в воздухе всё
         const Vehicle riding = me.getRiding();
         auto passable = [&](Point t) {
-            return canEnter(*currentMap, riding, m.cell, t.x, t.y, me.getVehicles(), m.mapId) && !npcAt(m.mapId, t);
+            return canEnter(*currentMap, riding, m.cell, t.x, t.y, me.getVehicles(), m.mapId) && !npcAt(m.mapId, t) &&
+                   !lockedFor(*currentMap, t);
         };
         const Point finishedFrom = stepFrom;           // новый шаг может начаться в этом же кадре и затереть его
         const bool fading = fadePhase != Fade::None;

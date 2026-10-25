@@ -606,6 +606,11 @@ void UIManager::drawMapWorld()
             r->drawWater(visualizer.getRenderer(), camX, camY, scr.w, scr.h, PIXEL_SCALE, SDL_GetTicks());
     }
 
+    if (SDL_Texture* open = ResourceManager::getTexture("ChestOpen"))
+        for (const MapChest& c : map.chests)
+            if (seen({c.x, c.y}) && game.chestOpened(map, c))
+                visualizer.drawSprite(open, c.x * CELL_PX - camX + CELL_PX / 2, (c.y + 1) * CELL_PX - camY, PIXEL_SCALE);
+
     // Проходимые объекты (мосты) лежат на земле: герой ходит по ним сверху
     for (const Prop& p : map.props)
         if (p.collision != PropCollision::Solid) drawProp(p, camX, camY);
@@ -2641,6 +2646,7 @@ std::vector<int> UIManager::equipCandidates() const
 std::string UIManager::itemDescription(const Item& item) const
 {
     if (item.keyItem) return item.info.empty() ? tr("Key item") : tr(item.info);
+    if (!item.info.empty()) return tr(item.info);                       // описание из items.json важнее общего
     if (item.isEquipment())
     {
         std::string s = tr(equipSlotName(item.slot));
@@ -2724,13 +2730,29 @@ void UIManager::useItemOn(int heroIndex)
     auto& heroes = player.getLinkTOHeroes();
     if (heroIndex >= static_cast<int>(heroes.size())) return;
 
-    if (!applyFieldEffect(heroes[heroIndex], item.effectType == ItemEffectType::RestoreMana, item.power))
+    if (item.targetType == TargetType::AllAllies)
     {
-        showMenuNotice(tr("No effect"));
-        return;
+        bool any = false;
+        for (auto& h : heroes)
+        {
+            const bool hp = applyFieldEffect(h, false, item.power);
+            const bool mp = applyFieldEffect(h, true, item.power);       // Коттедж: и HP, и MP
+            any = any || hp || mp;
+        }
+        if (!any) { showMenuNotice(tr("No effect")); return; }
+        player.consumeItem(item.id);
+        showMenuNotice(trf("{0} used on the party", {item.name}));
     }
-    player.consumeItem(item.id);
-    showMenuNotice(trf("{0} used on {1}", {item.name, heroes[heroIndex].getName()}));
+    else
+    {
+        if (!applyFieldEffect(heroes[heroIndex], item.effectType == ItemEffectType::RestoreMana, item.power))
+        {
+            showMenuNotice(tr("No effect"));
+            return;
+        }
+        player.consumeItem(item.id);
+        showMenuNotice(trf("{0} used on {1}", {item.name, heroes[heroIndex].getName()}));
+    }
     if (!player.hasItem(item.id))                                  // кончились: назад к списку
     {
         menuPage = MenuPage::Items;

@@ -10,7 +10,7 @@
  "type": "map",
  "version": "1.10",
  "width": 53,
- "nextlayerid": 11,
+ "nextlayerid": 13,
  "nextobjectid": 200,
  "properties": [
   {
@@ -3034,6 +3034,174 @@
      "width": 144,
      "x": 480,
      "y": 416
+    }
+   ],
+   "opacity": 1,
+   "type": "objectgroup",
+   "visible": true,
+   "x": 0,
+   "y": 0
+  },
+  {
+   "draworder": "topdown",
+   "id": 11,
+   "name": "chests",
+   "objects": [
+    {
+     "height": 16,
+     "id": 300,
+     "name": "chest1",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 400,
+     "y": 224,
+     "properties": [
+      {
+       "name": "item",
+       "type": "int",
+       "value": 181
+      }
+     ]
+    },
+    {
+     "height": 16,
+     "id": 301,
+     "name": "chest2",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 416,
+     "y": 224,
+     "properties": [
+      {
+       "name": "item",
+       "type": "int",
+       "value": 122
+      }
+     ]
+    },
+    {
+     "height": 16,
+     "id": 302,
+     "name": "chest3",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 432,
+     "y": 224,
+     "properties": [
+      {
+       "name": "item",
+       "type": "int",
+       "value": 303
+      }
+     ]
+    },
+    {
+     "height": 16,
+     "id": 303,
+     "name": "chest4",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 512,
+     "y": 224,
+     "properties": [
+      {
+       "name": "item",
+       "type": "int",
+       "value": 172
+      }
+     ]
+    },
+    {
+     "height": 16,
+     "id": 304,
+     "name": "chest5",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 528,
+     "y": 224,
+     "properties": [
+      {
+       "name": "item",
+       "type": "int",
+       "value": 162
+      }
+     ]
+    },
+    {
+     "height": 16,
+     "id": 305,
+     "name": "chest6",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 544,
+     "y": 224,
+     "properties": [
+      {
+       "name": "item",
+       "type": "int",
+       "value": 161
+      }
+     ]
+    }
+   ],
+   "opacity": 1,
+   "type": "objectgroup",
+   "visible": true,
+   "x": 0,
+   "y": 0
+  },
+  {
+   "draworder": "topdown",
+   "id": 12,
+   "name": "locks",
+   "objects": [
+    {
+     "height": 16,
+     "id": 400,
+     "name": "lock1",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 416,
+     "y": 288,
+     "properties": [
+      {
+       "name": "key",
+       "type": "int",
+       "value": 302
+      }
+     ]
+    },
+    {
+     "height": 16,
+     "id": 401,
+     "name": "lock2",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 528,
+     "y": 288,
+     "properties": [
+      {
+       "name": "key",
+       "type": "int",
+       "value": 302
+      }
+     ]
     }
    ],
    "opacity": 1,

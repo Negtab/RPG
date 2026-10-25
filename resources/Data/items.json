@@ -5,6 +5,8 @@
   { "id": 3, "name": "Bomb",             "cost": 80,  "power": 25, "consumable": true, "effectType": "Damage",      "targetType": "Enemy", "effect": "fire" },
   { "id": 4, "name": "Attack Scroll",    "cost": 100, "power": 10, "consumable": true, "effectType": "Buff",        "targetType": "Self",  "effect": "buff" },
   { "id": 5, "name": "Weaken Scroll",    "cost": 100, "power": 10, "consumable": true, "effectType": "Debuff",      "targetType": "Enemy", "effect": "debuff" },
+  { "id": 6, "name": "Cottage",          "cost": 500, "power": 9999, "consumable": true, "effectType": "Heal",     "targetType": "AllAllies", "effect": "heal", "info": "Fully restores HP and MP of the whole party." },
+  { "id": 7, "name": "Gold Needle",      "cost": 1600, "consumable": true, "info": "Cures petrification. Statuses are not in the game yet." },
 
   // Экипировка FF1, которую продают в лавках (Pixel Remaster, цены x2: враги тут дают больше золота).
   // "slot" — Weapon, Shield, Head, Body или Arms; "classes" — кто может надеть (нет поля — все).
@@ -28,6 +30,8 @@
   { "id": 171, "name": "Mythril Hammer", "cost": 4000,  "slot": "Weapon", "attack": 12, "classes": ["Warrior", "WhiteMage"], "swing": 5, "hitEffect": "blunt" },
   { "id": 109, "name": "Staff",          "cost": 8,     "slot": "Weapon", "attack": 6,  "classes": ["Warrior", "Monk", "RedMage", "WhiteMage", "BlackMage"], "swing": 16, "hitEffect": "blunt" },
   { "id": 172, "name": "Crosier",        "cost": 320,   "slot": "Weapon", "attack": 14, "classes": ["Warrior", "Monk"], "swing": 17, "hitEffect": "blunt" },
+  { "id": 173, "name": "Werebuster",     "cost": 5000,  "slot": "Weapon", "attack": 18, "classes": ["Warrior", "Thief", "RedMage"], "swing": 22, "hitEffect": "slash" },
+  { "id": 174, "name": "Rune Blade",     "cost": 5000,  "slot": "Weapon", "attack": 18, "classes": ["Warrior", "RedMage"], "swing": 23, "hitEffect": "slash" },
 
   // Щиты
   { "id": 124, "name": "Leather Shield",  "cost": 24,     "slot": "Shield", "defence": 2, "classes": ["Warrior"] },
@@ -57,5 +61,7 @@
   { "id": 193, "name": "Protect Ring",    "cost": 32000,  "slot": "Arms", "defence": 8 },
 
   // Сюжетные предметы: "key" — не продаются и не тратятся, "info" — описание (ключ перевода)
-  { "id": 301, "name": "Lute",            "cost": 0, "key": true, "info": "An old lute kept by the royal family of Cornelia." }
+  { "id": 301, "name": "Lute",            "cost": 0, "key": true, "info": "An old lute kept by the royal family of Cornelia." },
+  { "id": 302, "name": "Mystic Key",      "cost": 0, "key": true, "info": "Opens every locked door in the world." },
+  { "id": 303, "name": "Nitro Powder",    "cost": 0, "key": true, "info": "A powerful explosive. Perhaps it could blast through rock." }
 ]

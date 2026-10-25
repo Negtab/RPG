@@ -65,6 +65,21 @@ struct Portal {
     bool hasTargetCell = false;               // нет targetX/targetY — на spawn целевой карты
 };
 
+// Сундук (слой "chests" в Tiled): клетка с нарисованным в карте сундуком. Открытый помнится флагом сюжета
+// chest.<карта>.<имя объекта> — общий для всех в коопе, сохраняется вместе с сюжетом
+struct MapChest {
+    int x = 0, y = 0;
+    std::string id;                           // имя объекта в Tiled, уникальное на карте
+    int item = 0, count = 1;                  // предмет из items.json; 0 — только золото
+    int gold = 0;
+};
+
+// Запертая дверь (слой "locks"): не пускает, пока у отряда нет ключа — предмета с id = key
+struct MapLock {
+    int x = 0, y = 0, w = 1, h = 1;
+    int key = 0;
+};
+
 // NPC, как он стоит в Tiled на слое "npcs": тайл из npcs.tsx или точка со свойством sprite
 struct NpcSpawn {
     std::string name;                         // имя объекта в Tiled: показывается в окне разговора
@@ -99,6 +114,8 @@ struct MapData {
     std::vector<NpcSpawn> npcs;
     std::vector<MapEvent> events;
     std::vector<MapRoom> rooms;
+    std::vector<MapChest> chests;
+    std::vector<MapLock> locks;
     std::vector<uint8_t> baseSolid, baseWater;         // стены и вода без объектов: для пересчёта по флагам
     std::array<std::optional<Point>, kVehicleKinds> vehicleMarkers;   // маркеры canoe, ship, airship из Tiled
 
@@ -123,6 +140,15 @@ struct MapData {
         return nullptr;
     }
     // Номер комнаты под клеткой или -1: снаружи
+    [[nodiscard]] const MapChest* chestAt(int x, int y) const {
+        for (const auto& c : chests) if (c.x == x && c.y == y) return &c;
+        return nullptr;
+    }
+    [[nodiscard]] const MapLock* lockAt(int x, int y) const {
+        for (const auto& l : locks)
+            if (x >= l.x && x < l.x + l.w && y >= l.y && y < l.y + l.h) return &l;
+        return nullptr;
+    }
     [[nodiscard]] int roomAt(int x, int y) const {
         for (size_t i = 0; i < rooms.size(); ++i)
             if (x >= rooms[i].x && x < rooms[i].x + rooms[i].w && y >= rooms[i].y && y < rooms[i].y + rooms[i].h)

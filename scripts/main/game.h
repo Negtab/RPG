@@ -149,6 +149,9 @@ class Game {
         [[nodiscard]] const std::vector<std::unique_ptr<NotGamePerson>>& npcsHere() const;   // на текущей карте
         [[nodiscard]] NotGamePerson* npcAt(int mapId, Point cell) const;
         void talk();                                  // Enter на карте: заговорить с тем, на кого смотрим
+        void openChest(const MapChest& chest);        // сундук перед героем: предмет или золото, один раз
+        [[nodiscard]] bool chestOpened(const MapData& map, const MapChest& chest) const;
+        [[nodiscard]] bool lockedFor(const MapData& map, Point cell) const;   // запертая дверь, а ключа нет
         void showDialog(const std::string& speaker, const std::vector<std::string>& lines);
         void openShop(const ShopDef& shop);
         void closeShop();

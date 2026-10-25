@@ -144,6 +144,35 @@ MapData loadMap(const std::string& path)
             m.backgroundPath = (file.parent_path() / L.at("image").get<std::string>()).lexically_normal().string();
         else if (type == "imagelayer" && name == "roomView")
             m.roomViewPath = (file.parent_path() / L.at("image").get<std::string>()).lexically_normal().string();
+        else if (type == "objectgroup" && name == "chests")
+        {
+            for (const auto& o : L.at("objects"))
+            {
+                MapChest c;
+                c.x = cellOf(o.value("x", 0.0), tw);
+                c.y = cellOf(o.value("y", 0.0), th);
+                c.id = o.value("name", std::string{});
+                c.item = prop<int>(o, "item", 0);
+                c.count = std::max(1, prop<int>(o, "count", 1));
+                c.gold = prop<int>(o, "gold", 0);
+                if (c.id.empty()) c.id = std::to_string(c.x) + "_" + std::to_string(c.y);
+                m.chests.push_back(std::move(c));
+            }
+        }
+        else if (type == "objectgroup" && name == "locks")
+        {
+            for (const auto& o : L.at("objects"))
+            {
+                MapLock l;
+                const double px = o.value("x", 0.0), py = o.value("y", 0.0);
+                l.x = cellOf(px, tw);
+                l.y = cellOf(py, th);
+                l.w = std::max(1, static_cast<int>(std::ceil((px + o.value("width", 0.0)) / tw)) - l.x);
+                l.h = std::max(1, static_cast<int>(std::ceil((py + o.value("height", 0.0)) / th)) - l.y);
+                l.key = prop<int>(o, "key", 0);
+                m.locks.push_back(l);
+            }
+        }
         else if (type == "objectgroup" && name == "rooms")
         {
             for (const auto& o : L.at("objects"))

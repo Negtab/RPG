@@ -10,7 +10,7 @@
  "type": "map",
  "version": "1.10",
  "width": 62,
- "nextlayerid": 11,
+ "nextlayerid": 13,
  "nextobjectid": 200,
  "properties": [
   {
@@ -516,7 +516,7 @@
     1,
     1,
     1,
-    1,
+    0,
     1,
     1,
     1,
@@ -567,8 +567,7 @@
     0,
     1,
     1,
-    1,
-    1,
+    0,
     1,
     1,
     1,
@@ -579,6 +578,7 @@
     1,
     1,
     1,
+    0,
     1,
     1,
     1,
@@ -629,7 +629,7 @@
     0,
     1,
     1,
-    1,
+    0,
     1,
     1,
     1,
@@ -733,9 +733,9 @@
     1,
     1,
     1,
-    1,
     0,
     0,
+    0,
     1,
     1,
     1,
@@ -790,13 +790,13 @@
     1,
     1,
     0,
-    1,
     1,
     1,
     1,
     1,
     1,
     0,
+    0,
     1,
     1,
     1,
@@ -2330,7 +2330,6 @@
     0,
     0,
     0,
-    1,
     1,
     1,
     1,
@@ -2346,6 +2345,7 @@
     0,
     0,
     0,
+    0,
     1,
     1,
     1,
@@ -2809,7 +2809,7 @@
     1,
     1,
     1,
-    1,
+    0,
     1,
     1,
     1,
@@ -2862,8 +2862,7 @@
     0,
     1,
     1,
-    1,
-    1,
+    0,
     1,
     1,
     1,
@@ -2872,6 +2871,7 @@
     1,
     1,
     1,
+    0,
     1,
     1,
     1,
@@ -2924,7 +2924,7 @@
     0,
     1,
     1,
-    1,
+    0,
     1,
     1,
     1,
@@ -3306,6 +3306,174 @@
      "width": 96,
      "x": 864,
      "y": 640
+    }
+   ],
+   "opacity": 1,
+   "type": "objectgroup",
+   "visible": true,
+   "x": 0,
+   "y": 0
+  },
+  {
+   "draworder": "topdown",
+   "id": 11,
+   "name": "chests",
+   "objects": [
+    {
+     "height": 16,
+     "id": 300,
+     "name": "chest1",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 64,
+     "y": 80,
+     "properties": [
+      {
+       "name": "item",
+       "type": "int",
+       "value": 6
+      }
+     ]
+    },
+    {
+     "height": 16,
+     "id": 301,
+     "name": "chest2",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 80,
+     "y": 80,
+     "properties": [
+      {
+       "name": "item",
+       "type": "int",
+       "value": 1
+      }
+     ]
+    },
+    {
+     "height": 16,
+     "id": 302,
+     "name": "chest3",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 64,
+     "y": 672,
+     "properties": [
+      {
+       "name": "item",
+       "type": "int",
+       "value": 131
+      }
+     ]
+    },
+    {
+     "height": 16,
+     "id": 303,
+     "name": "chest4",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 896,
+     "y": 80,
+     "properties": [
+      {
+       "name": "item",
+       "type": "int",
+       "value": 173
+      }
+     ]
+    },
+    {
+     "height": 16,
+     "id": 304,
+     "name": "chest5",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 912,
+     "y": 80,
+     "properties": [
+      {
+       "name": "item",
+       "type": "int",
+       "value": 7
+      }
+     ]
+    },
+    {
+     "height": 16,
+     "id": 305,
+     "name": "chest6",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 912,
+     "y": 672,
+     "properties": [
+      {
+       "name": "item",
+       "type": "int",
+       "value": 174
+      }
+     ]
+    }
+   ],
+   "opacity": 1,
+   "type": "objectgroup",
+   "visible": true,
+   "x": 0,
+   "y": 0
+  },
+  {
+   "draworder": "topdown",
+   "id": 12,
+   "name": "locks",
+   "objects": [
+    {
+     "height": 16,
+     "id": 400,
+     "name": "lock1",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 896,
+     "y": 128,
+     "properties": [
+      {
+       "name": "key",
+       "type": "int",
+       "value": 302
+      }
+     ]
+    },
+    {
+     "height": 16,
+     "id": 401,
+     "name": "lock2",
+     "rotation": 0,
+     "type": "",
+     "visible": true,
+     "width": 16,
+     "x": 912,
+     "y": 720,
+     "properties": [
+      {
+       "name": "key",
+       "type": "int",
+       "value": 302
+      }
+     ]
     }
    ],
    "opacity": 1,

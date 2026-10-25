@@ -10,7 +10,7 @@
  "type": "map",
  "version": "1.10",
  "width": 25,
- "nextlayerid": 11,
+ "nextlayerid": 13,
  "nextobjectid": 200,
  "properties": [
   {
@@ -1180,6 +1180,28 @@
      "y": 0
     }
    ],
+   "opacity": 1,
+   "type": "objectgroup",
+   "visible": true,
+   "x": 0,
+   "y": 0
+  },
+  {
+   "draworder": "topdown",
+   "id": 11,
+   "name": "chests",
+   "objects": [],
+   "opacity": 1,
+   "type": "objectgroup",
+   "visible": true,
+   "x": 0,
+   "y": 0
+  },
+  {
+   "draworder": "topdown",
+   "id": 12,
+   "name": "locks",
+   "objects": [],
    "opacity": 1,
    "type": "objectgroup",
    "visible": true,
