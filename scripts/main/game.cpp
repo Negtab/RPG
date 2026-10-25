@@ -25,6 +25,7 @@ static void initWalkAnimations(Player& p)
 
 namespace {
     constexpr int kDefaultEncounterRate = 8;
+    constexpr const char* kShipFlag = "got_ship";              // флаг сюжета: корабль у отряда
     constexpr uint32_t kStartGold = 800;                      // 400 гил FF1: цены в лавках у нас вдвое выше
 }
 
@@ -502,6 +503,8 @@ void Game::resetVehicles()
         if (!at) { SDL_Log("No place for the %s on the world map", vehicleName(v)); continue; }
         vehicles[vehicleIndex(v)] = {true, static_cast<uint16_t>(world.mapId), *at, Direction::Down};
     }
+    // Корабль стоит у причала Правоки, но достаётся отряду только после победы над Бикки (флаг got_ship)
+    if (!story->flag(kShipFlag)) vehicles[vehicleIndex(Vehicle::Ship)].available = false;
 }
 
 void Game::parkVehicle(Point at, uint16_t mapId)
@@ -927,6 +930,7 @@ void Game::startStoryBattle(const std::vector<int>& enemies, const std::string& 
     uiManager->setBattleBackground(background.empty() ? battleBackground(nullptr, "") : background);
     setPreviousGameState(getGameState());
     setGameState(GameState::Battle);
+    battle->setFixedFormation(true);                   // девять пиратов Бикки — все девять
     battle->run(enemies, {}, enemies);
     battle->setEscapable(false);                       // от босса не убежать, как в FF1
     uiManager->addEnemys();
@@ -955,6 +959,10 @@ void Game::onStoryChanged()
 {
     const auto flag = [this](const std::string& f) { return story->flag(f); };
     for (auto& [id, m] : maps) m.applyProps(flag);
+    // Бикки отдал корабль (у нас или у хоста в коопе): он ждёт там, куда его поставил resetVehicles
+    VehicleState& ship = players.at(0).getVehicles()[vehicleIndex(Vehicle::Ship)];
+    if (story->flag(kShipFlag) && !ship.available && players.at(0).getRiding() != Vehicle::Ship)
+        ship.available = true;
 }
 
 void Game::sendStoryState(uint8_t kind, const std::string& name, uint8_t value)

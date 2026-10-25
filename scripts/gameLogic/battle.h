@@ -54,6 +54,7 @@ public:
     [[nodiscard]] bool canEscape() const;
     [[nodiscard]] bool wasWon() const noexcept { return isWin; }
     void setEscapable(bool on) noexcept { escapable = on; }   // бой с боссом: «Бежать» не сработает
+    void setFixedFormation(bool on) noexcept { fixedFormation = on; }   // до run(): враги ровно как переданы
     [[nodiscard]] bool isEscapable() const noexcept { return escapable; }
 
     void startExecuteActions();
@@ -115,6 +116,7 @@ private:
     bool firstTurnIsPlayer = false;
     bool isWin = false;
     bool escapable = true;
+    bool fixedFormation = false;
     bool isAnimationsStarted = false;
     uint32_t animStartTicks = 0;                       // когда начался показ действия: у врагов анимации нет, держим паузу
 

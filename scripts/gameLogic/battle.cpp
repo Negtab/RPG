@@ -1001,7 +1001,9 @@ void Battle::spawnEnemies()
     const auto& data = GameData::instance();
     const int avgLvl = averageLevel();
 
-    for (int id : shapeFormation(enemyFormation, enemyRoster, avgLvl))   // 1) формация из encounters.json под уровень отряда
+    // 1) формация из encounters.json под уровень отряда; сюжетный бой — ровно как задан
+    const auto formation = fixedFormation ? enemyFormation : shapeFormation(enemyFormation, enemyRoster, avgLvl);
+    for (int id : formation)
     {
         if (static_cast<int>(enemies.size()) >= MAX_ENEMY_COUNT) break;   // в интерфейсе девять слотов
         if (data.enemy(id)) enemies.emplace_back(id, avgLvl);
@@ -1069,6 +1071,7 @@ void Battle::run(const std::vector<int>& formation, const std::vector<int>& pool
     enemyPool = pool;
     enemyRoster = roster;
     spawnEnemies();
+    fixedFormation = false;                    // следующий бой — снова обычный
     prepairUI();
     determineFirstTurn();
 

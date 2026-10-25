@@ -72,5 +72,25 @@
   "intro.1": "Long ago, four crystals kept the world in balance: Earth, Fire, Water and Wind.",
   "intro.2": "But their light has begun to fade, and a creeping darkness spreads across the land.",
   "intro.3": "The sage Lukahn foretold that in this age of darkness, four warriors bearing crystals would appear.",
-  "intro.4": "And now four young travelers stand before the kingdom of Cornelia, each holding a dim crystal..."
+  "intro.4": "And now four young travelers stand before the kingdom of Cornelia, each holding a dim crystal...",
+
+  "name.bikke": "Bikke",
+  "name.pirate": "Pirate",
+  "name.merchant": "Merchant",
+  "quest.to_elfheim": "The Elven Kingdom",
+  "quest.to_elfheim.desc": "With a ship of your own, sail south across the sea to Elfheim, the land of the elves.",
+  "bikke.1": "Well, well. Look what washed into my harbor. This town belongs to Captain Bikke now!",
+  "bikke.2": "Lads! Teach these fools what happens to anyone who crosses a pirate!",
+  "bikke.beg.1": "Stop, stop! I give up! We'll leave the town alone, I swear it on my beard!",
+  "bikke.beg.2": "Here, take my ship as well, just let me go! She's moored at the harbor.",
+  "bikke.after": "I've given up the sea for good. Treat my old ship kindly, will you?",
+  "ship.received": "The party received the ship! It waits at the Pravoka harbor.",
+  "pirate": "Arr, Captain Bikke runs this port. Get lost!",
+  "pravoka.woman": "Pirates came ashore and took over the harbor. Nobody dares go out at night.",
+  "pravoka.woman.after": "The pirates are gone! The town can finally breathe again.",
+  "pravoka.oldman.1": "Far to the south across the sea lies Elfheim, the kingdom of the elves.",
+  "pravoka.oldman.2": "They say the elf prince has fallen into an endless sleep.",
+  "pravoka.merchant": "With pirates in the harbor, no ship has left port for weeks. Business is terrible.",
+  "pravoka.merchant.after": "The harbor is open again! You can sail anywhere now, if you have a ship.",
+  "pravoka.dancer": "Welcome to Pravoka, the port town! Sailors from all over used to come here."
 }

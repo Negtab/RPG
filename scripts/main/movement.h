@@ -22,6 +22,7 @@ struct Zone {
     std::string encounter;// % на шаг
     std::vector<int> enemies;
     bool river = false;                       // по воде в этой зоне ходит каноэ, а не корабль
+    bool sea = false;                         // наоборот: узкая вода здесь — море (гавань Правоки), не река
     std::string background;                   // задник боя в зоне (BB<имя>.png); пусто — по местности
 };
 
@@ -169,6 +170,8 @@ struct MapData {
         return inside(x, y) && !water.empty() && water[static_cast<size_t>(y) * w + x];
     }
     [[nodiscard]] bool isRiver(int x, int y) const {
+        for (const auto& z : zones)
+            if (z.sea && x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1) return false;
         if (inside(x, y) && !river.empty() && river[static_cast<size_t>(y) * w + x]) return true;
         for (const auto& z : zones)
             if (z.river && x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1) return true;

@@ -212,6 +212,7 @@ MapData loadMap(const std::string& path)
                 z.enemies       = parseList(prop<std::string>(o, "enemies", ""));
                 z.encounter = prop<std::string>(o, "encounter", "");
                 z.river     = prop<bool>(o, "river", false);   // по воде здесь ходит каноэ
+                z.sea       = prop<bool>(o, "sea", false);     // а здесь — корабль, даже если вода узкая
                 z.background = prop<std::string>(o, "background", "");
                 m.zones.push_back(std::move(z));
             }
