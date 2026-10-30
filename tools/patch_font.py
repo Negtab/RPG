@@ -1,7 +1,8 @@
 """Готовит шрифт игры из Pixelify Sans (Google Fonts, лицензия OFL).
 
 В исходном шрифте нет заглавных «О» и «П», у «К» лишний штрих, а «5» не отличить от «S». «О» берём у латинской O,
-«П» рисуем по строчной «п», вытянутой до высоты заглавных.
+«П» рисуем по строчной «п», вытянутой до высоты заглавных. Строчные «ь», «ъ», «ы» в исходнике ростом с заглавные —
+перерисовываем их под высоту остальных строчных.
 Переменный шрифт фиксируем на обычной толщине (wght 400) — SDL_ttf так надёжнее.
 
     python tools/patch_font.py <PixelifySans[wght].ttf> resources/Fonts/PixelifySans.ttf
@@ -12,6 +13,41 @@ from fontTools.pens.recordingPen import RecordingPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
+
+
+def fix_soft_signs(font: TTFont) -> None:
+    """«ь», «ъ», «ы»: палочка до высоты строчных (450), чашка на ряд ниже, сетка та же, что у «в»."""
+    glyf, hmtx = font["glyf"], font["hmtx"]
+
+    def bowl(pen: TTGlyphPen, left: list) -> None:
+        pen.moveTo((151, -12))
+        for pt in [(151, 78), (60, 78)] + left + [(161, 450), (161, 359), (433, 359), (433, 268), (525, 268),
+                                                  (525, 78), (433, 78), (433, -12)]:
+            pen.lineTo(pt)
+        pen.closePath()
+        pen.moveTo((161, 88))
+        for pt in [(423, 88), (423, 258), (161, 258)]:
+            pen.lineTo(pt)
+        pen.closePath()
+
+    pen = TTGlyphPen(None)
+    bowl(pen, [(60, 450)])
+    glyf["uni044C"] = pen.glyph()
+    hmtx["uni044C"] = (hmtx["uni0432"][0], 60)
+
+    pen = TTGlyphPen(None)
+    bowl(pen, [(60, 359), (0, 359), (0, 450)])
+    glyf["uni044A"] = pen.glyph()
+    hmtx["uni044A"] = (hmtx["uni0432"][0], 0)
+
+    pen = TTGlyphPen(None)
+    bowl(pen, [(60, 450)])
+    pen.moveTo((605, -12))
+    for pt in [(605, 450), (706, 450), (706, -12)]:
+        pen.lineTo(pt)
+    pen.closePath()
+    glyf["uni044B"] = pen.glyph()
+    hmtx["uni044B"] = (hmtx["uni044B"][0], 60)
 
 
 def main(src: str, dst: str) -> None:
@@ -51,6 +87,8 @@ def main(src: str, dst: str) -> None:
         pen.lineTo(pt)
     pen.closePath()
     add("uni041F", pen.glyph(), hmtx["uni041D"])
+
+    fix_soft_signs(font)
 
     for table in font["cmap"].tables:
         if table.isUnicode():
