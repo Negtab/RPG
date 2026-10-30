@@ -73,6 +73,7 @@ struct MapChest {
     std::string id;                           // имя объекта в Tiled, уникальное на карте
     int item = 0, count = 1;                  // предмет из items.json; 0 — только золото
     int gold = 0;
+    std::string script;                       // сундук под охраной: сцена event.<script> вместо обычного открытия
 };
 
 // Запертая дверь (слой "locks"): не пускает, пока у отряда нет ключа — предмета с id = key

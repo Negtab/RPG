@@ -155,6 +155,7 @@ MapData loadMap(const std::string& path)
                 c.item = prop<int>(o, "item", 0);
                 c.count = std::max(1, prop<int>(o, "count", 1));
                 c.gold = prop<int>(o, "gold", 0);
+                c.script = prop<std::string>(o, "script", "");
                 if (c.id.empty()) c.id = std::to_string(c.x) + "_" + std::to_string(c.y);
                 m.chests.push_back(std::move(c));
             }

@@ -28,6 +28,9 @@
     "goods": [124, 142, 143, 181, 151] },
 
   // ── Эльфхейм ──
+  { "id": "elfheim_item_shop", "kind": "item", "title": "Item Shop",
+    "greeting": "Welcome! How may I help you?",
+    "goods": [1, 8, 2, 3, 10, 11, 12, 7, 14, 6] },
   { "id": "elfheim_weapon_shop", "kind": "weapon", "title": "Weapon Shop",
     "greeting": "Welcome! Looking for a weapon?",
     "goods": [102, 162, 105, 167, 172] },
@@ -78,7 +81,9 @@
 
   // ── Гостиница: ночлег лечит живых и предлагает сохраниться. Церковь поднимает павших с 1 HP ──
   { "id": "cornelia_inn", "kind": "inn", "title": "Inn", "greeting": "", "price": 60 },
+  { "id": "elfheim_inn", "kind": "inn", "title": "Inn", "greeting": "", "price": 200 },
   { "id": "pravoka_inn", "kind": "inn", "title": "Inn", "greeting": "", "price": 100 },
   { "id": "cornelia_church", "kind": "church", "title": "Church", "greeting": "", "price": 80 },
+  { "id": "elfheim_church", "kind": "church", "title": "Church", "greeting": "", "price": 400 },
   { "id": "pravoka_church", "kind": "church", "title": "Church", "greeting": "", "price": 80 }
 ]

@@ -862,7 +862,7 @@ void Game::loadMaps()
                         m.name.c_str(), p.x, p.y, p.targetX, p.targetY, p.targetMap.c_str());
         }
         for (const MapChest& c : m.chests)
-            if (c.gold <= 0 && !findItem(c.item))
+            if (c.gold <= 0 && c.script.empty() && !GameData::instance().items().contains(c.item))
                 SDL_Log("Map '%s': chest '%s' holds unknown item %d", m.name.c_str(), c.id.c_str(), c.item);
         for (const Zone& z : m.zones)
             if (!z.encounter.empty() && !GameData::instance().hasEncounter(z.encounter))
@@ -1015,6 +1015,11 @@ bool Game::lockedFor(const MapData& map, Point cell) const
 void Game::openChest(const MapChest& chest)
 {
     if (chestOpened(*currentMap, chest)) { showDialog("", {tr("The chest is empty.")}); return; }
+    if (!chest.script.empty())                         // под охраной: сцена сама даст бой и откроет сундук
+    {
+        story->start("event", chest.script);
+        return;
+    }
     story->setFlag(chestFlag(*currentMap, chest), true);   // открыт для всех: флаг уходит напарникам
     Player& me = players.at(0);
     if (chest.gold > 0)

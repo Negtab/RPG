@@ -37,6 +37,7 @@
   { "id": 171, "name": "Mythril Hammer", "cost": 4000,  "slot": "Weapon", "attack": 12, "classes": ["Warrior", "WhiteMage"], "swing": 5, "hitEffect": "blunt" },
   { "id": 109, "name": "Staff",          "cost": 8,     "slot": "Weapon", "attack": 6,  "classes": ["Warrior", "Monk", "RedMage", "WhiteMage", "BlackMage"], "swing": 16, "hitEffect": "blunt" },
   { "id": 172, "name": "Crosier",        "cost": 320,   "slot": "Weapon", "attack": 14, "classes": ["Warrior", "Monk"], "swing": 17, "hitEffect": "blunt" },
+  { "id": 175, "name": "Power Staff",    "cost": 6000,  "slot": "Weapon", "attack": 12, "classes": ["Warrior", "Monk", "RedMage", "WhiteMage", "BlackMage"], "swing": 16, "hitEffect": "blunt" },
   { "id": 173, "name": "Werebuster",     "cost": 5000,  "slot": "Weapon", "attack": 18, "classes": ["Warrior", "Thief", "RedMage"], "swing": 22, "hitEffect": "slash" },
   { "id": 174, "name": "Rune Blade",     "cost": 5000,  "slot": "Weapon", "attack": 18, "classes": ["Warrior", "RedMage"], "swing": 23, "hitEffect": "slash" },
 
@@ -70,5 +71,8 @@
   // Сюжетные предметы: "key" — не продаются и не тратятся, "info" — описание (ключ перевода)
   { "id": 301, "name": "Lute",            "cost": 0, "key": true, "info": "An old lute kept by the royal family of Cornelia." },
   { "id": 302, "name": "Mystic Key",      "cost": 0, "key": true, "info": "Opens every locked door in the world." },
-  { "id": 303, "name": "Nitro Powder",    "cost": 0, "key": true, "info": "A powerful explosive. Perhaps it could blast through rock." }
+  { "id": 303, "name": "Nitro Powder",    "cost": 0, "key": true, "info": "A powerful explosive. Perhaps it could blast through rock." },
+  { "id": 304, "name": "Crown",           "cost": 0, "key": true, "info": "A crown of the old kings, heavy with dark magic." },
+  { "id": 305, "name": "Crystal Eye",     "cost": 0, "key": true, "info": "The eye of the witch Matoya. It glows faintly." },
+  { "id": 306, "name": "Jolt Tonic",      "cost": 0, "key": true, "info": "A tonic strong enough to break a sleeping curse." }
 ]
