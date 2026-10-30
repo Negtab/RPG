@@ -86,7 +86,91 @@
          "draworder":"topdown",
          "id":4,
          "name":"portals",
-         "objects":[],
+         "objects":[
+                {
+                 "height":16,
+                 "id":50,
+                 "name":"pravoka_inn",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":432,
+                 "y":144
+                }, 
+                {
+                 "height":16,
+                 "id":51,
+                 "name":"pravoka_white_magic",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":656,
+                 "y":160
+                }, 
+                {
+                 "height":16,
+                 "id":52,
+                 "name":"pravoka_church",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":544,
+                 "y":240
+                }, 
+                {
+                 "height":16,
+                 "id":53,
+                 "name":"pravoka_armor_shop",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":368,
+                 "y":384
+                }, 
+                {
+                 "height":16,
+                 "id":54,
+                 "name":"pravoka_item_shop",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":208,
+                 "y":448
+                }, 
+                {
+                 "height":16,
+                 "id":55,
+                 "name":"pravoka_weapon_shop",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":624,
+                 "y":384
+                }, 
+                {
+                 "height":16,
+                 "id":56,
+                 "name":"pravoka_black_magic",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":688,
+                 "y":352
+                }],
          "opacity":1,
          "type":"objectgroup",
          "visible":true,
@@ -255,8 +339,8 @@
                  "type":"",
                  "visible":true,
                  "width":16,
-                 "x":208,
-                 "y":464
+                 "x":272,
+                 "y":496
                 }, 
                 {
                  "gid":102,
@@ -311,7 +395,7 @@
          "y":0
         }],
  "nextlayerid":8,
- "nextobjectid":40,
+ "nextobjectid":60,
  "orientation":"orthogonal",
  "properties":[
         {

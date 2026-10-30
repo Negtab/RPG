@@ -17,6 +17,9 @@
     "goods": [141, 142, 143] },
 
   // ── Правока ──
+  { "id": "pravoka_item_shop", "kind": "item", "title": "Item Shop",
+    "greeting": "Welcome! How may I help you?",
+    "goods": [1, 2, 3, 6] },
   { "id": "pravoka_weapon_shop", "kind": "weapon", "title": "Weapon Shop",
     "greeting": "Welcome! Looking for a weapon?",
     "goods": [163, 165, 168, 170] },
@@ -73,5 +76,7 @@
 
   // ── Гостиница: ночлег лечит живых и предлагает сохраниться. Церковь поднимает павших с 1 HP ──
   { "id": "cornelia_inn", "kind": "inn", "title": "Inn", "greeting": "", "price": 60 },
-  { "id": "cornelia_church", "kind": "church", "title": "Church", "greeting": "", "price": 80 }
+  { "id": "pravoka_inn", "kind": "inn", "title": "Inn", "greeting": "", "price": 100 },
+  { "id": "cornelia_church", "kind": "church", "title": "Church", "greeting": "", "price": 80 },
+  { "id": "pravoka_church", "kind": "church", "title": "Church", "greeting": "", "price": 80 }
 ]

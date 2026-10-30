@@ -42,3 +42,7 @@ end
 function npc.pravoka_dancer()
     say("dancer", "pravoka.dancer")
 end
+
+function npc.pravoka_white_mage()
+    say("whitemage", "pravoka.whitemage")
+end
