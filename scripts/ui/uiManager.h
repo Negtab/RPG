@@ -246,6 +246,7 @@ private:
     void initGameMenuScene();
     void updateMenuButtons();
     void drawSavesScreen();
+    [[nodiscard]] static std::string statusTags(const GamePerson& p);   // «Яд, Сон» для экранов
     void drawGameOver();
     void drawIntro();
     Uint32 gameOverStart = 0;                                  // когда показали Game Over

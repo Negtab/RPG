@@ -68,6 +68,7 @@ class Game {
         void leaveGameOver();                         // с экрана Game Over — к выбору сохранения (или в меню)
         void finishIntro();                           // заставка новой игры кончилась или пропущена
         void autosave();                              // слот 0: при смене карты и в начале новой игры
+        bool castFieldSpell(FieldSpell spell);        // Выход и Телепорт; false — здесь не работает
         [[nodiscard]] std::string currentLocation() const;          // английское название — ключ перевода
         [[nodiscard]] static std::string locationName(const std::string& map);
         [[nodiscard]] uint32_t getPlaySeconds() const { return static_cast<uint32_t>(playSeconds); }

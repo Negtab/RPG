@@ -296,7 +296,7 @@ void ResourceManager::initialize()
 }
 
 constexpr uint32_t kSaveMagic   = 0x504C5952;   // 'PLYR'
-constexpr uint32_t kSaveVersion = 9;            // 2: координаты в клетках + mapId; 3: герои; 4: локация, время игры, дата; 5: экипировка; 6: транспорт; 7: посещённые места; 8: выученные заклинания; 9: сюжет
+constexpr uint32_t kSaveVersion = 10;            // 2: координаты в клетках + mapId; 3: герои; 4: локация, время игры, дата; 5: экипировка; 6: транспорт; 7: посещённые места; 8: выученные заклинания; 9: сюжет; 10: статусы героев
 constexpr uint64_t kMaxString   = 1024;
 constexpr uint64_t kMaxCount    = 100000;
 
@@ -334,6 +334,7 @@ struct SaveData
 {
     struct Hero
     {
+        uint16_t statuses = 0;
         uint8_t cls = 0, level = 1; uint32_t exp = 0, hp = 0, mp = 0; std::string name;
         std::array<int32_t, kEquipSlots> equipment{};
         bool hasEquipment = false;                       // до версии 5 экипировки не было: выдадим стартовую
@@ -420,6 +421,7 @@ SaveData readSaveFile(const std::string& path)
                 for (auto& id : s.equipment) readPod(in, id);
                 s.hasEquipment = true;
             }
+            if (version >= 10) readPod(in, s.statuses);
             if (s.cls >= kClassCount || s.level < 1 || s.level > 99)
                 throw std::runtime_error("save file is corrupted (hero data)");
             d.heroes.push_back(std::move(s));
@@ -542,6 +544,7 @@ bool ResourceManager::savePlayer(const std::string& path, const Player& player, 
             writeString(out, h.getName());
             for (int id : h.getEquipment())
                 writePod<int32_t>(out, id);
+            writePod<uint16_t>(out, h.getStatuses());
         }
 
         writeString(out, meta.location.substr(0, kMaxString));
@@ -628,6 +631,7 @@ bool ResourceManager::loadPlayer(const std::string& path, Player& player, SaveMe
         hero.setExperience(s.exp);
         hero.setCurrentHp(s.hp);
         hero.setCurrentMp(s.mp);
+        hero.setStatuses(s.statuses & kLastingStatuses);
         if (!s.name.empty()) hero.setName(s.name);
         for (int id : s.spells)                              // заклинания, которых больше нет в skills.json, пропадают
             if (const auto it = GameData::instance().skills().find(id); it != GameData::instance().skills().end())

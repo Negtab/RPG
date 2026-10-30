@@ -26,14 +26,23 @@ const std::vector<std::pair<std::string, TargetType>> kTargets = {
 
 const std::vector<std::pair<std::string, SkillEffectType>> kSkillEffects = {
     {"Damage", SkillEffectType::Damage}, {"Heal", SkillEffectType::Heal}, {"Buff", SkillEffectType::Buff},
-    {"Debuff", SkillEffectType::Debuff}, {"Revive", SkillEffectType::Revive}, {"None", SkillEffectType::None}};
+    {"Debuff", SkillEffectType::Debuff}, {"Revive", SkillEffectType::Revive}, {"None", SkillEffectType::None},
+    {"Status", SkillEffectType::Status}, {"Cure", SkillEffectType::Cure}, {"Kill", SkillEffectType::Kill},
+    {"Ward", SkillEffectType::Ward}, {"Dispel", SkillEffectType::Dispel}, {"Field", SkillEffectType::Field}};
+
+const std::vector<std::pair<std::string, Status>> kStatuses = {
+    {"Poison", Status::Poison}, {"Blind", Status::Blind}, {"Sleep", Status::Sleep}, {"Paralysis", Status::Paralysis},
+    {"Silence", Status::Silence}, {"Confusion", Status::Confusion}, {"Stone", Status::Stone},
+    {"Slow", Status::Slow}, {"Haste", Status::Haste}};
 
 const std::vector<std::pair<std::string, BattleStat>> kStats = {
-    {"attack", BattleStat::Attack}, {"defence", BattleStat::Defence}};
+    {"attack", BattleStat::Attack}, {"defence", BattleStat::Defence},
+    {"evasion", BattleStat::Evasion}, {"accuracy", BattleStat::Accuracy}};
 
 const std::vector<std::pair<std::string, ItemEffectType>> kItemEffects = {
     {"Heal", ItemEffectType::Heal}, {"Damage", ItemEffectType::Damage}, {"Buff", ItemEffectType::Buff},
-    {"Debuff", ItemEffectType::Debuff}, {"RestoreMana", ItemEffectType::RestoreMana}, {"None", ItemEffectType::None}};
+    {"Debuff", ItemEffectType::Debuff}, {"RestoreMana", ItemEffectType::RestoreMana}, {"None", ItemEffectType::None},
+    {"Cure", ItemEffectType::Cure}, {"Revive", ItemEffectType::Revive}};
 
 const std::vector<std::pair<std::string, EquipSlot>> kSlots = {
     {"Weapon", EquipSlot::Weapon}, {"Shield", EquipSlot::Shield}, {"Head", EquipSlot::Head},
@@ -186,6 +195,13 @@ void GameData::loadSkills(const fs::path& path)
         s.isDamaging  = s.effectType == SkillEffectType::Damage;
         s.effect      = e.value("effect", std::string{});
         if (e.contains("stat")) s.stat = getEnum(e, "stat", kStats);
+        if (e.contains("status")) s.status = getEnum(e, "status", kStatuses);
+        s.chance     = getIntOr(e, "chance", 0, 100, 100);
+        s.hpLimit    = getIntOr(e, "hpLimit", 0, 1000000, 0);
+        s.onlyUndead = e.value("onlyUndead", false);
+        s.wards      = getElementals(e, "wards");
+        if (const std::string f = e.value("field", std::string{}); !f.empty())
+            s.field = f == "exit" ? FieldSpell::Exit : FieldSpell::Back;
         if (e.contains("spellLevel"))                            // заклинание лавки магии
         {
             s.spellLevel = getInt(e, "spellLevel", 1, kSpellLevels);
@@ -225,6 +241,8 @@ void GameData::loadItems(const fs::path& path)
         it.startCount = getIntOr(e, "start", 0, 99, 0);
         it.effect     = e.value("effect", std::string{});
         it.keyItem    = e.value("key", false);
+        it.worldOnly  = e.value("worldOnly", false);
+        if (e.contains("status")) it.status = getEnum(e, "status", kStatuses);
         it.info       = e.value("info", std::string{});
         it.hitEffect  = e.value("hitEffect", std::string{});
         it.swing      = getIntOr(e, "swing", -1, 999, -1);
@@ -257,6 +275,10 @@ void GameData::loadEnemies(const fs::path& path)
         d.resists         = getElementals(e, "resists");
         d.immunities      = getElementals(e, "immunities");
         d.vulnerabilities = getElementals(e, "vulnerabilities");
+        d.boss            = e.value("boss", false);
+        d.undead          = e.value("undead", false);
+        if (e.contains("hitStatus")) d.hitStatus = getEnum(e, "hitStatus", kStatuses);
+        d.hitChance       = getIntOr(e, "hitChance", 0, 100, 0);
 
         if (e.contains("abilities"))
             for (const auto& a : e.at("abilities"))

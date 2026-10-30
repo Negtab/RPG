@@ -5,8 +5,15 @@
   { "id": 3, "name": "Bomb",             "cost": 80,  "power": 25, "consumable": true, "effectType": "Damage",      "targetType": "Enemy", "effect": "fire" },
   { "id": 4, "name": "Attack Scroll",    "cost": 100, "power": 10, "consumable": true, "effectType": "Buff",        "targetType": "Self",  "effect": "buff" },
   { "id": 5, "name": "Weaken Scroll",    "cost": 100, "power": 10, "consumable": true, "effectType": "Debuff",      "targetType": "Enemy", "effect": "debuff" },
-  { "id": 6, "name": "Cottage",          "cost": 500, "power": 9999, "consumable": true, "effectType": "Heal",     "targetType": "AllAllies", "effect": "heal", "info": "Fully restores HP and MP of the whole party." },
-  { "id": 7, "name": "Gold Needle",      "cost": 1600, "consumable": true, "info": "Cures petrification. Statuses are not in the game yet." },
+  { "id": 6, "name": "Cottage",          "cost": 500, "power": 9999, "consumable": true, "effectType": "Heal",     "targetType": "AllAllies", "effect": "heal", "worldOnly": true, "info": "Fully restores HP and MP of the whole party. World map only." },
+  { "id": 7, "name": "Gold Needle",      "cost": 1600, "consumable": true, "effectType": "Cure", "status": "Stone", "targetType": "Ally", "info": "Cures petrification." },
+  { "id": 8, "name": "Hi-Potion",        "cost": 300,  "power": 80, "consumable": true, "effectType": "Heal", "targetType": "Self", "effect": "heal" },
+  { "id": 9, "name": "Phoenix Down",     "cost": 1000, "power": 50, "consumable": true, "effectType": "Revive", "targetType": "Ally", "info": "Revives a fallen ally." },
+  { "id": 10, "name": "Antidote",        "cost": 80,   "consumable": true, "effectType": "Cure", "status": "Poison", "targetType": "Ally", "info": "Cures poison." },
+  { "id": 11, "name": "Eye Drops",       "cost": 60,   "consumable": true, "effectType": "Cure", "status": "Blind", "targetType": "Ally", "info": "Cures blindness." },
+  { "id": 12, "name": "Echo Herbs",      "cost": 100,  "consumable": true, "effectType": "Cure", "status": "Silence", "targetType": "Ally", "info": "Cures silence." },
+  { "id": 13, "name": "Sleeping Bag",    "cost": 100,  "power": 40, "consumable": true, "effectType": "Heal", "targetType": "AllAllies", "effect": "heal", "worldOnly": true, "info": "Restores a little HP and MP to the party. World map only." },
+  { "id": 14, "name": "Tent",            "cost": 300,  "power": 150, "consumable": true, "effectType": "Heal", "targetType": "AllAllies", "effect": "heal", "worldOnly": true, "info": "Restores HP and MP to the party. World map only." },
 
   // Экипировка FF1, которую продают в лавках (Pixel Remaster, цены x2: враги тут дают больше золота).
   // "slot" — Weapon, Shield, Head, Body или Arms; "classes" — кто может надеть (нет поля — все).

@@ -32,6 +32,10 @@ struct EnemyDef
     SDL_Rect srcRect{0, 0, 0, 0};
     Growth hp, attack, defence, agility, exp, gold;
     int hits = 1;           // ударов обычной атакой за ход
+    bool boss = false;      // не поддаётся статусам и мгновенной смерти
+    bool undead = false;    // нежить: Диа бьёт только её
+    Status hitStatus = Status::None;   // статус от обычного удара (паралич Упыря, яд Кобры)
+    int hitChance = 0;
     std::vector<Elemental> resists, immunities, vulnerabilities;
     std::vector<EnemyAbility> abilities;
 };

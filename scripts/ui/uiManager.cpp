@@ -774,7 +774,7 @@ void UIManager::updateBattleData(Scene &scene)
             const auto &hero = heroes[i];
             remoteHeroText += statusLine(hero.getName(), hero);
             const std::string img = "Image" + std::to_string(heroLook(hero.getClass()))
-                                    + (hero.getCurrentHp() <= 0 ? "Dead" : "");
+                                    + (hero.getCurrentHp() <= 0 || hero.hasStatus(Status::Stone) ? "Dead" : "");
             setTexture("RemoteHero" + std::to_string(slot + 1), "Battle", ResourceManager::getTexture(img));
             trackHp(lastRemoteHp[slot], static_cast<int>(hero.getCurrentHp()), remoteSlotRect[slot]);
         }
@@ -795,7 +795,7 @@ void UIManager::updateBattleData(Scene &scene)
         heroText += statusLine(hero.getName(), hero);
         const std::string id = "Hero" + std::to_string(i + 1);
         const std::string img = "Image" + std::to_string(heroLook(hero.getClass()))
-                                + (hero.getCurrentHp() <= 0 ? "Dead" : "");
+                                + (hero.getCurrentHp() <= 0 || hero.hasStatus(Status::Stone) ? "Dead" : "");
         setTexture(id, "Battle", ResourceManager::getTexture(img));
         SDL_Rect r = heroSlotRect[i];
         if (i == active) r.x -= 8 * PIXEL_SCALE;
@@ -1019,7 +1019,8 @@ bool UIManager::hasUsableSkill() const
     if (i < 0 || i >= static_cast<int>(player.getHeroes().size())) return false;
     const Hero& hero = player.getHeroes()[i];
     for (const auto& s : hero.getAvailableSkills())
-        if (hero.canCast(game.getSkill(s.skillId))) return true;
+        if (hero.canCast(game.getSkill(s.skillId)) && game.getSkill(s.skillId).effectType != SkillEffectType::Field)
+            return true;
     return false;
 }
 
@@ -1129,7 +1130,7 @@ void UIManager::initMagic()
         const Skill& skill = game.getSkill(skills[i].skillId);
         std::string info = std::to_string(skill.manaCost) + " MP";
         if (skills[i].cooldownLeft > 0) info = "CD " + std::to_string(skills[i].cooldownLeft);
-        setListEntry(i, skill.name, info, hero.canCast(skill),
+        setListEntry(i, skill.name, info, hero.canCast(skill) && skill.effectType != SkillEffectType::Field,
                      [this, skillId = skill.id]() { onEnvironmentCLick(skillId, true); });
     }
 }
@@ -1162,7 +1163,8 @@ void UIManager::onEnvironmentCLick(int id, bool isMagic)
         pendingAction.type = ActionType::Item;
         pendingAction.targetType = game.getItem(id).targetType;
     }
-    targetFallen = isMagic && game.getSkill(id).effectType == SkillEffectType::Revive;   // Жизнь — в павшего
+    targetFallen = isMagic ? game.getSkill(id).effectType == SkillEffectType::Revive     // Жизнь — в павшего
+                           : game.getItem(id).effectType == ItemEffectType::Revive;
 
     // Любая цель, даже «на себя» и «на всех», подтверждается: курсоры показывают, кого заденет, Esc отменяет
     uiState = UIChooseState::ChooseTarget;
@@ -1502,8 +1504,13 @@ std::string UIManager::effectForSkill(const Skill& skill)
     switch (skill.effectType)
     {
         case SkillEffectType::Heal:   return "heal";
-        case SkillEffectType::Buff:   return "buff";
-        case SkillEffectType::Debuff: return "debuff";
+        case SkillEffectType::Cure:   return "heal";
+        case SkillEffectType::Buff:
+        case SkillEffectType::Ward:   return "buff";
+        case SkillEffectType::Debuff:
+        case SkillEffectType::Kill:
+        case SkillEffectType::Dispel: return "debuff";
+        case SkillEffectType::Status: return skill.friendly() ? "buff" : skill.status == Status::Poison ? "poison" : "debuff";
         default: break;
     }
     switch (skill.element)
@@ -1521,7 +1528,9 @@ std::string UIManager::effectForItem(const Item& item)
     if (!item.effect.empty()) return item.effect;
     switch (item.effectType)
     {
-        case ItemEffectType::Heal:        return "heal";
+        case ItemEffectType::Heal:
+        case ItemEffectType::Cure:
+        case ItemEffectType::Revive:      return "heal";
         case ItemEffectType::RestoreMana: return "mana";
         case ItemEffectType::Damage:      return "fire";
         case ItemEffectType::Buff:        return "buff";
@@ -1530,10 +1539,29 @@ std::string UIManager::effectForItem(const Item& item)
     }
 }
 
+std::string UIManager::statusTags(const GamePerson& p)
+{
+    std::string out;
+    for (Status s : kAllStatuses)
+        if (p.hasStatus(s)) out += (out.empty() ? "" : ", ") + tr(statusName(s));
+    return out;
+}
+
 void UIManager::drawBattleOverlay()
 {
     const Uint32 now = SDL_GetTicks();
     const int bob = (now / 220) % 2 * 3;                     // стрелка «дышит» на 3 px
+
+    // Статусы — над фигурами героев и врагов
+    const SDL_Color statusColor{255, 214, 110, 255};
+    const auto& party = player.getHeroes();
+    for (int i = 0; i < static_cast<int>(party.size()) && i < 4; ++i)
+        if (const std::string t = statusTags(party[i]); !t.empty() && party[i].getCurrentHp() > 0)
+            drawOutlinedText(t, heroSlotRect[i].x + heroSlotRect[i].w / 2 - 40, heroSlotRect[i].y - 6, statusColor, 255);
+    const auto& foes = game.getBattle()->getEnemies();
+    for (int i = 0; i < static_cast<int>(foes.size()) && i < MAX_ENEMY_COUNT; ++i)
+        if (const std::string t = statusTags(foes[i]); !t.empty() && foes[i].getCurrentHp() > 0)
+            drawOutlinedText(t, enemySlotRect[i].x + enemySlotRect[i].w / 2, enemySlotRect[i].y - 6, statusColor, 255);
 
     // Плашка «кто и что делает» во время хода
     if (!actionBanner.empty() && now - actionBannerAt < 1200 && uiState != UIChooseState::ChooseTarget)
@@ -2679,14 +2707,40 @@ std::string UIManager::skillDescription(const Skill& skill) const
                              : skill.targetType == TargetType::Self       ? "self"
                              : skill.targetType == TargetType::Ally       ? "one ally" : "one enemy");
     const std::string power = std::to_string(skill.power);
+    const auto statName = [&]() {
+        switch (skill.stat)
+        {
+        case BattleStat::Attack:   return tr("ATK");
+        case BattleStat::Defence:  return tr("DEF");
+        case BattleStat::Evasion:  return tr("Evasion");
+        case BattleStat::Accuracy: return tr("Accuracy");
+        }
+        return std::string{};
+    };
+    const std::string chance = std::to_string(skill.chance);
+    const std::string status = tr(statusName(skill.status));
+    std::string wards;
+    for (Elemental e : skill.wards) wards += (wards.empty() ? "" : ", ") + tr(elementName(e));
     switch (skill.effectType)
     {
         case SkillEffectType::Heal:   return trf("Restores {0} HP. Target: {1}", {power, who});
-        case SkillEffectType::Damage: return trf("Deals {0} damage. Target: {1}. Battle only", {power, who});
-        case SkillEffectType::Buff:   return trf("{0} +{1}. Target: {2}. Battle only",
-                                                 {tr(skill.stat == BattleStat::Attack ? "ATK" : "DEF"), power, who});
-        case SkillEffectType::Debuff: return trf("{0} -{1}. Target: {2}. Battle only",
-                                                 {tr(skill.stat == BattleStat::Attack ? "ATK" : "DEF"), power, who});
+        case SkillEffectType::Damage:
+            if (skill.onlyUndead) return trf("Deals {0} damage to undead. Target: {1}. Battle only", {power, who});
+            return trf("Deals {0} damage. Target: {1}. Battle only", {power, who});
+        case SkillEffectType::Buff:   return trf("{0} +{1}. Target: {2}. Battle only", {statName(), power, who});
+        case SkillEffectType::Debuff: return trf("{0} -{1}. Target: {2}. Battle only", {statName(), power, who});
+        case SkillEffectType::Status:
+            if (skill.friendly()) return trf("{0}. Target: {1}. Battle only", {status, who});
+            if (skill.hpLimit > 0) return trf("{0} if the enemy has {1} HP or less. Battle only", {status, std::to_string(skill.hpLimit)});
+            return trf("{0}, chance {1}%. Target: {2}. Battle only", {status, chance, who});
+        case SkillEffectType::Kill:
+            if (skill.hpLimit > 0) return trf("Kills an enemy with {0} HP or less. Battle only", {std::to_string(skill.hpLimit)});
+            return trf("Kills outright, chance {0}%. Target: {1}. Battle only", {chance, who});
+        case SkillEffectType::Cure:   return trf("Cures: {0}. Target: {1}", {status, who});
+        case SkillEffectType::Ward:   return trf("Halves damage from: {0}. Battle only", {wards});
+        case SkillEffectType::Dispel: return tr("Removes an enemy's resistances. Battle only");
+        case SkillEffectType::Field:  return tr(skill.field == FieldSpell::Exit ? "Takes the party out to the world map"
+                                                                                : "Takes the party one floor back");
         case SkillEffectType::Revive: return tr(skill.power >= 9999 ? "Revives a fallen ally with full HP"
                                                                     : "Revives a fallen ally");
         default:                      return "";
@@ -2695,7 +2749,8 @@ std::string UIManager::skillDescription(const Skill& skill) const
 
 bool UIManager::skillUsableInField(const Hero& caster, const Skill& skill) const
 {
-    return (skill.effectType == SkillEffectType::Heal || skill.effectType == SkillEffectType::Revive) &&
+    return (skill.effectType == SkillEffectType::Heal || skill.effectType == SkillEffectType::Revive ||
+            skill.effectType == SkillEffectType::Cure || skill.effectType == SkillEffectType::Field) &&
            caster.getCurrentHp() > 0 &&
            caster.getCurrentMp() >= skill.manaCost && skill.targetType != TargetType::Enemy &&
            skill.targetType != TargetType::AllEnemies;
@@ -2730,7 +2785,18 @@ void UIManager::useItemOn(int heroIndex)
     auto& heroes = player.getLinkTOHeroes();
     if (heroIndex >= static_cast<int>(heroes.size())) return;
 
-    if (item.targetType == TargetType::AllAllies)
+    if (item.effectType == ItemEffectType::Cure || item.effectType == ItemEffectType::Revive)
+    {
+        Hero& h = heroes[heroIndex];
+        const bool done = item.effectType == ItemEffectType::Cure
+                              ? h.hasStatus(item.status)
+                              : applyFieldEffect(h, false, item.power, true);
+        if (!done) { showMenuNotice(tr("No effect")); return; }
+        if (item.effectType == ItemEffectType::Cure) h.clearStatus(item.status);
+        player.consumeItem(item.id);
+        showMenuNotice(trf("{0} used on {1}", {item.name, h.getName()}));
+    }
+    else if (item.targetType == TargetType::AllAllies)
     {
         bool any = false;
         for (auto& h : heroes)
@@ -2770,10 +2836,24 @@ void UIManager::castOn(int heroIndex)
     const Skill& skill = game.getSkill(skills[listSel].skillId);
     if (!skillUsableInField(caster, skill)) { showMenuNotice(tr("Not enough MP")); menuPage = MenuPage::Magic; return; }
 
+    if (skill.effectType == SkillEffectType::Field)                  // Выход и Телепорт: меню закрывается
+    {
+        if (!game.castFieldSpell(skill.field)) { showMenuNotice(tr("No effect")); return; }
+        caster.spendMana(skill.manaCost);
+        game.closeGameMenu();
+        return;
+    }
+
     // Self и AllAllies не спрашивают цель: heroIndex тогда -1
     bool any = false;
     const bool revive = skill.effectType == SkillEffectType::Revive;
-    if (skill.targetType == TargetType::AllAllies)
+    if (skill.effectType == SkillEffectType::Cure)
+    {
+        Hero& h = heroes[heroIndex];
+        any = h.hasStatus(skill.status);
+        h.clearStatus(skill.status);
+    }
+    else if (skill.targetType == TargetType::AllAllies)
         for (auto& h : heroes) any |= applyFieldEffect(h, false, skill.power, revive);
     else
         any = applyFieldEffect(heroes[skill.targetType == TargetType::Self ? menuHero : heroIndex], false, skill.power, revive);
@@ -2913,6 +2993,11 @@ void UIManager::handleMenuList(const SDL_Event& e)
             showMenuNotice(tr(item.isEquipment() ? "Equip it from the Equipment menu" : "Can only be used in battle"));
             return;
         }
+        if (item.worldOnly && game.getMap().mapId != 0)
+        {
+            showMenuNotice(tr("Can only be used on the world map"));
+            return;
+        }
         partySel = 0;
         menuPage = MenuPage::ItemTarget;
         return;
@@ -2922,7 +3007,8 @@ void UIManager::handleMenuList(const SDL_Event& e)
     const Skill& skill = game.getSkill(caster.getAvailableSkills()[listSel].skillId);
     if (!skillUsableInField(caster, skill))
     {
-        showMenuNotice(skill.effectType != SkillEffectType::Heal && skill.effectType != SkillEffectType::Revive
+        showMenuNotice(skill.effectType != SkillEffectType::Heal && skill.effectType != SkillEffectType::Revive &&
+                       skill.effectType != SkillEffectType::Cure && skill.effectType != SkillEffectType::Field
                        ? tr("Can only be used in battle")
                        : caster.getCurrentHp() == 0 ? trf("{0} is down", {caster.getName()}) : tr("Not enough MP"));
         return;
@@ -3036,7 +3122,7 @@ void UIManager::drawPartyPanel(const SDL_Rect& party, int pointerRow, bool compa
     {
         const Hero& h = heroes[i];
         const SDL_Rect row = compact ? targetRowRect(i) : partyRowRect(i);
-        const bool dead = h.getCurrentHp() == 0;
+        const bool dead = h.getCurrentHp() == 0 || h.hasStatus(Status::Stone);
         if (i == pointerRow)
             drawPointer(row.x + 6 - (SDL_GetTicks() / 220) % 2 * 3, row.y + row.h / 2, PIXEL_SCALE);
 
@@ -3052,7 +3138,11 @@ void UIManager::drawPartyPanel(const SDL_Rect& party, int pointerRow, bool compa
             const auto cls = specializationNamesString.find(h.getClass());
             drawText(cls != specializationNamesString.end() ? tr(cls->second) : "", tx, row.y + 46, kSaveDim);
         }
-        drawText(tr("Lv") + " " + std::to_string(h.getLevel()), tx, row.y + (compact ? 44 : 78), kSaveText);
+        const std::string tags = statusTags(h);
+        if (!compact || tags.empty())                                // в узкой строке статус вместо уровня: иначе налезет на MP
+            drawText(tr("Lv") + " " + std::to_string(h.getLevel()), tx, row.y + (compact ? 44 : 78), kSaveText);
+        if (!tags.empty())
+            drawText(tags, compact ? tx : tx + 72, row.y + (compact ? 44 : 78), {255, 214, 110, 255});
 
         // HP и MP: число и полоска
         const int bw = compact ? 170 : 230;

@@ -63,12 +63,49 @@ enum class SkillEffectType
     Buff,                                                   // stat растёт на power до конца боя
     Debuff,                                                 // stat падает на power до конца боя
     Revive,                                                 // поднимает павшего: power HP, 9999 — полностью
-    None
+    None,
+    Status,                                                 // накладывает status с шансом chance
+    Cure,                                                   // снимает status
+    Kill,                                                   // убирает врага с шансом chance (боссы не поддаются)
+    Ward,                                                   // сопротивление стихиям wards до конца боя
+    Dispel,                                                 // снимает сопротивления врага
+    Field                                                   // только вне боя: Выход, Телепорт
 };
+
+// Статусы FF1: битовая маска в GamePerson. Числа записаны в сохранениях и пакетах — новые только в конец
+enum class Status : uint16_t
+{
+    None = 0, Poison = 1 << 0, Blind = 1 << 1, Sleep = 1 << 2, Paralysis = 1 << 3, Silence = 1 << 4,
+    Confusion = 1 << 5, Stone = 1 << 6, Slow = 1 << 7, Haste = 1 << 8
+};
+constexpr Status kAllStatuses[] = {Status::Poison, Status::Blind, Status::Sleep, Status::Paralysis, Status::Silence,
+                                   Status::Confusion, Status::Stone, Status::Slow, Status::Haste};
+constexpr uint16_t statusBit(Status s) { return static_cast<uint16_t>(s); }
+// Яд, слепота и окаменение остаются после боя, остальное проходит с его концом
+constexpr uint16_t kLastingStatuses = statusBit(Status::Poison) | statusBit(Status::Blind) | statusBit(Status::Stone);
+constexpr uint16_t kStatusMask = 0x01FF;
+inline const char* statusName(Status s)
+{
+    switch (s)
+    {
+    case Status::Poison:    return "Poison";
+    case Status::Blind:     return "Blind";
+    case Status::Sleep:     return "Sleep";
+    case Status::Paralysis: return "Paralysis";
+    case Status::Silence:   return "Silence";
+    case Status::Confusion: return "Confusion";
+    case Status::Stone:     return "Stone";
+    case Status::Slow:      return "Slow";
+    case Status::Haste:     return "Haste";
+    default:                return "";
+    }
+}
+
+enum class FieldSpell { None, Exit, Back };                 // Выход — на карту мира, Телепорт — на шаг назад
 
 constexpr int kSpellLevels = 8;
 constexpr int kSpellsPerLevel = 3;                          // как в FF1: из четырёх заклинаний круга можно знать три
-enum class BattleStat { Attack, Defence };
+enum class BattleStat { Attack, Defence, Evasion, Accuracy };
 
 struct Skill
 {
@@ -88,6 +125,18 @@ struct Skill
     int32_t power{0};
     std::string effect;                                     // боевой эффект из effects.json; пусто — по стихии и типу
     BattleStat stat{BattleStat::Attack};                    // Buff и Debuff: что меняют
+    Status status{Status::None};                            // Status и Cure: какой статус
+    int chance{100};                                        // Status и Kill: шанс в процентах
+    int hpLimit{0};                                         // Status и Kill: действует, только если у цели HP не выше
+    bool onlyUndead{false};                                 // Диа: урон только нежити
+    std::vector<Elemental> wards;                           // Ward: от каких стихий защищает
+    FieldSpell field{FieldSpell::None};
+    [[nodiscard]] bool friendly() const
+    {
+        return effectType == SkillEffectType::Heal || effectType == SkillEffectType::Buff ||
+               effectType == SkillEffectType::Revive || effectType == SkillEffectType::Cure ||
+               effectType == SkillEffectType::Ward || (effectType == SkillEffectType::Status && status == Status::Haste);
+    }
     // Заклинание из лавки магии: круг 1-8 (0 — не продаётся), школа и кто может выучить
     int spellLevel{0};
     bool white{false};
@@ -107,7 +156,9 @@ enum class ItemEffectType
     Buff,
     Debuff,
     RestoreMana,
-    None
+    None,
+    Cure,                                                   // снимает status (Противоядие, Золотая игла)
+    Revive                                                  // поднимает павшего (Перо феникса)
 };
 
 // Слоты экипировки как в FF1: оружие, щит, голова, тело, руки
@@ -149,6 +200,8 @@ struct Item
     std::vector<Elemental> resists;                        // броня: сопротивления надевшего (Ледяной доспех — огонь)
     bool keyItem{false};                                   // сюжетный (Лютня, Корона): не продаётся, не тратится
     std::string info;                                      // описание (английское — ключ перевода)
+    Status status{Status::None};                           // Cure: какой статус снимает
+    bool worldOnly{false};                                 // Палатка, Коттедж: только на карте мира
 
     [[nodiscard]] bool isEquipment() const { return slot != EquipSlot::None; }
     [[nodiscard]] bool canEquip(SpecializationNames c) const
@@ -161,9 +214,10 @@ struct Item
     // Можно применить вне боя: лечение и мана на своего героя
     [[nodiscard]] bool usableInField() const
     {
-        return !isEquipment() && (effectType == ItemEffectType::Heal || effectType == ItemEffectType::RestoreMana);
+        return !isEquipment() && (effectType == ItemEffectType::Heal || effectType == ItemEffectType::RestoreMana ||
+                                  effectType == ItemEffectType::Cure || effectType == ItemEffectType::Revive);
     }
-    [[nodiscard]] bool usableInBattle() const { return !isEquipment() && effectType != ItemEffectType::None; }
+    [[nodiscard]] bool usableInBattle() const { return !isEquipment() && effectType != ItemEffectType::None && !worldOnly; }
 };
 
 struct Specialization {

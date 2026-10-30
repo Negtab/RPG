@@ -92,6 +92,7 @@ private:
     void executeItem(Hero& user, const std::vector<int>& targets, int itemId);
 
     void tryCounterAttack(Hero& attacker, Enemy& target);
+    void tryAffect(Enemy& target, const Skill& skill);   // статус или мгновенная смерть: шанс, предел HP, боссы
 
     std::vector<int> resolveTargets(const Action& action);
 

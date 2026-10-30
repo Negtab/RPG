@@ -281,7 +281,7 @@ std::vector<std::pair<int, int>> UIManager::shopList() const
     {
         const auto& heroes = player.getHeroes();
         for (int i = 0; i < static_cast<int>(heroes.size()); ++i)
-            if (!heroes[i].getIsAlive()) out.emplace_back(i, shop->price);
+            if (!heroes[i].getIsAlive() || heroes[i].hasStatus(Status::Stone)) out.emplace_back(i, shop->price);
         return out;
     }
     if (shop->sellsSpells())
@@ -344,7 +344,8 @@ void UIManager::shopPick(int index)
         if (player.getPlayerGold() < static_cast<uint32_t>(price)) { shopSay(tr("You don't have enough gil.")); return; }
         Hero& hero = player.getLinkTOHeroes()[list[index].first];
         player.setPlayerGold(player.getPlayerGold() - price);
-        hero.resurrectPerson(1);                                     // как в FF1: встаёт с 1 HP
+        if (hero.getIsAlive()) hero.clearStatus(Status::Stone);      // окаменевшего расколдовывают
+        else hero.resurrectPerson(1);                                // как в FF1: встаёт с 1 HP
         shopSay(trf("{0} has returned to life!", {hero.getName()}));
         game.sendPartyInfo();
         if (shopList().empty()) shopPhase = ShopPhase::Command;
@@ -402,6 +403,7 @@ void UIManager::restAtInn()
             {
                 h.setCurrentHp(h.getMaxHp());
                 h.setCurrentMp(h.getMaxMp());
+                h.setStatuses(h.getStatuses() & statusBit(Status::Stone));   // ночлег лечит всё, кроме камня
             }
         game.sendPartyInfo();
     });

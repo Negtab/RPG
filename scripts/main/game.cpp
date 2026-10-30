@@ -1082,6 +1082,14 @@ bool Game::applyMapChange(int mapId, int x, int y)
     return true;
 }
 
+bool Game::castFieldSpell(FieldSpell spell)
+{
+    if (currentMap->mapId == 0 || (isConnected() && !isHost())) return false;
+    if (spell == FieldSpell::Exit) returnStack.clear();  // без стека выход ведёт к порталу на карте мира
+    startTransition([this]() { exitBack(); });
+    return true;
+}
+
 void Game::autosave()
 {
     if (canSave()) saveToSlot(0);                        // в бою и у гостя в коопе не сохраняем
@@ -1104,6 +1112,7 @@ void Game::sendPartyInfo()
         p.heroes[i].level     = heroes[i].getLevel();
         p.heroes[i].currentHp = static_cast<int32_t>(heroes[i].getCurrentHp());
         p.heroes[i].currentMp = static_cast<int32_t>(heroes[i].getCurrentMp());
+        p.heroes[i].statuses  = heroes[i].getStatuses();
         std::strncpy(p.heroes[i].name, heroes[i].getName().c_str(), sizeof(p.heroes[i].name) - 1);
         p.heroes[i].name[sizeof(p.heroes[i].name) - 1] = '\0';
         for (int s = 0; s < kEquipSlots; ++s)
@@ -1139,11 +1148,13 @@ void Game::applyPartyInfo(const PartyInfoPacket& p)
         {
             hero.setCurrentHp(static_cast<uint32_t>(std::max(0, p.heroes[i].currentHp)));
             hero.setCurrentMp(static_cast<uint32_t>(std::max(0, p.heroes[i].currentMp)));
+            hero.setStatuses(p.heroes[i].statuses);
         }
         else if (i < static_cast<int>(heroes.size()))
         {
             hero.setCurrentHp(heroes[i].getCurrentHp());        // сохраняем то, что считал хост
             hero.setCurrentMp(heroes[i].getCurrentMp());
+            hero.setStatuses(heroes[i].getStatuses());
         }
         const std::string cleaned = sanitizeHeroName(p.heroes[i].name);
         if (!cleaned.empty()) hero.setName(cleaned);
@@ -1666,6 +1677,9 @@ void Game::onStepFinished(Point from)
     if (updateVehicleAfterStep(from) && localPlayerId != 0)
         sendLocalPlayerState();                          // напарник должен увидеть корабль, а не героя
 
+    for (auto& h : players.at(0).getLinkTOHeroes())      // яд жжёт на каждом шаге, но не убивает
+        if (h.hasStatus(Status::Poison) && h.getCurrentHp() > 1) h.setCurrentHp(h.getCurrentHp() - 1);
+
     const Point c = players.at(0).getMove().cell;
     if (const MapEvent* ev = currentMap->eventAt(c.x, c.y); ev && story->start("event", ev->script))
         return;                                          // сюжетная зона: сцену ведёт тот, кто наступил
@@ -1959,6 +1973,7 @@ void Game::sendBattleSnapshot()
     {
         packet.heroes[heroIndex].currentHp   = heroes[i].getCurrentHp();
         packet.heroes[heroIndex].currentMana = heroes[i].getCurrentMp();
+        packet.heroes[heroIndex].statuses    = heroes[i].getStatuses();
         packet.heroOwner[heroIndex]          = localPlayerId;   // чьи герои
     }
 
@@ -1972,6 +1987,7 @@ void Game::sendBattleSnapshot()
         {
             packet.heroes[heroIndex].currentHp   = remoteHeroes[i].getCurrentHp();
             packet.heroes[heroIndex].currentMana = remoteHeroes[i].getCurrentMp();
+            packet.heroes[heroIndex].statuses    = remoteHeroes[i].getStatuses();
             packet.heroOwner[heroIndex]          = id;
         }
     }
@@ -1985,6 +2001,7 @@ void Game::sendBattleSnapshot()
     {
         packet.enemies[i].currentHp   = enemies[i].getCurrentHp();
         packet.enemies[i].currentMana = 0;
+        packet.enemies[i].statuses    = enemies[i].getStatuses();
     }
 
     packet.battleState        = static_cast<uint8_t>(battle->getState());

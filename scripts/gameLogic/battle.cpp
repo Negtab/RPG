@@ -34,6 +34,24 @@ int sizeClass(const EnemyDef& def)
 // Формация из encounters.json рассчитана на окрепший отряд. На 1-м уровне от неё остаётся ~40%,
 // каждый уровень добавляет 15%, с 5-го — вся. Часть мест занимают другие враги группы:
 // не сильнее (по опыту) и не крупнее (по классу спрайта) тех, кто уже в формации
+// Попал ли удар. Без статусов и уклонения бьёт наверняка, как и раньше
+bool attackConnects(const GamePerson& attacker, const GamePerson& target)
+{
+    if (!target.canAct()) return true;                       // спящего и парализованного не промахнёшься
+    int chance = 100 + attacker.getBattleBonus(BattleStat::Accuracy) - target.getBattleBonus(BattleStat::Evasion);
+    if (attacker.hasStatus(Status::Blind)) chance -= 40;
+    if (target.hasStatus(Status::Blind)) chance += 10;
+    return rand() % 100 < std::clamp(chance, 5, 100);
+}
+
+// Ускорение удваивает удар, Замедление вдвое ослабляет (в FF1 это число ударов)
+uint32_t withSpeedStatus(const GamePerson& attacker, uint32_t damage)
+{
+    if (attacker.hasStatus(Status::Haste)) damage *= 2;
+    if (attacker.hasStatus(Status::Slow))  damage = std::max<uint32_t>(1, damage / 2);
+    return damage;
+}
+
 std::vector<int> shapeFormation(const std::vector<int>& formation, const std::vector<int>& roster, int level)
 {
     const auto& data = GameData::instance();
@@ -244,11 +262,15 @@ void Battle::applySnapshot(const BattleSnapshotPacket& packet)
         {
             (*party)[index].setCurrentHp(packet.heroes[i].currentHp);
             (*party)[index].setCurrentMp(packet.heroes[i].currentMana);
+            (*party)[index].setStatuses(packet.heroes[i].statuses);
         }
     }
 
     for (int i = 0; i < enemyCount; i++)         // было: i < packet.enemyCount && i < enemies.size()
+    {
         enemies[i].setCurrentHp(packet.enemies[i].currentHp);
+        enemies[i].setStatuses(packet.enemies[i].statuses);
+    }
 
     auto newState = static_cast<BattleState>(packet.battleState);
 
@@ -354,7 +376,7 @@ Action Battle::autoActionFor(int heroIndex) const
 void Battle::skipDeadHeroes()
 {
     while (currentHeroIndex < static_cast<int>(player->getHeroes().size()) &&
-           player->getHeroes()[currentHeroIndex].getCurrentHp() <= 0)
+           !player->getHeroes()[currentHeroIndex].canAct())       // павшие, спящие, парализованные, камень
         currentHeroIndex++;
 
     if (currentHeroIndex < static_cast<int>(player->getHeroes().size()))
@@ -450,7 +472,7 @@ void Battle::updateExecuteActions()
     const Action& action = plannedActions[currentActionIndex];
 
     Hero* actor = resolveActor(action);
-    if (!actor || actor->getCurrentHp() <= 0)
+    if (!actor || !actor->canAct())
     {
         currentActionIndex++;
         return;
@@ -483,7 +505,8 @@ void Battle::executeAttack(Hero& attacker, const std::vector<int>& targets)
     {
         ui->playEffectOn(hit, false, 0, idx, 0.3f);               // в середине замаха
         Enemy& target = enemies[idx];
-        const uint32_t damage = physicalDamage(attacker.getAttackPower(nullptr), target.getDefense());
+        if (!attackConnects(attacker, target)) { ui->showActionName(attacker.getName() + " - " + tr("Miss")); continue; }
+        const uint32_t damage = withSpeedStatus(attacker, physicalDamage(attacker.getAttackPower(nullptr), target.getDefense()));
         if (weapon && weapon->hasElement) target.takeDamage(damage, weapon->element);   // Огненный меч: слабость к огню x1.5
         else                              target.takeDamage(damage);
         tryCounterAttack(attacker, target);
@@ -494,7 +517,7 @@ void Battle::executeAttack(Hero& attacker, const std::vector<int>& targets)
 void Battle::executeAction(const Action& action)
 {
     Hero* actor = resolveActor(action); // ← через resolveActor
-    if (!actor || actor->getCurrentHp() <= 0)
+    if (!actor || !actor->canAct())
         return;
 
     auto targets = resolveTargets(action);
@@ -537,9 +560,7 @@ void Battle::executeSkill(GamePerson& caster, int skillId, const std::vector<int
 
     caster.spendMana(skill->manaCost);
     const std::string fx = UIManager::effectForSkill(*skill);
-    const bool friendly = skill->effectType == SkillEffectType::Heal || skill->effectType == SkillEffectType::Buff ||
-                          skill->effectType == SkillEffectType::Revive;
-    const bool onHeroes = friendly == casterIsHero;                                  // лечит своих, бьёт чужих
+    const bool onHeroes = skill->friendly() == casterIsHero;                         // лечит своих, бьёт чужих
     for (int idx : targets)
         ui->playEffectOn(fx, onHeroes, owner, idx, 0.2f);
 
@@ -550,7 +571,34 @@ void Battle::executeSkill(GamePerson& caster, int skillId, const std::vector<int
     {
         switch (skill->effectType)
         {
+            case SkillEffectType::Status:
+                if (skill->friendly()) { if (casterIsHero && validHero(idx)) (*party)[idx].addStatus(skill->status); }
+                else if (casterIsHero && validEnemy(idx)) tryAffect(enemies[idx], *skill);
+                break;
+
+            case SkillEffectType::Kill:
+                if (casterIsHero && validEnemy(idx)) tryAffect(enemies[idx], *skill);
+                break;
+
+            case SkillEffectType::Cure:
+                if (casterIsHero && validHero(idx)) (*party)[idx].clearStatus(skill->status);
+                break;
+
+            case SkillEffectType::Ward:
+                if (casterIsHero && validHero(idx))
+                    for (Elemental e : skill->wards) (*party)[idx].addWard(e);
+                break;
+
+            case SkillEffectType::Dispel:
+                if (casterIsHero && validEnemy(idx)) enemies[idx].dispelResists();
+                break;
+
             case SkillEffectType::Damage:
+                if (casterIsHero && skill->onlyUndead && validEnemy(idx))   // Диа: живым не вредит
+                {
+                    const EnemyDef* def = GameData::instance().enemy(enemies[idx].getEnemyId());
+                    if (!def || !def->undead) break;
+                }
                 if (casterIsHero) { if (validEnemy(idx)) enemies[idx].takeDamage(skill->power, skill->element); }
                 else              { if (validHero(idx))  (*party)[idx].takeDamage(skill->power, skill->element); }
                 break;
@@ -615,6 +663,13 @@ void Battle::executeItem(Hero& /*user*/, const std::vector<int>& targets, int it
             case ItemEffectType::RestoreMana:
                 if (idx >= 0 && idx < static_cast<int>(party->size())) (*party)[idx].restoreMana(item->power);
                 break;
+            case ItemEffectType::Cure:
+                if (idx >= 0 && idx < static_cast<int>(party->size())) (*party)[idx].clearStatus(item->status);
+                break;
+            case ItemEffectType::Revive:
+                if (idx >= 0 && idx < static_cast<int>(party->size()) && !(*party)[idx].getIsAlive())
+                    (*party)[idx].resurrectPerson(std::min<uint32_t>((*party)[idx].getMaxHp(), static_cast<uint32_t>(item->power)));
+                break;
             default:
                 break;
         }
@@ -665,7 +720,8 @@ void Battle::updateEnemyTurn()
     if (currentEnemyIndex >= static_cast<int>(enemies.size()))
     {
         endRound();
-        if (aliveHeroes().empty())                          // герои погибли в конце хода врагов
+        if (aliveHeroes().empty() ||                        // герои погибли в конце хода врагов
+            std::none_of(enemies.begin(), enemies.end(), [](const Enemy& e) { return e.getCurrentHp() > 0; }))  // яд добил
         {
             state = BattleState::Result;
             game->sendBattleSnapshot();
@@ -676,7 +732,7 @@ void Battle::updateEnemyTurn()
         return;
     }
 
-    if (enemies[currentEnemyIndex].getCurrentHp() <= 0) { currentEnemyIndex++; return; }
+    if (!enemies[currentEnemyIndex].canAct()) { currentEnemyIndex++; return; }   // пал, спит или парализован
 
     if (!performEnemyAction(currentEnemyIndex))
     {
@@ -697,6 +753,20 @@ bool Battle::performEnemyAction(int idx)
     ui->enemyLunge(idx);                                     // шаг к героям; удар — на середине шага
     const EnemyDef* def = GameData::instance().enemy(enemy.getEnemyId());
     if (!def) return !aliveHeroes().empty();
+
+    if (enemy.hasStatus(Status::Confusion))                  // растерянный бьёт своих
+    {
+        std::vector<int> others;
+        for (int i = 0; i < static_cast<int>(enemies.size()); ++i)
+            if (i != idx && enemies[i].getCurrentHp() > 0) others.push_back(i);
+        if (!others.empty())
+        {
+            Enemy& victim = enemies[others[rand() % others.size()]];
+            ui->showActionName(enemy.getName());
+            victim.takeDamage(physicalDamage(enemy.getAttackPower(nullptr), victim.getDefense()));
+            return true;
+        }
+    }
 
     std::vector<const EnemyAbility*> usable;                // обычный удар доступен всегда, умения только без кулдауна
     int total = 0;
@@ -728,7 +798,11 @@ bool Battle::enemyBasicAttack(Enemy& enemy, int hits)
         {
             if (i == 0) ui->showActionName(enemy.getName());
             ui->playEffectOn("claw", true, target->owner, target->index, 0.18f + 0.12f * i);
-            hero->takeDamage(physicalDamage(enemy.getAttackPower(nullptr), hero->getDefense()));
+            if (!attackConnects(enemy, *hero)) continue;
+            hero->takeDamage(withSpeedStatus(enemy, physicalDamage(enemy.getAttackPower(nullptr), hero->getDefense())));
+            const EnemyDef* def = GameData::instance().enemy(enemy.getEnemyId());
+            if (def && def->hitStatus != Status::None && hero->getCurrentHp() > 0 && rand() % 100 < def->hitChance)
+                hero->addStatus(def->hitStatus);
         }
     }
     return true;
@@ -844,7 +918,9 @@ std::vector<int> Battle::resolveTargets(const Action& action)
         case TargetType::Ally:
         {
             const Skill* skill = action.type == ActionType::Magic ? game->findSkill(action.payloadId) : nullptr;
-            const bool wantsFallen = skill && skill->effectType == SkillEffectType::Revive;   // Жизнь — в павшего
+            const Item* item = action.type == ActionType::Item ? game->findItem(action.payloadId) : nullptr;
+            const bool wantsFallen = (skill && skill->effectType == SkillEffectType::Revive) ||   // Жизнь — в павшего
+                                     (item && item->effectType == ItemEffectType::Revive);
             auto* party = partyOf(action.playerId);
             if (party && action.targetIndex >= 0 &&
                 action.targetIndex < static_cast<int>(party->size()) &&
@@ -916,11 +992,11 @@ void Battle::checkBattleResult()
     for (auto& e : enemies)
         if (e.getCurrentHp() > 0) { enemiesAlive = true; break;}
 
-    if (!heroesAlive && enemiesAlive) {
+    if (!heroesAlive) {                                // в том числе если яд добил всех разом
         finishBattle(false);
         return;
     }
-    if (heroesAlive && !enemiesAlive)
+    if (!enemiesAlive)
     {
         finishBattle(true);
         return;
@@ -936,6 +1012,28 @@ void Battle::endRound()
 
     for (auto& enemy : enemies)
         enemy.tickCooldowns();
+
+    // Яд жжёт в конце раунда, сон, паралич и растерянность могут пройти
+    const auto tick = [](GamePerson& p) {
+        if (p.getCurrentHp() == 0) return;
+        if (p.hasStatus(Status::Poison)) p.takeDamage(std::max<uint32_t>(1, p.getMaxHp() / 16));
+        for (Status s : {Status::Sleep, Status::Paralysis, Status::Confusion})
+            if (p.hasStatus(s) && rand() % 4 == 0) p.clearStatus(s);
+    };
+    for (auto& hero : player->getLinkTOHeroes()) tick(hero);
+    for (auto& [id, remote] : game->getRemotePlayersMutable())
+        for (auto& hero : remote.getLinkTOHeroes()) tick(hero);
+    for (auto& enemy : enemies) tick(enemy);
+}
+
+void Battle::tryAffect(Enemy& target, const Skill& skill)
+{
+    const EnemyDef* def = GameData::instance().enemy(target.getEnemyId());
+    if (target.getCurrentHp() == 0 || (def && def->boss)) return;
+    if (skill.hpLimit > 0 && target.getCurrentHp() > static_cast<uint32_t>(skill.hpLimit)) return;
+    if (rand() % 100 >= skill.chance) return;
+    if (skill.effectType == SkillEffectType::Kill) target.killPerson();
+    else                                           target.addStatus(skill.status);
 }
 
 
@@ -1026,7 +1124,7 @@ std::vector<HeroRef> Battle::aliveHeroes() const
 
     const auto& mine = player->getHeroes();
     for (int i = 0; i < static_cast<int>(mine.size()); ++i)
-        if (mine[i].getCurrentHp() > 0)
+        if (mine[i].getCurrentHp() > 0 && !mine[i].hasStatus(Status::Stone))
             alive.push_back({game->localPlayerId, i});
 
     for (const auto& [id, remote] : game->getRemotePlayers())
@@ -1034,7 +1132,7 @@ std::vector<HeroRef> Battle::aliveHeroes() const
         if (!participants.contains(id)) continue;
         const auto& heroes = remote.getHeroes();
         for (int i = 0; i < static_cast<int>(heroes.size()); ++i)
-            if (heroes[i].getCurrentHp() > 0)
+            if (heroes[i].getCurrentHp() > 0 && !heroes[i].hasStatus(Status::Stone))
                 alive.push_back({id, i});
     }
     return alive;

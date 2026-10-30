@@ -217,9 +217,9 @@
      "y": 48,
      "properties": [
       {
-       "name": "script",
+       "name": "shop",
        "type": "string",
-       "value": "pravoka_white_mage"
+       "value": "pravoka_white_magic"
       },
       {
        "name": "facing",

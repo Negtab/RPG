@@ -89,6 +89,7 @@ struct CharacterState
 {
     int32_t currentHp;
     int32_t currentMana;
+    uint16_t statuses;      // маска Status
 };
 
 struct MapChangePacket
@@ -127,7 +128,8 @@ struct HeroInfo
     char    name[25];     // до 12 букв в UTF-8 (русская — два байта) и нуль
     int32_t equipment[5];   // id предметов по слотам EquipSlot, 0 — пусто: хост считает урон напарника с ними
     uint8_t spellCount;
-    int16_t spells[24];     // заклинания из лавок магии (8 кругов x 3): хост колдует ими за напарника
+    int16_t spells[32];     // заклинания из лавок магии: хост колдует ими за напарника
+    uint16_t statuses;      // маска Status
 };
 
 struct PartyInfoPacket
