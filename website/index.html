@@ -17,7 +17,7 @@
 <style>
 @font-face {
   font-family: "Pixelify";
-  src: url("assets/fonts/PixelifySans.ttf") format("truetype");
+  src: url("assets/fonts/PixelifySans.ttf?v=2") format("truetype");
   font-weight: 400 700;
   font-display: swap;
 }
@@ -220,14 +220,62 @@ section { padding: 110px 0; position: relative; }
 .veh small { display: block; color: var(--muted); font-size: 13px; }
 @keyframes bob { 50% { transform: translateY(-4px); } }
 
-/* Лента арен */
-.marquee { overflow: hidden; margin-top: 70px; mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); }
-.marquee .track { display: flex; gap: 14px; width: max-content; animation: scroll 60s linear infinite; }
-.marquee:hover .track { animation-play-state: paused; }
-.marquee figure { margin: 0; width: 260px; flex: none; position: relative; border-radius: 8px; overflow: hidden; border: 2px solid rgba(255,255,255,.25); }
-.marquee img { width: 100%; aspect-ratio: 472/232; object-fit: cover; image-rendering: pixelated; }
-.marquee figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 10px 6px; font-family: var(--pixel); font-size: 15px; background: linear-gradient(transparent, rgba(0,0,0,.75)); }
-@keyframes scroll { to { transform: translateX(-50%); } }
+/* Сюжет */
+.prophecy { display: grid; gap: 34px; justify-items: center; max-width: 820px; margin: 0 auto 56px; }
+.crystals { display: flex; justify-content: center; gap: clamp(22px, 6vw, 64px); }
+.crystal { text-align: center; font-family: var(--pixel); font-size: 15px; color: var(--muted); }
+.crystal i {
+  position: relative; display: block; width: 64px; height: 96px; margin: 0 auto 12px;
+  background: url(assets/sprites/crystals.png) 0 var(--row) / 512px 384px; image-rendering: pixelated;
+  animation: float-crystal 4s ease-in-out infinite; animation-delay: var(--d);
+}
+.crystal i::after {
+  content: ""; position: absolute; inset: 0;
+  background: inherit; background-position: -256px var(--row);
+  filter: drop-shadow(0 0 14px var(--c));
+  animation: shine-crystal .8s steps(4) infinite, fade-crystal 4s ease-in-out infinite; animation-delay: 0s, var(--d);
+}
+.crystal.earth { --c: #ffa726; --row: 0px; --d: 0s; } .crystal.fire { --c: #ff5a7a; --row: -96px; --d: .7s; }
+.crystal.water { --c: #4aa8ff; --row: -192px; --d: 1.4s; } .crystal.wind { --c: #5fe08a; --row: -288px; --d: 2.1s; }
+@keyframes float-crystal { 50% { transform: translateY(-6px); } }
+@keyframes shine-crystal { from { background-position-x: -256px; } to { background-position-x: -512px; } }
+@keyframes fade-crystal { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.dialog { width: 100%; padding: 22px 28px; font-family: var(--pixel); font-size: 20px; line-height: 1.45; min-height: 124px; }
+.dialog p { margin: 0; }
+.dialog .next { position: absolute; right: 16px; bottom: 8px; font-size: 13px; animation: blink 1s steps(2) infinite; }
+.chapters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.chapter { overflow: hidden; display: flex; flex-direction: column; transition: transform .25s; }
+.chapter:hover { transform: translateY(-6px); }
+.chapter .art {
+  position: relative; height: 150px; background-size: cover; background-position: center;
+  image-rendering: pixelated; border-radius: 7px 7px 0 0; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 16px 12px;
+}
+.chapter .art img { height: 76px; width: auto; filter: drop-shadow(0 5px 4px rgba(0,0,0,.5)); }
+.chapter .npc { width: 48px; height: 48px; background-position: -48px 0; background-size: 192px 96px; image-rendering: pixelated; filter: drop-shadow(0 4px 3px rgba(0,0,0,.5)); }
+.chapter .body { padding: 18px 18px 20px; }
+.chapter .num { font-family: var(--pixel); color: var(--gold); font-size: 15px; }
+.chapter h3 { font-size: 23px; margin: 4px 0 10px; }
+.chapter p { color: #d6dbff; font-size: 15px; margin: 0; }
+.chapter.locked .art { justify-content: center; align-items: center; filter: grayscale(.5) brightness(.6); }
+.chapter.locked .art b { font-family: var(--pixel); font-size: 76px; color: #fff; }
+@media (max-width: 1080px) { .chapters { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 680px) { .chapters { grid-template-columns: 1fr; } .dialog { font-size: 17px; padding: 18px 20px; min-height: 150px; } .crystal i { width: 48px; height: 72px; background-size: 384px 288px; background-position: 0 calc(var(--row) * .75); } .crystal i::after { background-position-y: calc(var(--row) * .75); animation-name: shine-crystal-sm, fade-crystal; }
+@keyframes shine-crystal-sm { from { background-position-x: -192px; } to { background-position-x: -384px; } } }
+
+/* Арены */
+.arena-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 70px 0 18px; }
+.arena-head h3 { font-size: 28px; }
+.arena-nav { display: flex; align-items: center; gap: 10px; color: var(--muted); font-family: var(--pixel); font-size: 16px; }
+.arena-nav button { width: 46px; height: 46px; border-radius: 8px; border: 2px solid var(--win-edge); background: linear-gradient(180deg, var(--win-top), var(--win-bot)); color: #fff; font: 700 28px/1 var(--pixel); cursor: pointer; transition: transform .15s, opacity .2s; }
+.arena-nav button:hover:not(:disabled) { transform: translateY(-2px); }
+.arena-nav button:disabled { opacity: .35; cursor: default; }
+.arenas { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; padding: 4px 2px 12px; scrollbar-width: thin; scrollbar-color: var(--win-top) transparent; }
+.arenas:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; border-radius: 8px; }
+.arenas figure { margin: 0; flex: 0 0 calc((100% - 28px) / 3); scroll-snap-align: start; position: relative; border-radius: 8px; overflow: hidden; border: 2px solid rgba(255,255,255,.25); }
+.arenas img { width: 100%; aspect-ratio: 472/232; object-fit: cover; image-rendering: pixelated; }
+.arenas figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 12px 8px; font-family: var(--pixel); font-size: 17px; background: linear-gradient(transparent, rgba(0,0,0,.78)); }
+@media (max-width: 980px) { .arenas figure { flex-basis: calc((100% - 14px) / 2); } }
+@media (max-width: 680px) { .arenas figure { flex-basis: 88%; } .arena-head h3 { font-size: 23px; } }
 
 /* Классы */
 .classes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
@@ -421,6 +469,7 @@ footer p { margin: 4px 0; }
   <div class="wrap">
     <a class="logo" href="#top"><i></i>RPG</a>
     <ul>
+      <li><a href="#story">Сюжет</a></li>
       <li><a href="#world">Мир</a></li>
       <li><a href="#battle">Бои</a></li>
       <li><a href="#classes">Классы</a></li>
@@ -488,6 +537,73 @@ footer p { margin: 4px 0; }
   </div>
 </div>
 
+<!-- ═════ Сюжет ═════ -->
+<section id="story">
+  <div class="wrap">
+    <div class="head reveal">
+      <h2>Четыре кристалла <em>угасают</em></h2>
+      <p>Ветер умолк, моря бушуют, а земля увядает. Мир ждёт тех, о ком четыреста лет назад говорил мудрец Лукан.</p>
+    </div>
+
+    <div class="prophecy reveal">
+      <div class="crystals" aria-hidden="true">
+        <div class="crystal earth"><i></i><span>Земля</span></div>
+        <div class="crystal fire"><i></i><span>Огонь</span></div>
+        <div class="crystal water"><i></i><span>Вода</span></div>
+        <div class="crystal wind"><i></i><span>Ветер</span></div>
+      </div>
+      <div class="window dialog">
+        <p id="prophecyText">Давным-давно четыре кристалла хранили равновесие мира: Земля, Огонь, Вода и Ветер. Но их свет начал меркнуть, и по земле поползла тьма.</p>
+        <span class="next" aria-hidden="true">▼</span>
+      </div>
+    </div>
+
+    <div class="chapters">
+      <article class="window chapter reveal">
+        <div class="art" style="background-image:url(assets/bg/blueshrine.png)">
+          <div class="npc" style="background-image:url(assets/sprites/npc-princess.png)" aria-hidden="true"></div>
+          <img class="pix" src="assets/sprites/enemies/garland.png" alt="Гарланд">
+        </div>
+        <div class="body">
+          <span class="num">Глава I</span>
+          <h3>Принцесса Корнелии</h3>
+          <p>Лучший рыцарь королевства Гарланд похитил принцессу Сару и скрылся в Храме Хаоса. Король умоляет Воинов Света вернуть дочь — и обещает отстроить мост на восток.</p>
+        </div>
+      </article>
+      <article class="window chapter reveal">
+        <div class="art" style="background-image:url(assets/bg/shipdeck.png)">
+          <div class="npc" style="background-image:url(assets/sprites/npc-pirate.png)" aria-hidden="true"></div>
+          <img class="pix" src="assets/sprites/enemies/pirate.png" alt="Пират">
+        </div>
+        <div class="body">
+          <span class="num">Глава II</span>
+          <h3>Пираты Правоки</h3>
+          <p>Капитан Бикки захватил портовый город, и ни один корабль не выходит в море. Девять пиратов преграждают путь. Победите их — и у отряда появится собственный корабль.</p>
+        </div>
+      </article>
+      <article class="window chapter reveal">
+        <div class="art" style="background-image:url(assets/bg/greencave.png)">
+          <div class="npc" style="background-image:url(assets/sprites/npc-witch.png)" aria-hidden="true"></div>
+          <img class="pix" src="assets/sprites/enemies/astos.png" alt="Астос">
+        </div>
+        <div class="body">
+          <span class="num">Глава III</span>
+          <h3>Спящий принц Эльфхейма</h3>
+          <p>Тёмный эльф Астос наложил на принца вечный сон. Путь к пробуждению лежит через Болотную пещеру, разрушенную крепость и логово слепой ведьмы Матойи.</p>
+        </div>
+      </article>
+      <article class="window chapter locked reveal">
+        <div class="art" style="background-image:url(assets/bg/space.png)"><b aria-hidden="true">?</b></div>
+        <div class="body">
+          <span class="num">Продолжение следует</span>
+          <h3>Четыре Изверга</h3>
+          <p>Волшебный ключ открывает новые двери, но тьма ещё не отступила. Следующие главы уже в разработке.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
 <!-- ═════ Мир ═════ -->
 <section id="world">
   <div class="wrap">
@@ -539,8 +655,16 @@ footer p { margin: 4px 0; }
       </div>
     </div>
   </div>
-  <div class="marquee reveal" aria-hidden="true">
-    <div class="track" id="arenas"></div>
+  <div class="wrap reveal">
+    <div class="arena-head">
+      <h3>Арены сражений</h3>
+      <div class="arena-nav">
+        <span id="arenaCount" aria-live="polite"></span>
+        <button type="button" id="arenaPrev" aria-label="Предыдущие арены">‹</button>
+        <button type="button" id="arenaNext" aria-label="Следующие арены">›</button>
+      </div>
+    </div>
+    <div class="arenas" id="arenas" tabindex="0" aria-label="Арены сражений"></div>
   </div>
 </section>
 
@@ -803,9 +927,48 @@ document.getElementById('bossList').innerHTML = bosses.map(([id, name, sub, cls]
   </div>`).join('');
 
 /* Арены */
-const arenas = [['plains','Равнины'],['forest','Лес'],['sea','Море'],['desert','Пустыня'],['icecave','Ледяная пещера'],['lava','Вулкан'],['marsh','Болото'],['waterfall','Водопад'],['sunkenruins','Затонувший храм'],['goldhall','Золотой зал'],['castlehall','Замок'],['space','Небесная крепость']];
-const arenaHtml = arenas.map(([f, n]) => `<figure><img src="assets/bg/${f}.png" alt="" loading="lazy"><figcaption>${n}</figcaption></figure>`).join('');
-document.getElementById('arenas').innerHTML = arenaHtml + arenaHtml;
+const arenas = [['plains','Равнины'],['forest','Лес'],['deepforest','Чаща'],['marsh','Болота'],['swamp','Топи'],['river','Река'],['waterfall','Водопад'],['sea','Море'],['shipdeck','Палуба корабля'],['town','Город'],['desert','Пустыня'],['deserttemple','Храм в пустыне'],['badlands','Бесплодные земли'],['wasteland','Пустошь'],['ruins','Руины'],['sunkenruins','Затонувший храм'],['cave','Пещера'],['cavelight','Светлая пещера'],['greencave','Зелёная пещера'],['purplecave','Пурпурная пещера'],['sandcave','Песчаная пещера'],['icecave','Ледяная пещера'],['lava','Вулкан'],['lavashrine','Огненное святилище'],['blueshrine','Синее святилище'],['bluehall','Синий зал'],['greenhall','Зелёный зал'],['goldhall','Золотой зал'],['castlehall','Зал замка'],['castlebridge','Мост замка'],['space','Небесная крепость']];
+const arenaBox = document.getElementById('arenas'), arenaPrev = document.getElementById('arenaPrev');
+const arenaNext = document.getElementById('arenaNext'), arenaCount = document.getElementById('arenaCount');
+arenaBox.innerHTML = arenas.map(([f, n]) => `<figure><img src="assets/bg/${f}.png" alt="${n}" loading="lazy"><figcaption>${n}</figcaption></figure>`).join('');
+const arenaStep = () => arenaBox.firstElementChild.offsetWidth + 14;
+const arenaSync = () => {
+  const step = arenaStep(), max = arenaBox.scrollWidth - arenaBox.clientWidth;
+  const first = Math.round(arenaBox.scrollLeft / step) + 1;
+  const last = Math.min(first + Math.round((arenaBox.clientWidth + 14) / step) - 1, arenas.length);
+  arenaCount.textContent = first === last ? `${first} из ${arenas.length}` : `${first}–${last} из ${arenas.length}`;
+  arenaPrev.disabled = arenaBox.scrollLeft <= 2;
+  arenaNext.disabled = arenaBox.scrollLeft >= max - 2;
+};
+const arenaMove = dir => arenaBox.scrollBy({ left: dir * arenaStep() * Math.max(1, Math.floor((arenaBox.clientWidth + 14) / arenaStep())) });
+arenaPrev.addEventListener('click', () => arenaMove(-1));
+arenaNext.addEventListener('click', () => arenaMove(1));
+arenaBox.addEventListener('scroll', arenaSync, { passive: true });
+arenaBox.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') { e.preventDefault(); arenaMove(-1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); arenaMove(1); }
+});
+addEventListener('resize', arenaSync);
+arenaSync();
+
+/* Пролог: реплики сменяются, как окно диалога в игре */
+(() => {
+  const box = document.getElementById('prophecyText');
+  const lines = [
+    box.textContent,
+    'Мудрец Лукан предрёк, что в эпоху тьмы явятся четыре воина с кристаллами и спасут мир.',
+    'И вот у королевства Корнелия стоят четверо юных странников, и у каждого в руках тусклый кристалл...',
+  ];
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let line = 0;
+  const type = (text, i = 0) => {
+    box.textContent = text.slice(0, i);
+    if (i < text.length) setTimeout(type, 28, text, i + 1);
+    else setTimeout(() => { line = (line + 1) % lines.length; type(lines[line]); }, 4500);
+  };
+  setTimeout(() => type(lines[1]), 6000);
+  line = 1;
+})();
 
 /* Галерея */
 const shots = [

@@ -8,3 +8,5 @@ website/download/
 website/bugreport.config.php
 website/.bugreport-limits/
 __pycache__/
+tools/deploy.ini
+tools/.deploy-state.json
