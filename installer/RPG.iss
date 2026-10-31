@@ -24,6 +24,7 @@ PrivilegesRequired=lowest
 DefaultDirName={localappdata}\Programs\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
+SetupIconFile=RPG.ico
 UninstallDisplayIcon={app}\bin\{#AppExe}
 OutputDir=Output
 OutputBaseFilename={#AppName}-Setup-{#AppVersion}

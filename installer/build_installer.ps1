@@ -14,7 +14,7 @@ $env:PATH = "$CLionDir\bin\mingw\bin;$env:PATH"
 $cmake = "$CLionDir\bin\cmake\win\x64\bin\cmake.exe"
 if (-not (Test-Path $cmake)) { throw "Не найден CMake: $cmake (укажите -CLionDir)" }
 
-& $cmake -S $root -B $buildDir -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+& $cmake -S $root -B $buildDir -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DRPG_BUILD_TESTS=OFF
 if ($LASTEXITCODE -ne 0) { throw "CMake configure завершился с ошибкой" }
 & $cmake --build $buildDir -j 8
 if ($LASTEXITCODE -ne 0) { throw "Сборка завершилась с ошибкой" }

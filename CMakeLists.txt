@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(PROJECT_NAME)
+project(PROJECT_NAME C CXX RC)
 
 set(CMAKE_EXE_LINKER_FLAGS "-static")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -static-libgcc -static-libstdc++")
@@ -100,7 +100,7 @@ target_include_directories(lua PUBLIC ${CMAKE_SOURCE_DIR}/third_party/lua)
 
 target_link_libraries(rpg_core PUBLIC ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARIES} ${SDL2_MIXER_LIBRARIES} ${SDL2_TTF_LIBRARIES} ws2_32 lua)
 
-add_executable(${PROJECT_NAME} scripts/main/main.cpp)
+add_executable(${PROJECT_NAME} scripts/main/main.cpp installer/RPG.rc)
 target_link_libraries(${PROJECT_NAME} PRIVATE rpg_core)
 
 # --- ТЕСТЫ (GoogleTest) ---
