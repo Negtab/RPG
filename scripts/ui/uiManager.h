@@ -115,6 +115,8 @@ public:
     void moveSelectorToNext();
     void moveSelectorToPrevious();
     void moveSelector();
+    void handleBattleMenuEvent(const SDL_Event& e);   // команды и списки: клавиши и курсор под мышью
+    void handleTargetHover(const SDL_Event& event);   // курсор на цель под мышью; Esc и клавиши работают как раньше
     void confirmTarget();
     void cancelChoice();                       // Esc: шаг назад (цель -> список -> команды)
 
@@ -213,6 +215,7 @@ private:
     bool targetFallen = false;
     [[nodiscard]] int getTargetCount(TargetType type) const;
     [[nodiscard]] SDL_Rect selectedTargetRect() const;
+    [[nodiscard]] int targetAt(SDL_Point m) const;           // живая цель под точкой или -1
 
     // ── Поверх сцены боя: указатели, имя цели, всплывающие числа ──
     struct Popup { int x, y; std::string text; SDL_Color color; Uint32 start; };   // start может быть в будущем
@@ -232,6 +235,15 @@ private:
     std::string actionBanner;                                  // «Warrior - Attack» сверху во время хода
     Uint32 actionBannerAt = 0;
     std::array<SDL_Rect, 8> listRect{};                        // строки списка: для стрелки под мышью
+    std::array<std::function<void()>, 8> listActions;          // что делает строка; пусто — выбрать нельзя
+    int listCursor = 0;
+    int commandCursor = 0;                                     // строка меню команд
+    int commandHero = -1;                                      // чей выбор сейчас показан в меню
+    std::array<int, 4> lastCommand{};                          // прошлая команда каждого героя в этом бою
+    [[nodiscard]] bool commandEnabled(int i) const;
+    void runCommand(int i);
+    void rememberCommand(int i);
+    void resetListCursor();
 
     void initCreateScene();
     void refreshPartySlot(int slot);

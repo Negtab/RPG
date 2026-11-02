@@ -124,6 +124,8 @@ void InputController::battleInput(SDL_Event event, Game& game, Battle& battle,  
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT)
         manager.handleClickEvent(event, gameStateString.at(game.getGameState()));
 
+    manager.handleTargetHover(event);
+
     const bool keyDown = event.type == SDL_KEYDOWN;
     const SDL_Scancode key = keyDown ? event.key.keysym.scancode : SDL_SCANCODE_UNKNOWN;
     const bool fresh = keyDown && event.key.repeat == 0;      // подтверждение и отмена не повторяются при удержании
@@ -136,7 +138,13 @@ void InputController::battleInput(SDL_Event event, Game& game, Battle& battle,  
         return;
     }
 
-    if (manager.getState() == UIChooseState::ChooseTarget && keyDown)
+    if (manager.getState() != UIChooseState::ChooseTarget)
+    {
+        manager.handleBattleMenuEvent(event);
+        return;
+    }
+
+    if (keyDown)
     {
         if (fresh && (key == SDL_SCANCODE_SPACE || key == SDL_SCANCODE_RETURN || key == SDL_SCANCODE_KP_ENTER))
             manager.confirmTarget();

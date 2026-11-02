@@ -350,21 +350,11 @@ void UIManager::handleClickEvent(const SDL_Event &event, const std::string &scen
     if (sceneId == "Battle" && uiState == UIChooseState::ChooseTarget && event.button.button == SDL_BUTTON_LEFT)
     {
         // Клик прямо по живой цели выбирает её; «на всех» — клик по любой из них, «на себя» — по ходящему герою
-        const SDL_Point m{event.button.x, event.button.y};
-        const bool enemiesSide = currentType == TargetType::Enemy || currentType == TargetType::AllEnemies;
-        const int count = enemiesSide ? static_cast<int>(game.getBattle()->getEnemies().size())
-                                      : static_cast<int>(player.getHeroes().size());
-        for (int i = 0; i < std::min(count, enemiesSide ? MAX_ENEMY_COUNT : 4); ++i)
+        if (const int i = targetAt({event.button.x, event.button.y}); i >= 0)
         {
-            if (currentType == TargetType::Self && i != currentHeroIndex) continue;
-            const bool fits = enemiesSide ? game.getBattle()->getEnemies().at(i).getIsAlive() : heroTargetable(i);
-            const SDL_Rect r = enemiesSide ? enemySlotRect[i] : heroSlotRect[i];
-            if (fits && SDL_PointInRect(&m, &r))
-            {
-                if (currentType == TargetType::Enemy || currentType == TargetType::Ally) selectedTargetIndex = i;
-                confirmTarget();
-                return;
-            }
+            if (currentType == TargetType::Enemy || currentType == TargetType::Ally) selectedTargetIndex = i;
+            confirmTarget();
+            return;
         }
     }
 
@@ -788,6 +778,11 @@ void UIManager::updateBattleData(Scene &scene)
     // Свои герои. Тот, кто сейчас выбирает действие, выходит на шаг вперёд
     const bool choosing = game.getBattle()->isPlayerChoosing();
     const int active = choosing ? game.getBattle()->getCurrentHeroIndex() : -1;
+    if (active != commandHero)                                      // новый герой: курсор на его прошлой команде
+    {
+        commandHero = active;
+        if (active >= 0 && active < 4) commandCursor = commandEnabled(lastCommand[active]) ? lastCommand[active] : 0;
+    }
     std::string heroText;
     for (int i = 0; i < heroCount && i < 4; i++)
     {
@@ -966,6 +961,9 @@ void UIManager::addEnemys()
     layoutBattle();                            // сначала враги, потому что addCharacters использует позиции героев
     resetHpTracking();                         // новый бой: первый кадр только запоминает HP
     fx.clear();
+    lastCommand.fill(0);
+    commandCursor = 0;
+    commandHero = -1;
     closeList();
     closeBestiary();
     uiState = UIChooseState::ChooseAction;
@@ -1011,6 +1009,118 @@ void UIManager::addCharacters()
 namespace {
     const SDL_Color kWhite{255, 255, 255, 255};
     const SDL_Color kGray {120, 128, 168, 255};             // недоступная строка: синевато-серая, под цвет окна
+    // Команды сверху вниз; Auto стоит во второй колонке, рядом с Run
+    const char* const kCommandIds[] = {"AttackButton", "ItemsButton", "MagicButton", "BookButton", "Run", "AutoButton"};
+    constexpr int kCommandCount = 6, kCommandRun = 4, kCommandAuto = 5;
+}
+
+bool UIManager::commandEnabled(int i) const
+{
+    switch (i)
+    {
+        case 1: return hasItems();
+        case 2: return hasUsableSkill();
+        case kCommandAuto: return game.getBattle()->canUseAuto() || game.getBattle()->isAuto();
+        default: return true;
+    }
+}
+
+void UIManager::runCommand(int i)
+{
+    switch (i)
+    {
+        case 0: onActionButton(ActionType::Attack); break;
+        case 1: onActionButton(ActionType::Item); break;
+        case 2: onActionButton(ActionType::Magic); break;
+        case 3: openBestiaryFromBattle(); break;
+        case kCommandRun: game.endRandomBattle(); break;
+        case kCommandAuto: toggleAutoBattle(); break;
+        default: ;
+    }
+}
+
+void UIManager::rememberCommand(int i)
+{
+    commandCursor = i;
+    if (currentHeroIndex >= 0 && currentHeroIndex < 4) lastCommand[currentHeroIndex] = i;
+}
+
+void UIManager::resetListCursor()
+{
+    listCursor = 0;
+    while (listCursor < ENV_BUTTON_COUNT - 1 && !listActions[listCursor]) ++listCursor;
+}
+
+void UIManager::handleBattleMenuEvent(const SDL_Event& e)
+{
+    Battle* battle = game.getBattle();
+    const bool inList = uiState == UIChooseState::ChooseSkill || uiState == UIChooseState::ChooseItem;
+
+    if (e.type == SDL_MOUSEMOTION)                            // мышь и клавиши ведут один и тот же курсор
+    {
+        auto under = [&](const std::string& id) {
+            const UIObject* obj = findUIObject(id, "Battle");
+            if (!obj || !obj->isVisible || !obj->texture) return false;
+            const SDL_Rect r = obj->rect;
+            return e.motion.y >= r.y - 2 && e.motion.y <= r.y + r.h + 2 &&
+                   e.motion.x >= r.x - 16 && e.motion.x <= r.x + std::max(r.w, 60);
+        };
+        if (inList)
+        {
+            for (int i = 0; i < ENV_BUTTON_COUNT; ++i)
+                if (listActions[i] && under("EnButton" + std::to_string(i + 1))) listCursor = i;
+        }
+        else if (uiState == UIChooseState::ChooseAction && battle->isPlayerChoosing())
+            for (int i = 0; i < kCommandCount; ++i)
+                if (commandEnabled(i) && under(kCommandIds[i])) commandCursor = i;
+        return;
+    }
+
+    if (e.type != SDL_KEYDOWN) return;
+    const SDL_Scancode k = e.key.keysym.scancode;
+    const bool up    = k == SDL_SCANCODE_W || k == SDL_SCANCODE_UP;
+    const bool down  = k == SDL_SCANCODE_S || k == SDL_SCANCODE_DOWN;
+    const bool left  = k == SDL_SCANCODE_A || k == SDL_SCANCODE_LEFT;
+    const bool right = k == SDL_SCANCODE_D || k == SDL_SCANCODE_RIGHT;
+    const bool confirm = e.key.repeat == 0 &&
+                         (k == SDL_SCANCODE_RETURN || k == SDL_SCANCODE_KP_ENTER || k == SDL_SCANCODE_SPACE);
+
+    if (!battle->isPlayerChoosing())
+    {
+        if (confirm && battle->isAuto()) toggleAutoBattle();  // автобой идёт сам: Enter его останавливает
+        return;
+    }
+    if (!isAnimationFinished("Battle")) return;
+
+    if (inList)
+    {
+        if (up || down)
+        {
+            const int step = up ? ENV_BUTTON_COUNT - 1 : 1;   // пустые и недоступные строки пропускаем
+            for (int guard = 0; guard < ENV_BUTTON_COUNT; ++guard)
+            {
+                listCursor = (listCursor + step) % ENV_BUTTON_COUNT;
+                if (listActions[listCursor]) break;
+            }
+        }
+        if (left || right)                                    // соседняя колонка, если там что-то есть
+        {
+            const int beside = (listCursor + ENV_BUTTON_COUNT / 2) % ENV_BUTTON_COUNT;
+            if (listActions[beside]) listCursor = beside;
+        }
+        if (confirm && listActions[listCursor]) listActions[listCursor]();
+        return;
+    }
+
+    if (up || down)
+    {
+        const int step = up ? kCommandCount - 1 : 1;
+        do commandCursor = (commandCursor + step) % kCommandCount;
+        while (!commandEnabled(commandCursor));               // Attack доступна всегда: цикл закончится
+    }
+    if (right && commandCursor != kCommandAuto && commandEnabled(kCommandAuto)) commandCursor = kCommandAuto;
+    if (left && commandCursor == kCommandAuto) commandCursor = kCommandRun;
+    if (confirm) runCommand(commandCursor);
 }
 
 bool UIManager::hasUsableSkill() const
@@ -1054,6 +1164,7 @@ void UIManager::onActionButton(ActionType type)
     switch (type)
     {
         case ActionType::Attack:
+            rememberCommand(0);
             pendingAction.targetType = TargetType::Enemy;
             uiState = UIChooseState::ChooseTarget;
             moveSelector();
@@ -1062,6 +1173,7 @@ void UIManager::onActionButton(ActionType type)
 
         case ActionType::Magic:
             if (!hasUsableSkill()) return;                 // пустой список не открываем, кнопка и так серая
+            rememberCommand(2);
             uiState = UIChooseState::ChooseSkill;
             initMagic();
             setEnVI("EnvironmentPanel", "Battle", true);
@@ -1069,6 +1181,7 @@ void UIManager::onActionButton(ActionType type)
 
         case ActionType::Item:
             if (!hasItems()) return;
+            rememberCommand(1);
             uiState = UIChooseState::ChooseItem;
             initItems();
             setEnVI("EnvironmentPanel", "Battle", true);
@@ -1101,6 +1214,7 @@ void UIManager::setListEntry(int i, const std::string& name, const std::string& 
     setRect("EnInfo" + n, "Battle", {cell.x + cell.w - iw, cell.y + (cell.h - ih) / 2, iw, ih});
     setTexture("EnButton" + n, "Battle", nameTex);
     setTexture("EnInfo" + n, "Battle", infoTex);
+    listActions[i] = usable ? onClick : nullptr;
     setOnClick("EnButton" + n, "Battle", usable ? onClick : nullptr);
     setOnClick("EnInfo" + n, "Battle", usable ? std::move(onClick) : nullptr);
     setEnVI("EnButton" + n, "Battle", true);
@@ -1113,6 +1227,7 @@ void UIManager::closeList()
     for (int i = 0; i < ENV_BUTTON_COUNT; ++i)                // строки прошлого списка не должны пережить смену списка
     {
         const std::string n = std::to_string(i + 1);
+        listActions[i] = nullptr;
         setTexture("EnButton" + n, "Battle", nullptr);
         setTexture("EnInfo" + n, "Battle", nullptr);
         setOnClick("EnButton" + n, "Battle", nullptr);
@@ -1133,6 +1248,7 @@ void UIManager::initMagic()
         setListEntry(i, skill.name, info, hero.canCast(skill) && skill.effectType != SkillEffectType::Field,
                      [this, skillId = skill.id]() { onEnvironmentCLick(skillId, true); });
     }
+    resetListCursor();
 }
 
 void UIManager::initItems()
@@ -1146,6 +1262,7 @@ void UIManager::initItems()
         setListEntry(i++, game.getItem(itemId).name, "x" + std::to_string(count), true,
                      [this, itemId]() { onEnvironmentCLick(itemId, false); });
     }
+    resetListCursor();
 }
 
 void UIManager::onEnvironmentCLick(int id, bool isMagic)
@@ -1233,6 +1350,30 @@ SDL_Rect UIManager::selectedTargetRect() const
     if (game.getBattle()->isPlayerChoosing() && i == game.getBattle()->getCurrentHeroIndex())
         r.x -= 8 * PIXEL_SCALE;                              // ходящий герой стоит на шаг впереди
     return r;
+}
+
+int UIManager::targetAt(SDL_Point m) const
+{
+    const bool enemiesSide = currentType == TargetType::Enemy || currentType == TargetType::AllEnemies;
+    const int count = enemiesSide ? static_cast<int>(game.getBattle()->getEnemies().size())
+                                  : static_cast<int>(player.getHeroes().size());
+    for (int i = 0; i < std::min(count, enemiesSide ? MAX_ENEMY_COUNT : 4); ++i)
+    {
+        if (currentType == TargetType::Self && i != currentHeroIndex) continue;
+        const bool fits = enemiesSide ? game.getBattle()->getEnemies().at(i).getIsAlive() : heroTargetable(i);
+        SDL_Rect r = enemiesSide ? enemySlotRect[i] : heroSlotRect[i];
+        if (!enemiesSide && game.getBattle()->isPlayerChoosing() && i == game.getBattle()->getCurrentHeroIndex())
+            r.x -= 8 * PIXEL_SCALE;                              // ходящий герой на шаг впереди
+        if (fits && SDL_PointInRect(&m, &r)) return i;
+    }
+    return -1;
+}
+
+void UIManager::handleTargetHover(const SDL_Event& event)
+{
+    if (event.type != SDL_MOUSEMOTION || uiState != UIChooseState::ChooseTarget) return;
+    if (currentType != TargetType::Enemy && currentType != TargetType::Ally) return;   // остальные цели не выбираются
+    if (const int i = targetAt({event.motion.x, event.motion.y}); i >= 0) selectedTargetIndex = i;
 }
 
 void UIManager::moveSelector()
@@ -1615,26 +1756,16 @@ void UIManager::drawBattleOverlay()
         }
     }
 
-    // Стрелка у строки меню под мышью
-    int mx = 0, my = 0;
-    SDL_GetMouseState(&mx, &my);
-    {
-        float lx = 0.f, ly = 0.f;                                 // окно может быть растянуто: в координаты игры
-        SDL_RenderWindowToLogical(visualizer.getRenderer(), mx, my, &lx, &ly);
-        mx = static_cast<int>(lx);
-        my = static_cast<int>(ly);
-    }
+    // Стрелка у выбранной строки меню: её двигают и клавиши, и мышь
     auto pointAt = [&](const std::string& id) {
         const UIObject* obj = findUIObject(id, "Battle");
         if (!obj || !obj->isVisible || !obj->texture) return;
-        const SDL_Rect r = obj->rect;
-        if (my >= r.y - 2 && my <= r.y + r.h + 2 && mx >= r.x - 16 && mx <= r.x + std::max(r.w, 60))
-            drawPointer(r.x - 4, r.y + r.h / 2, 2);
+        drawPointer(obj->rect.x - 4, obj->rect.y + obj->rect.h / 2, 2);
     };
     if (uiState == UIChooseState::ChooseSkill || uiState == UIChooseState::ChooseItem)
-        for (int i = 0; i < ENV_BUTTON_COUNT; ++i) pointAt("EnButton" + std::to_string(i + 1));
+        pointAt("EnButton" + std::to_string(listCursor + 1));
     else if (uiState == UIChooseState::ChooseAction && game.getBattle()->isPlayerChoosing())
-        for (const char* id : {"AttackButton", "ItemsButton", "MagicButton", "BookButton", "Run", "AutoButton"}) pointAt(id);
+        pointAt(kCommandIds[commandCursor]);
 
     drawEffects();
 
