@@ -225,7 +225,7 @@
                          "name":"script",
                          "type":"string",
                          "value":"cornelia_dancer"
-                        }],
+                        }, {"name":"yields", "type":"bool", "value":true}],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -248,7 +248,7 @@
                          "name":"script",
                          "type":"string",
                          "value":"cornelia_townsman"
-                        }],
+                        }, {"name":"yields", "type":"bool", "value":true}],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -271,7 +271,7 @@
                          "name":"script",
                          "type":"string",
                          "value":"cornelia_woman"
-                        }],
+                        }, {"name":"yields", "type":"bool", "value":true}],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -294,7 +294,7 @@
                          "name":"script",
                          "type":"string",
                          "value":"cornelia_oldman"
-                        }],
+                        }, {"name":"yields", "type":"bool", "value":true}],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -317,7 +317,7 @@
                          "name":"script",
                          "type":"string",
                          "value":"cornelia_girl"
-                        }],
+                        }, {"name":"yields", "type":"bool", "value":true}],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -340,7 +340,7 @@
                          "name":"script",
                          "type":"string",
                          "value":"cornelia_scholar"
-                        }],
+                        }, {"name":"yields", "type":"bool", "value":true}],
                  "rotation":0,
                  "type":"",
                  "visible":true,

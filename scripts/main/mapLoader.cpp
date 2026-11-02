@@ -291,6 +291,7 @@ MapData loadMap(const std::string& path)
                 n.shop = prop<std::string>(o, "shop", "");
                 n.text = prop<std::string>(o, "text", "");
                 n.script = prop<std::string>(o, "script", "");
+                n.yields = prop<bool>(o, "yields", false);
                 n.showIf = prop<std::string>(o, "showIf", "");
                 n.hideIf = prop<std::string>(o, "hideIf", "");
                 if (n.sprite.empty())

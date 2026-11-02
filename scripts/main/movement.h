@@ -91,6 +91,7 @@ struct NpcSpawn {
     std::string shop;                         // id из shops.json: NPC — продавец
     std::string text;                         // реплика; строки разделяются символом |
     std::string script;                       // сцена npc.<script> из resources/Story/*.lua
+    bool yields = false;                      // горожанин: отходит в сторону, если в него идти
     std::string showIf, hideIf;               // виден только при флаге / пропадает при флаге
 };
 
@@ -283,6 +284,24 @@ inline Point stepTo(Point c, Direction d) {
         case Direction::Right: return {c.x + 1, c.y};
         default:               return c;
     }
+}
+
+// Куда деться горожанину, в которого упёрся игрок: вбок (flip — какой бок первым), вперёд по ходу игрока,
+// а если всё занято или он уже далеко от дома — обмен местами с игроком
+enum class NpcYield { Stay, Step, Swap };
+struct NpcYieldPlan { NpcYield kind = NpcYield::Stay; Point cell{}; };
+
+template <class Suits>
+NpcYieldPlan planNpcYield(Point npc, Direction push, int flip, bool canStep, bool canSwap, Suits&& suits)
+{
+    const bool vertical = push == Direction::Up || push == Direction::Down;
+    const Point options[] = {vertical ? Point{npc.x + flip, npc.y} : Point{npc.x, npc.y + flip},
+                             vertical ? Point{npc.x - flip, npc.y} : Point{npc.x, npc.y - flip},
+                             stepTo(npc, push)};
+    if (canStep)
+        for (const Point& p : options)
+            if (suits(p)) return {NpcYield::Step, p};
+    return canSwap ? NpcYieldPlan{NpcYield::Swap, npc} : NpcYieldPlan{};
 }
 
 inline void advance(MoveState& m, float dt, float speed = 1.0f) {

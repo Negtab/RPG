@@ -25,6 +25,8 @@ static void initWalkAnimations(Player& p)
 
 namespace {
     constexpr int kDefaultEncounterRate = 8;
+    constexpr float kNpcPushSeconds = 0.2f;                   // короткое нажатие только поворачивает: можно заговорить
+    constexpr float kNpcAwaySeconds = 3.0f;                   // столько стоит в стороне, прежде чем вернуться
     constexpr const char* kShipFlag = "got_ship";              // флаг сюжета: корабль у отряда
     constexpr uint32_t kStartGold = 800;                      // 400 гил FF1: цены в лавках у нас вдвое выше
 }
@@ -255,6 +257,7 @@ bool Game::loadFromSlot(int slot)
                 ship.cell = *home;
         }
         placePlayerAfterLoad(positionRestored);
+        resetNpcs();
     }
     catch (const std::exception& e)
     {
@@ -901,6 +904,7 @@ void Game::spawnNpcs()
             else
                 npcs[id].push_back(std::make_unique<NotGamePerson>(n.name, n.sprite, n.cell, n.facing, std::move(lines)));
             npcs[id].back()->setScript(n.script);
+            npcs[id].back()->setYields(n.yields);
             npcs[id].back()->setVisibility(n.showIf, n.hideIf);
         }
 }
@@ -919,6 +923,77 @@ NotGamePerson* Game::npcAt(int mapId, Point cell) const
     for (const auto& n : it->second)
         if (n->getCell().x == cell.x && n->getCell().y == cell.y && npcVisible(*n)) return n.get();
     return nullptr;
+}
+
+bool Game::npcCellFree(Point c, bool ignoreLocalPlayer) const
+{
+    if (npcAt(currentMap->mapId, c)) return false;
+    const auto taken = [&](const MoveState& m) {
+        return (m.cell.x == c.x && m.cell.y == c.y) || (m.moving && m.target.x == c.x && m.target.y == c.y);
+    };
+    if (!ignoreLocalPlayer && taken(players.at(0).getMove())) return false;
+    for (const auto& [id, remote] : remotePlayers)
+        if (remote.getMove().mapId == currentMap->mapId && taken(remote.getMove())) return false;
+    return true;
+}
+
+void Game::updateNpcs(float dt, Direction want)
+{
+    const auto it = npcs.find(currentMap->mapId);
+    if (it == npcs.end()) return;
+    MoveState& m = players.at(0).getMove();
+
+    // Игрок упёрся в горожанина и не отпускает клавишу: тот шагает вбок, а если некуда — вперёд.
+    // Совсем некуда (тупик, узкий проход у двери) — меняются местами, чтобы житель не перекрыл дорогу
+    NotGamePerson* blocker = want != Direction::Idle && !m.moving ? npcAt(m.mapId, stepTo(m.cell, want)) : nullptr;
+    if (blocker && blocker->yields() && !blocker->isStepping())
+    {
+        npcPushTime += dt;
+        if (npcPushTime >= kNpcPushSeconds)
+        {
+            npcPushTime = 0.f;
+            const Point c = blocker->getCell();
+            const auto suits = [&](Point p) {
+                if (!currentMap->isWalkable(p.x, p.y) || !npcCellFree(p) || currentMap->eventAt(p.x, p.y) ||
+                    currentMap->chestAt(p.x, p.y) || currentMap->lockAt(p.x, p.y))
+                    return false;
+                for (Direction d : {Direction::Up, Direction::Down, Direction::Left, Direction::Right})   // двери не загораживает
+                    if (const Point q = stepTo(p, d); currentMap->portalAt(q.x, q.y)) return false;
+                return !currentMap->portalAt(p.x, p.y);
+            };
+            const bool canSwap = players.at(0).getRiding() == Vehicle::None && currentMap->isWalkable(c.x, c.y);
+            const NpcYieldPlan plan = planNpcYield(c, want, rand() % 2 ? 1 : -1, blocker->canStepAway(), canSwap, suits);
+            if (plan.kind == NpcYield::Step)
+                blocker->stepAside(plan.cell);
+            else if (plan.kind == NpcYield::Swap && npcCellFree(m.cell, true))
+            {
+                blocker->stepAside(m.cell);
+                stepFrom = m.cell;
+                m.target = c;
+                m.moving = true;
+                m.progress = 0.f;
+                if (localPlayerId != 0) sendLocalPlayerState();
+            }
+        }
+    }
+    else
+        npcPushTime = 0.f;
+
+    const bool calm = fadePhase == Fade::None && !uiManager->isDialogOpen() && !story->busy();
+    for (const auto& n : it->second)
+    {
+        n->updateStep(dt);
+        if (calm && n->isAway() && !n->isStepping() && n->addAwayTime(dt) >= kNpcAwaySeconds &&
+            npcCellFree(n->stepBackCell()))
+            n->stepBack();
+    }
+}
+
+void Game::resetNpcs()
+{
+    for (const auto& [id, list] : npcs)
+        for (const auto& n : list) n->goHome();
+    npcPushTime = 0.f;
 }
 
 bool Game::npcVisible(const NotGamePerson& npc) const
@@ -1074,6 +1149,7 @@ bool Game::applyMapChange(int mapId, int x, int y)
 
     const bool newMap = currentMap != &it->second;
     currentMap = &it->second;
+    if (newMap) resetNpcs();
 
     auto place = [&](MoveState& m) {
         settle(m);
@@ -1605,6 +1681,7 @@ void Game::update(float dt)
                                                                                    : inputController->readMoveDirection();
         const MoveResult r = updateLocal(m, passable, want, dt, vehicleSpeed(riding));
         if (r.stepStarted) stepFrom = m.cell;
+        updateNpcs(dt, want);
 
         // Шаг за край города или дома — наружу (как в FF1). Переходы ведёт хост
         bool leftMap = false;

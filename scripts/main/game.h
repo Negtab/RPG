@@ -150,6 +150,9 @@ class Game {
         // ── Жители и заведения ──
         [[nodiscard]] const std::vector<std::unique_ptr<NotGamePerson>>& npcsHere() const;   // на текущей карте
         [[nodiscard]] NotGamePerson* npcAt(int mapId, Point cell) const;
+        void updateNpcs(float dt, Direction want);    // горожане уступают дорогу и возвращаются
+        void resetNpcs();                             // все на свои места
+        [[nodiscard]] bool npcCellFree(Point cell, bool ignoreLocalPlayer = false) const;
         void talk();                                  // Enter на карте: заговорить с тем, на кого смотрим
         void openChest(const MapChest& chest);        // сундук перед героем: предмет или золото, один раз
         [[nodiscard]] bool chestOpened(const MapData& map, const MapChest& chest) const;
@@ -204,6 +207,7 @@ class Game {
         float fadeT = 0.0f;                           // 0..1 внутри фазы
         std::function<void()> fadeChange;
         void updateFade(float dt);
+        float npcPushTime = 0.f;                      // сколько игрок упирается в горожанина
         struct ReturnPoint { int mapId; Point cell; };
         std::vector<ReturnPoint> returnStack;         // откуда пришли: выход из города или дома ведёт сюда
         void sendMapChange(int mapId, int x, int y);

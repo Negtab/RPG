@@ -311,7 +311,7 @@
                          "name":"script",
                          "type":"string",
                          "value":"pravoka_woman"
-                        }],
+                        }, {"name":"yields", "type":"bool", "value":true}],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -334,7 +334,7 @@
                          "name":"script",
                          "type":"string",
                          "value":"pravoka_oldman"
-                        }],
+                        }, {"name":"yields", "type":"bool", "value":true}],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -380,7 +380,7 @@
                          "name":"script",
                          "type":"string",
                          "value":"pravoka_dancer"
-                        }],
+                        }, {"name":"yields", "type":"bool", "value":true}],
                  "rotation":0,
                  "type":"",
                  "visible":true,

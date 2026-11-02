@@ -690,7 +690,7 @@ void UIManager::drawMapWorld()
     for (const Prop& p : map.props)
         if (p.collision == PropCollision::Solid) list.push_back({static_cast<float>(p.bottom), 0, nullptr, &p});
     for (const auto& n : game.npcsHere())
-        if (game.npcVisible(*n) && seen(n->getCell())) list.push_back({static_cast<float>(n->getCell().y), 1, nullptr, nullptr, n.get()});
+        if (game.npcVisible(*n) && seen(n->getCell())) list.push_back({n->visualY(), 1, nullptr, nullptr, n.get()});
     for (const Actor& a : actors)
         list.push_back({a.pos.y, a.p->getRiding() == Vehicle::Airship ? 2 : 1, &a, nullptr});
     std::sort(list.begin(), list.end(), [](const Drawable& a, const Drawable& b) {
@@ -701,7 +701,7 @@ void UIManager::drawMapWorld()
     for (const Drawable& d : list)
     {
         if (d.prop) drawProp(*d.prop, camX, camY);
-        else if (d.npc) drawNpc(*d.npc, d.npc->getCell().x * CELL_PX - camX, d.npc->getCell().y * CELL_PX - camY);
+        else if (d.npc) drawNpc(*d.npc, px(d.npc->visualX() * CELL_PX) - camX, px(d.npc->visualY() * CELL_PX) - camY);
         else drawActor(*d.actor->p, px(d.actor->pos.x * CELL_PX) - camX, px(d.actor->pos.y * CELL_PX) - camY);
     }
 

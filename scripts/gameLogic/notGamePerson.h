@@ -25,6 +25,21 @@ public:
     void setFacing(Direction d) noexcept { if (d != Direction::Idle) facing = d; }
     [[nodiscard]] const std::vector<std::string>& getLines() const noexcept { return lines; }
 
+    // Горожанин уступает дорогу: шагает в сторону, а через несколько секунд возвращается той же дорогой
+    void setYields(bool on) noexcept { yieldsWay = on; }
+    [[nodiscard]] bool yields() const noexcept { return yieldsWay; }
+    [[nodiscard]] bool isStepping() const noexcept { return stepLeft > 0.f; }
+    [[nodiscard]] bool isAway() const noexcept { return !trail.empty(); }
+    [[nodiscard]] bool canStepAway() const noexcept { return trail.size() < kMaxTrail; }   // обмен местами не ограничен
+    [[nodiscard]] Point stepBackCell() const { return trail.back(); }
+    void stepAside(Point to);
+    void stepBack();
+    void updateStep(float dt) noexcept { stepLeft = stepLeft > dt ? stepLeft - dt : 0.f; }
+    [[nodiscard]] float addAwayTime(float dt) noexcept { return awayTime += dt; }
+    void goHome();                                    // без анимации: игрок ушёл с карты
+    [[nodiscard]] float visualX() const noexcept;     // дробная клетка для рисования
+    [[nodiscard]] float visualY() const noexcept;
+
     virtual void talk(Game& game);                    // сцена npc.<script>, иначе реплики в окне разговора
 
 protected:
@@ -35,6 +50,17 @@ protected:
     std::vector<std::string> lines;
     std::string script;                               // npc.<script> в resources/Story/*.lua
     std::string showIf, hideIf;                       // флаги сюжета: король не всегда на троне, принцесса — тоже
+
+private:
+    static constexpr size_t kMaxTrail = 3;            // дальше трёх шагов от своего места не уходит
+    void moveTo(Point to);
+
+    bool yieldsWay = false;
+    std::vector<Point> trail;                         // откуда пришёл: от дома до текущей клетки
+    Direction homeFacing;
+    Point stepFrom{};
+    float stepLeft = 0.f;
+    float awayTime = 0.f;
 };
 
 #endif //PROJECT_NAME_NOTGAMEPERSON_H

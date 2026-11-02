@@ -3073,7 +3073,7 @@
        "name": "script",
        "type": "string",
        "value": "elf_a"
-      }
+      }, {"name":"yields", "type":"bool", "value":true}
      ]
     },
     {
@@ -3097,7 +3097,7 @@
        "name": "script",
        "type": "string",
        "value": "elf_b"
-      }
+      }, {"name":"yields", "type":"bool", "value":true}
      ]
     },
     {
@@ -3121,7 +3121,7 @@
        "name": "script",
        "type": "string",
        "value": "elf_c"
-      }
+      }, {"name":"yields", "type":"bool", "value":true}
      ]
     },
     {
@@ -3145,7 +3145,7 @@
        "name": "script",
        "type": "string",
        "value": "elf_d"
-      }
+      }, {"name":"yields", "type":"bool", "value":true}
      ]
     },
     {
@@ -3169,7 +3169,7 @@
        "name": "script",
        "type": "string",
        "value": "elf_e"
-      }
+      }, {"name":"yields", "type":"bool", "value":true}
      ]
     }
    ],
