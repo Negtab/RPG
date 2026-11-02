@@ -11,7 +11,10 @@
 #include "../main/lang.h"
 #include "../main/utf8.h"
 #include <SDL_log.h>
+#include <utility>
 
+const char* const kTitleIds[] = {"Continue", "New game", "Load", "Online", "Options", "Quit"};   // стартовое меню
+constexpr int kTitleCount = 6;
 constexpr int ENV_BUTTON_COUNT = 8;                 // список умений и предметов: 2 колонки по 4 строки
 
 // ─────────────────────────────────────────
@@ -182,6 +185,65 @@ void UIManager::addSound(const std::string &soundId, const std::string &sceneId)
         return;
     }
     scene->musicPlayer.sound[soundId] = c;
+}
+
+void UIManager::uiSound(const std::string& id)
+{
+    static std::map<std::string, int> channels;               // тот же звук начинается заново, а не наслаивается
+    Mix_Chunk* chunk = ResourceManager::getSound(id);
+    if (!chunk) return;
+    int& channel = channels.try_emplace(id, -1).first->second;
+    if (channel >= 0 && Mix_Playing(channel) && Mix_GetChunk(channel) == chunk) AudioManager::stopSound(channel);
+    AudioManager::playSound(channel, chunk);
+}
+
+UIManager::MenuSnapshot UIManager::menuSnapshot() const
+{
+    return {game.getGameState(),
+            {static_cast<int>(uiState), static_cast<int>(menuPage), static_cast<int>(shopPhase), dialogSlot,
+             bestiaryOpen, game.getBattle()->isAuto(), static_cast<int>(menuNoticeTicks),
+             static_cast<int>(savesNoticeTicks), createCursor == 4, talkChoice,
+             static_cast<int>(player.getPlayerGold())},
+            {titleCursor, createCursor, commandCursor, listCursor, selectedTargetIndex, savesSelected, dialogYes,
+             gameMenuSelected, partySel, menuHero, listSel, configSelected, shopCommand, shopSel, shopCount, choiceSel,
+             bestiaryIndex, pickedClass[0] + pickedClass[1] * 10 + pickedClass[2] * 100 + pickedClass[3] * 1000,
+             AudioManager::getMusicVolume(), AudioManager::getSoundVolume(), game.encountersEnabled(),
+             game.getMinimapZoom(), game.isFullscreen(), static_cast<int>(currentLanguage())}};
+}
+
+void UIManager::playMenuFeedback(const SDL_Event& e, const MenuSnapshot& before)
+{
+    const bool denied = std::exchange(uiDenied, false);
+    if (denied) { uiSound("Buzzer"); return; }
+    if (bestiarySearching)                                    // печать в поиске листает страницы сама
+    {
+        if (e.type == SDL_TEXTINPUT || (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_BACKSPACE))
+            uiSound("Type");
+        return;
+    }
+
+    const MenuSnapshot now = menuSnapshot();
+    const bool moved = now.cursor != before.cursor;
+    const bool changed = now.state != before.state || now.screen != before.screen;
+    if (!moved && !changed) return;
+
+    if (before.state == GameState::Map)                       // на карте молчим, кроме меню и вопроса в разговоре
+    {
+        if (now.state == GameState::GameMenu) uiSound("Confirm");
+        else if (moved) uiSound("Cursor");
+        return;
+    }
+
+    const bool key = e.type == SDL_KEYDOWN && e.key.repeat == 0;
+    const SDL_Scancode k = key ? e.key.keysym.scancode : SDL_SCANCODE_UNKNOWN;
+    const bool mouse = e.type == SDL_MOUSEBUTTONDOWN;
+    if (changed && (k == SDL_SCANCODE_ESCAPE || (mouse && e.button.button == SDL_BUTTON_RIGHT)))
+        uiSound("Cancel");
+    else if (k == SDL_SCANCODE_RETURN || k == SDL_SCANCODE_KP_ENTER || k == SDL_SCANCODE_SPACE ||
+             (mouse && e.button.button == SDL_BUTTON_LEFT))
+        uiSound("Confirm");
+    else if (moved)
+        uiSound("Cursor");
 }
 
 void UIManager::playSound(const std::string &sceneId, const std::string &soundId)
@@ -682,6 +744,10 @@ void UIManager::drawScene(const std::string &sceneId)
     if (sceneId == "Map")
         if (const float a = game.getFadeAlpha(); a > 0.0f)      // переход через портал: затемнение поверх всего
             visualizer.fillRect(screen, {0, 0, 0, static_cast<Uint8>(255 * a)});
+    if (sceneId == "Menu")
+        drawTitleCursor();
+    if (sceneId == "CreatePlayer")
+        drawCreateCursor();
     if (sceneId == "GameMenu")
         drawGameMenu();
     if (sceneId == "Shop")
@@ -961,6 +1027,7 @@ void UIManager::addEnemys()
     layoutBattle();                            // сначала враги, потому что addCharacters использует позиции героев
     resetHpTracking();                         // новый бой: первый кадр только запоминает HP
     fx.clear();
+    timedSounds.clear();
     lastCommand.fill(0);
     commandCursor = 0;
     commandHero = -1;
@@ -1533,11 +1600,12 @@ void UIManager::showActionName(const std::string& text)
 // Боевые эффекты
 // ─────────────────────────────────────────
 
-void UIManager::playEffect(const std::string& id, SDL_Point center, float delay)
+void UIManager::playEffect(const std::string& id, SDL_Point center, float delay, const std::string& sound)
 {
     const EffectDef* def = GameData::instance().effect(id);
     if (!def) return;
     const Uint32 now = SDL_GetTicks();
+    timedSounds.push_back({sound.empty() ? "fx_" + id : sound, now + static_cast<Uint32>(delay * 1000)});
     for (EffectLayer layer : def->layers)
     {
         SDL_Texture* tex = ResourceManager::getTexture(layer.sheet);
@@ -1563,10 +1631,11 @@ SDL_Rect UIManager::battlerRect(bool onHero, uint32_t owner, int index) const
     return {};
 }
 
-void UIManager::playEffectOn(const std::string& id, bool onHero, uint32_t owner, int index, float delay)
+void UIManager::playEffectOn(const std::string& id, bool onHero, uint32_t owner, int index, float delay,
+                             const std::string& sound)
 {
     const SDL_Rect r = battlerRect(onHero, owner, index);
-    if (r.w > 0) playEffect(id, {r.x + r.w / 2, r.y + r.h / 2}, delay);
+    if (r.w > 0) playEffect(id, {r.x + r.w / 2, r.y + r.h / 2}, delay, sound);
 }
 
 void UIManager::playSwing(int swing, const std::string& heroImageId, float delay)
@@ -1594,6 +1663,7 @@ void UIManager::playSwing(int swing, const std::string& heroImageId, float delay
     layer.add = false;
     layer.delay = delay;
     fx.push_back({layer, tex, hand, SDL_GetTicks()});
+    timedSounds.push_back({"fx_swing" + std::to_string(1 + rand() % 3), SDL_GetTicks() + static_cast<Uint32>(delay * 1000)});
 }
 
 const UIManager::FxInstance* UIManager::recentEffectAt(SDL_Point p) const
@@ -1609,6 +1679,11 @@ void UIManager::drawEffects()
 {
     SDL_Renderer* rr = visualizer.getRenderer();
     const Uint32 now = SDL_GetTicks();
+    std::erase_if(timedSounds, [&](const TimedSound& s) {
+        if (now < s.at) return false;
+        uiSound(s.id);
+        return true;
+    });
     std::erase_if(fx, [&](const FxInstance& f) {
         return static_cast<float>(now - f.start) / 1000.0f - f.layer.delay >= f.layer.length();
     });
@@ -1840,7 +1915,7 @@ void UIManager::initCreateScene()
     TTF_Font* font = ResourceManager::getFont(kUiFont);
     const SDL_Color white{255, 255, 255, 255};
     const SDL_Color black{0, 0, 0, 255};
-    auto hover = [this]() { playSound("Menu", "ButtonHover"); };
+    auto hover = []() { uiSound("Cursor"); };
 
     // drawScene берёт музыку сцены по имени «<сцена>Theme»: подставляем музыку меню
     if (Scene* s = findScene("CreatePlayer"))
@@ -1882,6 +1957,7 @@ void UIManager::initCreateScene()
 void UIManager::resetPartyCreation()
 {
     pickedClass = {0, 1, 4, 5};                                // Воин, Вор, Белый и Чёрный маг
+    createCursor = 0;
     autoName.fill("");
     for (int i = 0; i < 4; ++i)
     {
@@ -1948,6 +2024,36 @@ void UIManager::styleEdit(const std::string& id, const std::string& sceneId,
         edit->border = border;
         edit->maxLength = maxLength;
     }
+}
+
+void UIManager::handleCreateEvent(const SDL_Event& e)
+{
+    if (e.type != SDL_KEYDOWN) return;
+    const SDL_Scancode k = e.key.keysym.scancode;
+    if (k == SDL_SCANCODE_A || k == SDL_SCANCODE_LEFT)  createCursor = (createCursor + 4) % 5;
+    if (k == SDL_SCANCODE_D || k == SDL_SCANCODE_RIGHT) createCursor = (createCursor + 1) % 5;
+    if (createCursor < 4)
+    {
+        if (k == SDL_SCANCODE_W || k == SDL_SCANCODE_UP)   cycleClass(createCursor, -1);
+        if (k == SDL_SCANCODE_S || k == SDL_SCANCODE_DOWN) cycleClass(createCursor, +1);
+    }
+    if (e.key.repeat == 0 && (k == SDL_SCANCODE_RETURN || k == SDL_SCANCODE_KP_ENTER || k == SDL_SCANCODE_SPACE))
+    {
+        if (createCursor == 4) confirmParty();
+        else ++createCursor;                                   // Enter ведёт по героям к кнопке «Начать»
+    }
+}
+
+void UIManager::drawCreateCursor()
+{
+    if (createCursor == 4)
+    {
+        const SDL_Rect r = getRect("StartButton", "CreatePlayer");
+        drawPointer(r.x - 8, r.y + r.h / 2, PIXEL_SCALE);
+        return;
+    }
+    const SDL_Rect r = getRect("Slot" + std::to_string(createCursor + 1), "CreatePlayer");
+    drawPointer(r.x + 28, r.y + 28, PIXEL_SCALE);
 }
 
 void UIManager::focusNameField(int slot)
@@ -2092,10 +2198,9 @@ void UIManager::initMenuScene()
     addImage("Time", "Menu", {screen.w - 90, 10, 80, 30},
              ResourceManager::getTextTexture("00:00", font, {0, 0, 0, 0}));
     addMusic("MenuTheme", "Menu");
-    addSound("ButtonHover", "Menu");
     addPanel("ButtonPanel", "Menu");
 
-    auto hover = [this]() { playSound("Menu", "ButtonHover"); };
+    auto hover = []() { uiSound("Cursor"); };
     // Стартовое меню: сохраняться отсюда нечего, это делается в игровом меню. Continue и Load красит updateMenuButtons()
     struct MenuItem { const char* id; const char* text; std::function<void()> onClick; };
     const MenuItem items[] = {
@@ -2142,7 +2247,7 @@ void UIManager::initGameMenuScene()
 void UIManager::initOnlineScene()
 {
     TTF_Font *font = ResourceManager::getFont(kUiFont);
-    auto hover = [this]() { playSound("Menu", "ButtonHover"); };
+    auto hover = []() { uiSound("Cursor"); };
 
     addMusic("OnlineTheme", "Online");
     addImage("OnlineBackground", "Online", screen,
@@ -2234,7 +2339,7 @@ void UIManager::hideBattleResults()
 void UIManager::initBattleScene()
 {
     TTF_Font *font = ResourceManager::getFont(kUiFont);
-    auto hover = [this]() { playSound("Battle", "ButtonHover"); };
+    auto hover = []() { uiSound("Cursor"); };
     const SDL_Color white{255, 255, 255, 255};
 
     const int barY = 452;                     // верх нижней панели
@@ -2406,7 +2511,7 @@ void UIManager::showSavesNotice(const std::string& text)
 
 void UIManager::askDeleteSlot(int slot)
 {
-    if (!slotCache[slot]) { showSavesNotice(trf("{0} is empty", {slotName(slot)})); return; }
+    if (!slotCache[slot]) { uiDenied = true; showSavesNotice(trf("{0} is empty", {slotName(slot)})); return; }
     dialogSlot = slot;
     dialogYes = false;                                         // по умолчанию «Нет»: стирать случайно нельзя
     dialogDelete = true;
@@ -2433,8 +2538,8 @@ void UIManager::activateSlot(int slot)
         return;
     }
 
-    if (!s)            { showSavesNotice(trf("{0} is empty", {slotName(slot)})); return; }
-    if (s->corrupted)  { showSavesNotice(trf("{0} is damaged", {slotName(slot)})); return; }
+    if (!s)            { uiDenied = true; showSavesNotice(trf("{0} is empty", {slotName(slot)})); return; }
+    if (s->corrupted)  { uiDenied = true; showSavesNotice(trf("{0} is damaged", {slotName(slot)})); return; }
     if (game.isGameInProgress())
     {
         dialogSlot = slot;
@@ -2530,7 +2635,7 @@ void UIManager::handleSavesEvent(const SDL_Event& e)
     if (keyDown && (k == SDL_SCANCODE_UP || k == SDL_SCANCODE_W))   savesSelected = (savesSelected - 1 + n) % n;
     if (keyDown && (k == SDL_SCANCODE_DOWN || k == SDL_SCANCODE_S)) savesSelected = (savesSelected + 1) % n;
     if (confirm) { activateSlot(savesRows[savesSelected]); return; }
-    if (fresh && (k == SDL_SCANCODE_DELETE || k == SDL_SCANCODE_BACKSPACE))
+    if (fresh && (k == SDL_SCANCODE_DELETE || k == SDL_SCANCODE_BACKSPACE || k == SDL_SCANCODE_V))   // V — кнопка Y геймпада
     {
         askDeleteSlot(savesRows[savesSelected]);
         return;
@@ -2637,6 +2742,49 @@ void UIManager::updateMenuButtons()
     };
     set("Continue", tr("Continue"), game.canContinue());
     set("Load", tr("Load"), game.canLoad());
+    if (!titleTouched) titleCursor = 0;                        // по умолчанию «Continue»; нечего продолжать — следующий пункт
+    while (!findUIObject(kTitleIds[titleCursor], "Menu")->isEnabled)   // New game доступна всегда
+        titleCursor = (titleCursor + 1) % kTitleCount;
+}
+
+void UIManager::handleTitleEvent(const SDL_Event& e)
+{
+    if (e.type == SDL_MOUSEMOTION)                             // мышь и клавиши ведут один курсор
+    {
+        const SDL_Point m{e.motion.x, e.motion.y};
+        for (int i = 0; i < kTitleCount; ++i)
+        {
+            const SDL_Rect r = getRect(kTitleIds[i], "Menu");
+            if (SDL_PointInRect(&m, &r) && findUIObject(kTitleIds[i], "Menu")->isEnabled)
+            {
+                titleCursor = i;
+                titleTouched = true;
+            }
+        }
+        return;
+    }
+    if (e.type != SDL_KEYDOWN) return;
+    const SDL_Scancode k = e.key.keysym.scancode;
+    const bool up = k == SDL_SCANCODE_W || k == SDL_SCANCODE_UP, down = k == SDL_SCANCODE_S || k == SDL_SCANCODE_DOWN;
+    if (up || down)
+    {
+        titleTouched = true;
+        const int step = up ? kTitleCount - 1 : 1;
+        do titleCursor = (titleCursor + step) % kTitleCount;
+        while (!findUIObject(kTitleIds[titleCursor], "Menu")->isEnabled);
+    }
+    if (e.key.repeat == 0 && (k == SDL_SCANCODE_RETURN || k == SDL_SCANCODE_KP_ENTER || k == SDL_SCANCODE_SPACE))
+        if (Scene* scene = findScene("Menu"))                  // тот же путь, что у клика
+        {
+            const SDL_Rect r = getRect(kTitleIds[titleCursor], "Menu");
+            scene->handleClick(r.x + r.w / 2, r.y + r.h / 2);
+        }
+}
+
+void UIManager::drawTitleCursor()
+{
+    const SDL_Rect r = getRect(kTitleIds[titleCursor], "Menu");
+    drawPointer(r.x - 6, r.y + r.h / 2, 2);
 }
 
 // ─────────────────────────────────────────
@@ -2696,6 +2844,12 @@ void UIManager::openMenuPage(MenuPage page)
     menuPage = page;
     listSel = listScroll = 0;
     if (page == MenuPage::Equip) equipSlotSel = 0;
+}
+
+void UIManager::denyNotice(const std::string& text)
+{
+    uiDenied = true;
+    showMenuNotice(text);
 }
 
 void UIManager::showMenuNotice(const std::string& text)
@@ -2922,7 +3076,7 @@ void UIManager::useItemOn(int heroIndex)
         const bool done = item.effectType == ItemEffectType::Cure
                               ? h.hasStatus(item.status)
                               : applyFieldEffect(h, false, item.power, true);
-        if (!done) { showMenuNotice(tr("No effect")); return; }
+        if (!done) { denyNotice(tr("No effect")); return; }
         if (item.effectType == ItemEffectType::Cure) h.clearStatus(item.status);
         player.consumeItem(item.id);
         showMenuNotice(trf("{0} used on {1}", {item.name, h.getName()}));
@@ -2936,7 +3090,7 @@ void UIManager::useItemOn(int heroIndex)
             const bool mp = applyFieldEffect(h, true, item.power);       // Коттедж: и HP, и MP
             any = any || hp || mp;
         }
-        if (!any) { showMenuNotice(tr("No effect")); return; }
+        if (!any) { denyNotice(tr("No effect")); return; }
         player.consumeItem(item.id);
         showMenuNotice(trf("{0} used on the party", {item.name}));
     }
@@ -2944,7 +3098,7 @@ void UIManager::useItemOn(int heroIndex)
     {
         if (!applyFieldEffect(heroes[heroIndex], item.effectType == ItemEffectType::RestoreMana, item.power))
         {
-            showMenuNotice(tr("No effect"));
+            denyNotice(tr("No effect"));
             return;
         }
         player.consumeItem(item.id);
@@ -2965,11 +3119,11 @@ void UIManager::castOn(int heroIndex)
     const auto skills = caster.getAvailableSkills();
     if (listSel >= static_cast<int>(skills.size())) return;
     const Skill& skill = game.getSkill(skills[listSel].skillId);
-    if (!skillUsableInField(caster, skill)) { showMenuNotice(tr("Not enough MP")); menuPage = MenuPage::Magic; return; }
+    if (!skillUsableInField(caster, skill)) { denyNotice(tr("Not enough MP")); menuPage = MenuPage::Magic; return; }
 
     if (skill.effectType == SkillEffectType::Field)                  // Выход и Телепорт: меню закрывается
     {
-        if (!game.castFieldSpell(skill.field)) { showMenuNotice(tr("No effect")); return; }
+        if (!game.castFieldSpell(skill.field)) { denyNotice(tr("No effect")); return; }
         caster.spendMana(skill.manaCost);
         game.closeGameMenu();
         return;
@@ -2989,7 +3143,7 @@ void UIManager::castOn(int heroIndex)
     else
         any = applyFieldEffect(heroes[skill.targetType == TargetType::Self ? menuHero : heroIndex], false, skill.power, revive);
 
-    if (!any) { showMenuNotice(tr("No effect")); return; }
+    if (!any) { denyNotice(tr("No effect")); return; }
     caster.spendMana(skill.manaCost);
     showMenuNotice(trf("{0} cast {1}", {caster.getName(), skill.name}));
     if (!skillUsableInField(caster, skill)) menuPage = MenuPage::Magic;
@@ -3087,6 +3241,8 @@ void UIManager::handleMenuMain(const SDL_Event& e)
     }
     if (activate >= 0 && commands[activate].enabled)
         commands[activate].action();
+    else if (activate >= 0)
+        uiDenied = true;
 }
 
 namespace {
@@ -3121,12 +3277,12 @@ void UIManager::handleMenuList(const SDL_Event& e)
         const Item& item = game.getItem(inventoryList()[listSel].first);
         if (!item.usableInField())
         {
-            showMenuNotice(tr(item.isEquipment() ? "Equip it from the Equipment menu" : "Can only be used in battle"));
+            denyNotice(tr(item.isEquipment() ? "Equip it from the Equipment menu" : "Can only be used in battle"));
             return;
         }
         if (item.worldOnly && game.getMap().mapId != 0)
         {
-            showMenuNotice(tr("Can only be used on the world map"));
+            denyNotice(tr("Can only be used on the world map"));
             return;
         }
         partySel = 0;
@@ -3138,7 +3294,7 @@ void UIManager::handleMenuList(const SDL_Event& e)
     const Skill& skill = game.getSkill(caster.getAvailableSkills()[listSel].skillId);
     if (!skillUsableInField(caster, skill))
     {
-        showMenuNotice(skill.effectType != SkillEffectType::Heal && skill.effectType != SkillEffectType::Revive &&
+        denyNotice(skill.effectType != SkillEffectType::Heal && skill.effectType != SkillEffectType::Revive &&
                        skill.effectType != SkillEffectType::Cure && skill.effectType != SkillEffectType::Field
                        ? tr("Can only be used in battle")
                        : caster.getCurrentHp() == 0 ? trf("{0} is down", {caster.getName()}) : tr("Not enough MP"));
@@ -3601,9 +3757,7 @@ void UIManager::changeVolume(int row, int level)
     {
         if (level == AudioManager::getSoundVolume()) return;
         AudioManager::setSoundVolume(level);
-        int channel = -1;                                         // образец, чтобы было слышно новую громкость
-        if (Mix_Chunk* sample = ResourceManager::getSound("ButtonHover"))
-            AudioManager::playSound(channel, sample);
+        uiSound("Cursor");                                        // образец, чтобы было слышно новую громкость
     }
 }
 

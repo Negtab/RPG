@@ -45,12 +45,8 @@ Edit* Panel::focusedEdit() {
 
 void Panel::handleHover(int x, int y) {
     if (!isEnabled || !isVisible) return;
-    for (auto& [id, btn] : buttons) {
-        if (btn->containsPoint(x, y)) {
-            btn->handleHover(x, y);
-            return;
-        }
-    }
+    for (auto& [id, btn] : buttons)               // все кнопки: те, с которых мышь ушла, должны об этом узнать
+        btn->handleHover(x, y);
     for (auto& [id, panel] : panels)
         panel->handleHover(x, y);
 }

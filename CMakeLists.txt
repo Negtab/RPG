@@ -23,6 +23,8 @@ add_library(rpg_core STATIC
         scripts/controllers/visualizer.cpp
         scripts/controllers/inputManager.h
         scripts/controllers/inputManager.cpp
+        scripts/controllers/gamepad.h
+        scripts/controllers/gamepad.cpp
         scripts/main/inputController.h
         scripts/main/inputController.cpp
         scripts/main/utils.h

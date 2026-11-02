@@ -257,7 +257,11 @@ void ResourceManager::initialize()
     addMusic(pathToMusic.string() + "BattleTheme.mp3");
     addMusic(pathToMusic.string() + "OptionsTheme.mp3");
     addMusic(pathToMusic.string() + "OnlineTheme.mp3");
-    addSound(pathToSounds.string() + "Menu\\ButtonHover.wav");
+    for (const char* name : {"Cursor", "Type", "Confirm", "Cancel", "Buzzer", "Page"})   // звуки интерфейса
+        addSound(pathToSounds.string() + "Menu\\" + name + ".wav");
+    for (const char* name : {"swing1", "swing2", "swing3", "miss", "hit", "slash", "blunt", "claw", "fire", "thunder",
+                             "ice", "heal", "mana", "buff", "debuff", "poison"})     // fx_<эффект из effects.json>
+        addSound(pathToSounds.string() + "Battle\\fx_" + name + ".wav");
 
     addTexture(pathToCharacters.string() + "MovingCharacter.png");
     for (int look = 1; look <= kClassCount; ++look)             // Image<N>, Image<N>Dead: N — heroLook() класса

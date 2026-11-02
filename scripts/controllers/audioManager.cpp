@@ -17,7 +17,7 @@ void AudioManager::playSound(int &chanel, Mix_Chunk *sound)
     if (chanel >= 0) Mix_Volume(chanel, toMixer(soundVolume));     // канал мог быть выделен уже после настройки
 }
 
-void AudioManager::stopSound(int &chanel) { Mix_Pause(chanel); }
+void AudioManager::stopSound(int &chanel) { Mix_HaltChannel(chanel); }   // пауза навсегда заняла бы канал
 
 void AudioManager::playMusic(Mix_Music* music)
 {

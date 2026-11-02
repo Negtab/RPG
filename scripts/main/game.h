@@ -15,6 +15,7 @@
 #include "../gameLogic/battle.h"
 #include "../gameLogic/quest.h"
 #include "../controllers/inputManager.h"
+#include "../controllers/gamepad.h"
 #include "../gameLogic/notGamePerson.h"
 #include "../gameLogic/shopPerson.h"
 #include "../story/story.h"
@@ -281,6 +282,7 @@ class Game {
         std::unique_ptr<UIManager> uiManager;
         std::unique_ptr<Story> story;
         std::unique_ptr<InputManager> inputManager;
+        Gamepad gamepad;
         std::unique_ptr<InputController> inputController;
 
         Client client;

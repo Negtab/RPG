@@ -125,6 +125,7 @@ void UIManager::showDialog(const std::string& speaker, const std::vector<std::st
         }
     }
     talkPage = 0;
+    uiSound("Page");
     talkStart = SDL_GetTicks();
 }
 
@@ -172,6 +173,7 @@ void UIManager::handleDialogEvent(const SDL_Event& e)
             }
         }
         if (pick < 0) return;
+        uiSound("Confirm");
         choiceResult = pick == 0;
         talkChoice = false;
         talkPages.clear();
@@ -183,6 +185,7 @@ void UIManager::handleDialogEvent(const SDL_Event& e)
         talkStart = 0;                                            // ещё печатается: показать всю страницу сразу
         return;
     }
+    uiSound("Page");
     if (++talkPage >= static_cast<int>(talkPages.size()))
     {
         talkPages.clear();                                        // последняя страница: окно закрывается
@@ -341,7 +344,7 @@ void UIManager::shopPick(int index)
 
     if (shop->kind == ShopKind::Church)                              // воскрешаем выбранного павшего
     {
-        if (player.getPlayerGold() < static_cast<uint32_t>(price)) { shopSay(tr("You don't have enough gil.")); return; }
+        if (player.getPlayerGold() < static_cast<uint32_t>(price)) { uiDenied = true; shopSay(tr("You don't have enough gil.")); return; }
         Hero& hero = player.getLinkTOHeroes()[list[index].first];
         player.setPlayerGold(player.getPlayerGold() - price);
         if (hero.getIsAlive()) hero.clearStatus(Status::Stone);      // окаменевшего расколдовывают
@@ -355,7 +358,7 @@ void UIManager::shopPick(int index)
 
     if (shop->sellsSpells())                                         // дальше — кто выучит
     {
-        if (player.getPlayerGold() < static_cast<uint32_t>(price)) { shopSay(tr("You don't have enough gil.")); return; }
+        if (player.getPlayerGold() < static_cast<uint32_t>(price)) { uiDenied = true; shopSay(tr("You don't have enough gil.")); return; }
         partySel = 0;
         shopPhase = ShopPhase::LearnWho;
         shopSay(trf("Who will learn {0}?", {game.getSkill(list[index].first).name}));
@@ -364,9 +367,9 @@ void UIManager::shopPick(int index)
 
     shopSelling = shopPhase == ShopPhase::Sell;
     const Item& item = game.getItem(list[index].first);
-    if (shopSelling && price <= 0) { shopSay(tr("I have no use for that.")); return; }
-    if (!shopSelling && player.getPlayerGold() < static_cast<uint32_t>(price)) { shopSay(tr("You don't have enough gil.")); return; }
-    if (shopMaxCount() <= 0) { shopSay(tr("You can't carry any more.")); return; }
+    if (shopSelling && price <= 0) { uiDenied = true; shopSay(tr("I have no use for that.")); return; }
+    if (!shopSelling && player.getPlayerGold() < static_cast<uint32_t>(price)) { uiDenied = true; shopSay(tr("You don't have enough gil.")); return; }
+    if (shopMaxCount() <= 0) { uiDenied = true; shopSay(tr("You can't carry any more.")); return; }
 
     shopCount = 1;
     shopPhase = ShopPhase::Quantity;
@@ -382,6 +385,7 @@ void UIManager::learnSpell(int heroIndex)
     Hero& hero = heroes[heroIndex];
     if (const std::string why = learnBlock(hero, spell); !why.empty())
     {
+        uiDenied = true;
         shopSay(trf(why == "Can't learn" ? "{0} can't learn that." : why == "Knows it" ? "{0} already knows it."
                                                                     : "{0} can't learn more spells of this level.",
                     {hero.getName()}));
@@ -420,7 +424,7 @@ void UIManager::shopRunCommand(int index)
     if (cmd == "Exit") { game.closeShop(); return; }
     if (cmd == "Stay")
     {
-        if (player.getPlayerGold() < static_cast<uint32_t>(shop->price)) { shopSay(tr("You don't have enough gil.")); return; }
+        if (player.getPlayerGold() < static_cast<uint32_t>(shop->price)) { uiDenied = true; shopSay(tr("You don't have enough gil.")); return; }
         player.setPlayerGold(player.getPlayerGold() - shop->price);
         restAtInn();
         return;
@@ -429,7 +433,7 @@ void UIManager::shopRunCommand(int index)
     if (cmd == "Revive")
     {
         shopSel = shopScroll = 0;
-        if (shopList().empty()) { shopSay(tr("Your party is in fine health.")); return; }
+        if (shopList().empty()) { uiDenied = true; shopSay(tr("Your party is in fine health.")); return; }
         shopPhase = ShopPhase::Buy;
         shopSay(tr("Whom shall I revive?"));
         return;

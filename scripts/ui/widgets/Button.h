@@ -15,6 +15,7 @@ class Button : public UIObject {
 public:
     std::function<void()> onClick;
     std::function<void()> onHover;
+    bool hovered{false};                          // мышь уже на кнопке: звук только при входе
 
     void draw(Visualizer& v) const override {
         if (!isVisible || !texture)
@@ -38,9 +39,11 @@ public:
     }
 
     void handleHover(int x, int y) {
-        if (x >= rect.x && x <= rect.x + rect.w &&
-            y >= rect.y && y <= rect.y + rect.h)
-            if (onHover) onHover();
+        const bool inside = isEnabled && isVisible && texture &&
+                            x >= rect.x && x <= rect.x + rect.w &&
+                            y >= rect.y && y <= rect.y + rect.h;
+        if (inside && !hovered && onHover) onHover();
+        hovered = inside;
     }
 };
 

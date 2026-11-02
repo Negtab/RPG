@@ -77,6 +77,7 @@ void Game::run()
 
     while (this->isRunning)
     {
+        gamepad.update();
         while (SDL_PollEvent(&event))
         {
             if (event.type == SDL_QUIT)
@@ -84,6 +85,7 @@ void Game::run()
                 this->isRunning = false;
                 break;
             }
+            gamepad.processEvent(event);                         // превращает кнопки в события клавиш
             // F11 или Alt+Enter переключают полный экран в любом состоянии игры
             if (event.type == SDL_KEYDOWN && event.key.repeat == 0 &&
                 (event.key.keysym.scancode == SDL_SCANCODE_F11 ||
@@ -630,6 +632,7 @@ void Game::returnToTitle()
         onConnectionLost("Returned to title");               // выходим из коопа тем же путём, что и при обрыве
     gameInProgress = false;
     setPreviousGameState(GameState::GameMenu);
+    uiManager->resetTitleCursor();                           // снова на «Continue»
     setGameState(GameState::Menu);
 }
 

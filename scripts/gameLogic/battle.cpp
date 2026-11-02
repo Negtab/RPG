@@ -503,9 +503,10 @@ void Battle::executeAttack(Hero& attacker, const std::vector<int>& targets)
     const std::string hit = weapon ? (weapon->hitEffect.empty() ? "hit" : weapon->hitEffect) : "blunt";
     for (int idx : targets)
     {
-        ui->playEffectOn(hit, false, 0, idx, 0.3f);               // в середине замаха
         Enemy& target = enemies[idx];
-        if (!attackConnects(attacker, target)) { ui->showActionName(attacker.getName() + " - " + tr("Miss")); continue; }
+        const bool connects = attackConnects(attacker, target);
+        ui->playEffectOn(hit, false, 0, idx, 0.3f, connects ? "" : "fx_miss");   // в середине замаха
+        if (!connects) { ui->showActionName(attacker.getName() + " - " + tr("Miss")); continue; }
         const uint32_t damage = withSpeedStatus(attacker, physicalDamage(attacker.getAttackPower(nullptr), target.getDefense()));
         if (weapon && weapon->hasElement) target.takeDamage(damage, weapon->element);   // Огненный меч: слабость к огню x1.5
         else                              target.takeDamage(damage);
@@ -797,8 +798,9 @@ bool Battle::enemyBasicAttack(Enemy& enemy, int hits)
         if (Hero* hero = heroByRef(*target))
         {
             if (i == 0) ui->showActionName(enemy.getName());
-            ui->playEffectOn("claw", true, target->owner, target->index, 0.18f + 0.12f * i);
-            if (!attackConnects(enemy, *hero)) continue;
+            const bool connects = attackConnects(enemy, *hero);
+            ui->playEffectOn("claw", true, target->owner, target->index, 0.18f + 0.12f * i, connects ? "" : "fx_miss");
+            if (!connects) continue;
             hero->takeDamage(withSpeedStatus(enemy, physicalDamage(enemy.getAttackPower(nullptr), hero->getDefense())));
             const EnemyDef* def = GameData::instance().enemy(enemy.getEnemyId());
             if (def && def->hitStatus != Status::None && hero->getCurrentHp() > 0 && rand() % 100 < def->hitChance)

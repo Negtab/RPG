@@ -115,6 +115,19 @@ public:
     void moveSelectorToNext();
     void moveSelectorToPrevious();
     void moveSelector();
+    // Звуки интерфейса одни на все экраны: снимок до ввода и после него показывает, что произошло
+    struct MenuSnapshot
+    {
+        GameState state;
+        std::array<int, 11> screen;                    // страницы и окна: смена — подтверждение или отмена
+        std::array<int, 24> cursor;                    // курсоры и значения: смена — щелчок
+    };
+    [[nodiscard]] MenuSnapshot menuSnapshot() const;
+    void playMenuFeedback(const SDL_Event& e, const MenuSnapshot& before);
+    static void uiSound(const std::string& id);        // Cursor, Type, Confirm, Cancel, Buzzer, Page
+    void handleTitleEvent(const SDL_Event& e);        // стартовое меню с клавиатуры и геймпада
+    void resetTitleCursor() { titleTouched = false; }
+    void handleCreateEvent(const SDL_Event& e);       // выбор отряда с клавиатуры и геймпада
     void handleBattleMenuEvent(const SDL_Event& e);   // команды и списки: клавиши и курсор под мышью
     void handleTargetHover(const SDL_Event& event);   // курсор на цель под мышью; Esc и клавиши работают как раньше
     void confirmTarget();
@@ -129,8 +142,8 @@ public:
     void showActionName(const std::string& text);
 
     // ── Боевые эффекты (effects.json) ───────────────────
-    void playEffect(const std::string& id, SDL_Point center, float delay = 0.0f);
-    void playEffectOn(const std::string& id, bool onHero, uint32_t owner, int index, float delay = 0.0f);
+    void playEffect(const std::string& id, SDL_Point center, float delay = 0.0f, const std::string& sound = "");
+    void playEffectOn(const std::string& id, bool onHero, uint32_t owner, int index, float delay = 0.0f, const std::string& sound = "");
     void playSwing(int swing, const std::string& heroImageId, float delay = 0.0f);   // замах SwingNN у руки героя
     [[nodiscard]] static std::string effectForSkill(const Skill& skill);
     [[nodiscard]] static std::string effectForItem(const Item& item);
@@ -222,6 +235,8 @@ private:
     struct FxInstance { EffectLayer layer; SDL_Texture* tex; SDL_Point at; Uint32 start; };
     std::vector<FxInstance> fx;
     void drawEffects();
+    struct TimedSound { std::string id; Uint32 at; };
+    std::vector<TimedSound> timedSounds;                       // звук эффекта ждёт его появления на экране
     [[nodiscard]] SDL_Rect battlerRect(bool onHero, uint32_t owner, int index) const;
     [[nodiscard]] const FxInstance* recentEffectAt(SDL_Point p) const;   // эффект, только что запущенный здесь
     void drawBattleOverlay();
@@ -249,6 +264,11 @@ private:
     void refreshPartySlot(int slot);
     void cycleClass(int slot, int dir);
     void focusNameField(int slot);
+    void drawCreateCursor();
+    void drawTitleCursor();
+    int titleCursor = 0;                                       // строка стартового меню
+    bool titleTouched = false;                                 // игрок сам двигал курсор: не возвращаем на «Continue»
+    int createCursor = 0;                                      // 0..3 — герой, 4 — кнопка «Начать»
     void confirmParty();
 
     void layoutBattle();
@@ -271,6 +291,8 @@ private:
     void askDeleteSlot(int slot);                              // Del: спросить и стереть сохранение
     void answerDialog(bool yes);
     void showSavesNotice(const std::string& text);
+    bool uiDenied = false;                                     // действие отклонено: после ввода прозвучит отказ
+    void denyNotice(const std::string& text);                  // сообщение в меню об отказе
 
     bool savesSaving = false;
     std::vector<int> savesRows;                                // какие слоты на экране, сверху вниз

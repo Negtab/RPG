@@ -5,8 +5,14 @@
 void InputController::chooseInput(SDL_Event event, Game& game, Battle& battle, Player& player, UIManager& uiManager)
 {
     if (uiManager.handleTextEvent(event, gameStateString.at(game.getGameState())))
+    {
+        if (event.type == SDL_TEXTINPUT || (event.type == SDL_KEYDOWN &&
+            (event.key.keysym.scancode == SDL_SCANCODE_BACKSPACE || event.key.keysym.scancode == SDL_SCANCODE_DELETE)))
+            UIManager::uiSound("Type");
         return;                                       // печатаем в поле: игровые клавиши не должны срабатывать
+    }
     GameState state = game.getGameState();
+    const auto before = uiManager.menuSnapshot();     // звук интерфейса зависит от того, что изменил ввод
     switch (state)
     {
         case GameState::Map:        mapInput(event, game, uiManager); break;
@@ -23,12 +29,14 @@ void InputController::chooseInput(SDL_Event event, Game& game, Battle& battle, P
         case GameState::Intro:      uiManager.handleIntroEvent(event); break;
         default: ;
     }
+    uiManager.playMenuFeedback(event, before);
 }
 
 void InputController::createInput(SDL_Event event, Game& game, UIManager& ui)
 {
     ui.handleClickEvent(event, "CreatePlayer");
     ui.handleHoverEvent(event, "CreatePlayer");
+    ui.handleCreateEvent(event);
     if (event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
         game.closePartyCreation();                    // сюда доходит, только если поле не поглотило Esc
 }
@@ -93,7 +101,7 @@ void InputController::menuInput(SDL_Event event, Game& game, UIManager& manager)
     if (input.isMousePressed(SDL_BUTTON_LEFT))
         manager.handleClickEvent(event,gameStateString.at(game.getGameState()));
     manager.handleHoverEvent(event, gameStateString.at(game.getGameState()));
-
+    manager.handleTitleEvent(event);
 }
 
 void InputController::battleInput(SDL_Event event, Game& game, Battle& battle,  UIManager& manager)
@@ -124,6 +132,7 @@ void InputController::battleInput(SDL_Event event, Game& game, Battle& battle,  
     if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT)
         manager.handleClickEvent(event, gameStateString.at(game.getGameState()));
 
+    manager.handleHoverEvent(event, gameStateString.at(game.getGameState()));
     manager.handleTargetHover(event);
 
     const bool keyDown = event.type == SDL_KEYDOWN;

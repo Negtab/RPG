@@ -41,11 +41,9 @@ public:
             SDL_Log("MusicPlayer::playSound: '%s' not found", soundId.c_str());
             return;
         }
-        // Не перезапускаем если уже играет тот же звук на том же канале
-        if (currentSoundId == soundId && Mix_Playing(channel))
-            return;
-
-        if (Mix_Playing(channel))
+        // Тот же звук ещё звучит: начинаем заново, иначе быстрый переход на другую кнопку останется без звука.
+        // Канал сверяем по звуку: за это время его мог занять чужой
+        if (channel >= 0 && Mix_Playing(channel) && Mix_GetChunk(channel) == it->second)
             v.stopSound(channel);
 
         v.playSound(channel, it->second);
@@ -59,16 +57,16 @@ public:
     }
 
     void stopSound(const Visualizer& v) {
-        if (Mix_Playing(channel))
+        if (channel >= 0 && Mix_Playing(channel))
             v.stopSound(channel);
         currentSoundId.clear();
     }
 
     [[nodiscard]] bool isMusicPlaying() const { return Mix_PlayingMusic() != 0; }
-    [[nodiscard]] bool isSoundPlaying() const { return Mix_Playing(channel) != 0; }
+    [[nodiscard]] bool isSoundPlaying() const { return channel >= 0 && Mix_Playing(channel) != 0; }
 
 private:
-    int         channel{0};
+    int         channel{-1};
     std::string currentMusicId;
     std::string currentSoundId;
 };
