@@ -49,8 +49,7 @@ namespace {
     }
     bool backKey(const SDL_Event& e)
     {
-        return (e.type == SDL_KEYDOWN && e.key.repeat == 0 && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE) ||
-               (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT);
+        return e.type == SDL_KEYDOWN && e.key.repeat == 0 && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE;
     }
     bool leftClick(const SDL_Event& e) { return e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT; }
     bool isMouse(const SDL_Event& e) { return e.type == SDL_MOUSEMOTION || e.type == SDL_MOUSEBUTTONDOWN; }

@@ -181,13 +181,11 @@ void UIManager::handleBestiaryEvent(const SDL_Event& e)
             }
             return;
         }
-        if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT) { setBestiarySearch(false); return; }
         if (click && !SDL_PointInRect(&m, &kSearchBox)) setBestiarySearch(false);   // и обрабатываем клик дальше
         else if (e.type != SDL_MOUSEWHEEL) return;
     }
 
-    if ((key && e.key.repeat == 0 && k == SDL_SCANCODE_ESCAPE) ||
-        (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT))
+    if (key && e.key.repeat == 0 && k == SDL_SCANCODE_ESCAPE)
     {
         closeBestiary();
         return;

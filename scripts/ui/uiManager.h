@@ -268,7 +268,8 @@ private:
     void drawTitleCursor();
     int titleCursor = 0;                                       // строка стартового меню
     bool titleTouched = false;                                 // игрок сам двигал курсор: не возвращаем на «Continue»
-    int createCursor = 0;                                      // 0..3 — герой, 4 — кнопка «Начать»
+    int createCursor = 0;                                      // 0..3 — класс героя, 4..7 — его имя, 8 «Назад», 9 «Начать»
+    static constexpr int kCreateName = 4, kCreateBack = 8, kCreateStart = 9;
     void confirmParty();
 
     void layoutBattle();

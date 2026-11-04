@@ -202,7 +202,7 @@ UIManager::MenuSnapshot UIManager::menuSnapshot() const
     return {game.getGameState(),
             {static_cast<int>(uiState), static_cast<int>(menuPage), static_cast<int>(shopPhase), dialogSlot,
              bestiaryOpen, game.getBattle()->isAuto(), static_cast<int>(menuNoticeTicks),
-             static_cast<int>(savesNoticeTicks), createCursor == 4, talkChoice,
+             static_cast<int>(savesNoticeTicks), createCursor == kCreateStart, talkChoice,
              static_cast<int>(player.getPlayerGold())},
             {titleCursor, createCursor, commandCursor, listCursor, selectedTargetIndex, savesSelected, dialogYes,
              gameMenuSelected, partySel, menuHero, listSel, configSelected, shopCommand, shopSel, shopCount, choiceSel,
@@ -237,7 +237,7 @@ void UIManager::playMenuFeedback(const SDL_Event& e, const MenuSnapshot& before)
     const bool key = e.type == SDL_KEYDOWN && e.key.repeat == 0;
     const SDL_Scancode k = key ? e.key.keysym.scancode : SDL_SCANCODE_UNKNOWN;
     const bool mouse = e.type == SDL_MOUSEBUTTONDOWN;
-    if (changed && (k == SDL_SCANCODE_ESCAPE || (mouse && e.button.button == SDL_BUTTON_RIGHT)))
+    if (changed && k == SDL_SCANCODE_ESCAPE)
         uiSound("Cancel");
     else if (k == SDL_SCANCODE_RETURN || k == SDL_SCANCODE_KP_ENTER || k == SDL_SCANCODE_SPACE ||
              (mouse && e.button.button == SDL_BUTTON_LEFT))
@@ -807,15 +807,18 @@ void UIManager::updateBattleData(Scene &scene)
     // «Имя 120/180» в окне отряда: слишком длинное имя обрезаем с многоточием, чтобы не залезало в соседнее окно
     TTF_Font* statusFont = ResourceManager::getFont(kUiFont);
     const int statusW = getRect("HerosWindow", "Battle").w - 24;
-    auto statusLine = [&](std::string name, const GamePerson& h) {
-        const std::string hp = " " + std::to_string(h.getCurrentHp()) + "/" + std::to_string(h.getMaxHp());
-        if (ResourceManager::measureText(name + hp, statusFont).w > statusW)
+    auto fitName = [&](std::string name, const std::string& tail, int width) {
+        if (ResourceManager::measureText(name + tail, statusFont).w > width)
         {
-            while (!name.empty() && ResourceManager::measureText(name + "…" + hp, statusFont).w > statusW)
+            while (!name.empty() && ResourceManager::measureText(name + "…" + tail, statusFont).w > width)
                 utf8::popBack(name);
             name += "…";
         }
-        return name + hp + "\n";
+        return name;
+    };
+    auto statusLine = [&](const std::string& name, const GamePerson& h) {
+        const std::string hp = " " + std::to_string(h.getCurrentHp()) + "/" + std::to_string(h.getMaxHp());
+        return fitName(name, hp, statusW) + hp + "\n";
     };
 
     // Герои напарников
@@ -870,7 +873,11 @@ void UIManager::updateBattleData(Scene &scene)
     if (active >= 0 && active < heroCount)
     {
         const auto &hero = player.getHeroes().at(active);
-        actorText = hero.getName() + "\nMP " + std::to_string(hero.getCurrentMp()) + "/"
+        // Имя не должно вылезать из командного окна на сводку ОЗ отряда справа
+        const SDL_Rect cmd = getRect("CommandWindow", "Battle");
+        const SDL_Rect info = getRect("ActorInfo", "Battle");
+        const int actorW = cmd.x + cmd.w - info.x - 12;
+        actorText = fitName(hero.getName(), "", actorW) + "\nMP " + std::to_string(hero.getCurrentMp()) + "/"
                     + std::to_string(hero.getMaxMp());
     }
     setText("ActorInfo", "Battle", actorText);
@@ -2030,30 +2037,66 @@ void UIManager::handleCreateEvent(const SDL_Event& e)
 {
     if (e.type != SDL_KEYDOWN) return;
     const SDL_Scancode k = e.key.keysym.scancode;
-    if (k == SDL_SCANCODE_A || k == SDL_SCANCODE_LEFT)  createCursor = (createCursor + 4) % 5;
-    if (k == SDL_SCANCODE_D || k == SDL_SCANCODE_RIGHT) createCursor = (createCursor + 1) % 5;
-    if (createCursor < 4)
+    if (e.type == SDL_MOUSEBUTTONDOWN)                         // щелчок по полю имени переносит туда и курсор
     {
-        if (k == SDL_SCANCODE_W || k == SDL_SCANCODE_UP)   cycleClass(createCursor, -1);
-        if (k == SDL_SCANCODE_S || k == SDL_SCANCODE_DOWN) cycleClass(createCursor, +1);
+        for (int i = 0; i < 4; ++i)
+            if (auto* edit = dynamic_cast<Edit*>(findUIObject("Name" + std::to_string(i + 1), "CreatePlayer"));
+                edit && edit->getFocus())
+                createCursor = kCreateName + i;
+        return;
     }
-    if (e.key.repeat == 0 && (k == SDL_SCANCODE_RETURN || k == SDL_SCANCODE_KP_ENTER || k == SDL_SCANCODE_SPACE))
+    const bool up    = k == SDL_SCANCODE_W || k == SDL_SCANCODE_UP;
+    const bool down  = k == SDL_SCANCODE_S || k == SDL_SCANCODE_DOWN;
+    const bool left  = k == SDL_SCANCODE_A || k == SDL_SCANCODE_LEFT;
+    const bool right = k == SDL_SCANCODE_D || k == SDL_SCANCODE_RIGHT;
+    const bool confirm = e.key.repeat == 0 &&
+                         (k == SDL_SCANCODE_RETURN || k == SDL_SCANCODE_KP_ENTER || k == SDL_SCANCODE_SPACE);
+
+    // Сетка курсора: ряд классов (0..3), ряд имён (4..7), ряд кнопок («Назад» 8, «Начать» 9)
+    const bool buttons = createCursor >= kCreateBack;
+    const int col = buttons ? createCursor - kCreateBack : createCursor % 4;
+    const int row = buttons ? 2 : createCursor / 4;
+    const int before = createCursor;
+
+    if (left || right)
     {
-        if (createCursor == 4) confirmParty();
-        else ++createCursor;                                   // Enter ведёт по героям к кнопке «Начать»
+        if (buttons) createCursor = createCursor == kCreateBack ? kCreateStart : kCreateBack;
+        else         createCursor = row * 4 + (col + (right ? 1 : 3)) % 4;
+    }
+    if (up || down)
+    {
+        const int to = (row + (down ? 1 : 2)) % 3;
+        if (to == 2)       createCursor = col < 2 ? kCreateBack : kCreateStart;
+        else if (buttons)  createCursor = to * 4 + (col == 0 ? 0 : 3);   // «Назад» слева, «Начать» правее
+        else               createCursor = to * 4 + col;
+    }
+    if (createCursor != before) focusNameField(-1);            // ушли с поля — печать в нём заканчивается
+
+    if (confirm)
+    {
+        if (createCursor == kCreateStart)     confirmParty();
+        else if (createCursor == kCreateBack) game.closePartyCreation();
+        else if (createCursor >= kCreateName) focusNameField(createCursor - kCreateName);
+        else                                  cycleClass(createCursor, +1);
     }
 }
 
 void UIManager::drawCreateCursor()
 {
-    if (createCursor == 4)
+    if (createCursor >= kCreateBack)
     {
-        const SDL_Rect r = getRect("StartButton", "CreatePlayer");
+        const SDL_Rect r = getRect(createCursor == kCreateStart ? "StartButton" : "BackToMenu", "CreatePlayer");
         drawPointer(r.x - 8, r.y + r.h / 2, PIXEL_SCALE);
         return;
     }
     const SDL_Rect r = getRect("Slot" + std::to_string(createCursor + 1), "CreatePlayer");
     drawPointer(r.x + 28, r.y + 28, PIXEL_SCALE);
+    if (createCursor >= kCreateName)
+    {
+        const SDL_Rect r = getRect("Name" + std::to_string(createCursor - kCreateName + 1), "CreatePlayer");
+        drawPointer(r.x - 4, r.y + r.h / 2, PIXEL_SCALE);
+        return;
+    }
 }
 
 void UIManager::focusNameField(int slot)
@@ -2602,8 +2645,7 @@ void UIManager::handleSavesEvent(const SDL_Event& e)
     const SDL_Scancode k = keyDown ? e.key.keysym.scancode : SDL_SCANCODE_UNKNOWN;
     const bool fresh = keyDown && e.key.repeat == 0;           // Enter и Esc не повторяются при удержании
     const bool confirm = fresh && (k == SDL_SCANCODE_RETURN || k == SDL_SCANCODE_KP_ENTER || k == SDL_SCANCODE_SPACE);
-    const bool back = (fresh && k == SDL_SCANCODE_ESCAPE) ||
-                      (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT);
+    const bool back = fresh && k == SDL_SCANCODE_ESCAPE;
     const SDL_Point mouse = e.type == SDL_MOUSEMOTION ? SDL_Point{e.motion.x, e.motion.y}
                                                       : SDL_Point{e.button.x, e.button.y};
     const bool click = e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT;
@@ -2808,8 +2850,7 @@ namespace {
     }
     bool backKey(const SDL_Event& e)
     {
-        return (e.type == SDL_KEYDOWN && e.key.repeat == 0 && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE) ||
-               (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT);
+        return e.type == SDL_KEYDOWN && e.key.repeat == 0 && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE;
     }
     bool leftClick(const SDL_Event& e) { return e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT; }
     SDL_Point mousePos(const SDL_Event& e)
@@ -3811,7 +3852,7 @@ void UIManager::handleConfigEvent(const SDL_Event& e)
     const SDL_Scancode k = keyDown ? e.key.keysym.scancode : SDL_SCANCODE_UNKNOWN;
     const bool fresh = keyDown && e.key.repeat == 0;
 
-    if ((fresh && k == SDL_SCANCODE_ESCAPE) || (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT))
+    if (fresh && k == SDL_SCANCODE_ESCAPE)
     {
         game.closeOptions();
         return;

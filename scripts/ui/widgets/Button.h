@@ -153,9 +153,12 @@ public:
                     if (char* clip = SDL_GetClipboardText()) { handleTextInput(clip); SDL_free(clip); }
                     return true;
                 }
-                return false;
+                return true;                                  // сама буква придёт через SDL_TEXTINPUT
             default:
-                return false;
+                // Клавиши, которые печатают символ (буквы, цифры, пробел, знаки), принадлежат полю:
+                // иначе W/A/S/D и пробел заодно двигали бы курсор меню
+                return (key >= SDL_SCANCODE_A && key <= SDL_SCANCODE_SLASH && key != SDL_SCANCODE_TAB) ||
+                       (key >= SDL_SCANCODE_KP_DIVIDE && key <= SDL_SCANCODE_KP_PERIOD && key != SDL_SCANCODE_KP_ENTER);
         }
     }
 

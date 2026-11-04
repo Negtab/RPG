@@ -140,8 +140,7 @@ void InputController::battleInput(SDL_Event event, Game& game, Battle& battle,  
     const bool fresh = keyDown && event.key.repeat == 0;      // подтверждение и отмена не повторяются при удержании
 
     // Шаг назад: из выбора цели в список, из списка к командам
-    if ((fresh && key == SDL_SCANCODE_ESCAPE) ||
-        (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT))
+    if (fresh && key == SDL_SCANCODE_ESCAPE)
     {
         manager.cancelChoice();
         return;
