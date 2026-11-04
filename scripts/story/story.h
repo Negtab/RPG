@@ -8,8 +8,11 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../main/types.h"
+
 struct lua_State;
 class Game;
+class NotGamePerson;
 
 // Сюжет: сцены на Lua (resources/Story/*.lua), флаги, журнал заданий и тексты на двух языках.
 // Сцена — функция npc.<имя>() или event.<имя>(); она идёт корутиной и встаёт на паузу на say, ask,
@@ -41,9 +44,11 @@ public:
     [[nodiscard]] const std::vector<Quest>& getQuests() const noexcept { return quests; }
 
     [[nodiscard]] std::string text(const std::string& id) const;   // на текущем языке; нет — английский, нет — сам id
+    [[nodiscard]] bool hasText(const std::string& id) const { return textsEn.contains(id) || textsRu.contains(id); }
+    [[nodiscard]] std::vector<std::string> endings() const;        // все концовки: id, у которых есть ending.<id>.title
 
 private:
-    enum class Wait { None, Dialog, Choice, Battle, Fade };
+    enum class Wait { None, Dialog, Choice, Battle, Fade, Timer, Walk, Ending };
 
     static Story& self(lua_State* L);
     static int luaSay(lua_State* L);
@@ -59,8 +64,23 @@ private:
     static int luaTeleport(lua_State* L);
     static int luaHealParty(lua_State* L);
     static int luaPartyName(lua_State* L);
+    static int luaWait(lua_State* L);
+    static int luaNpcWalk(lua_State* L);
+    static int luaNpcFace(lua_State* L);
+    static int luaSound(lua_State* L);
+    static int luaPartySize(lua_State* L);
+    static int luaHeroClass(lua_State* L);
+    static int luaHeroLevel(lua_State* L);
+    static int luaHeroAlive(lua_State* L);
+    static int luaGold(lua_State* L);
+    static int luaTakeGold(lua_State* L);
+    static int luaHere(lua_State* L);
+    static int luaChoose(lua_State* L);
+    static int luaEnding(lua_State* L);
 
     int pause(lua_State* L, Wait what);
+    void updateWalk();
+    [[nodiscard]] NotGamePerson* npcHere(const std::string& script) const;   // житель текущей карты по имени сцены
     void resume(int nargs);
     void finish();
 
@@ -70,6 +90,12 @@ private:
     int threadRef = -1;                               // ссылка в реестре Lua, чтобы корутину не собрал GC
     Wait wait = Wait::None;
     bool battleSeen = false;                          // для Wait::Battle: бой уже начался
+    bool yesNo = false;                               // для Wait::Choice: ask отвечает true/false, choose — номером
+    uint64_t waitUntil = 0;                           // для Wait::Timer: SDL_GetTicks64
+    std::string walker;                               // для Wait::Walk: кто идёт и куда
+    std::vector<Direction> walkPath;
+    size_t walkStep = 0;
+    uint64_t walkBlockedSince = 0;                    // путь загорожен: подождём немного, потом сдадимся
 
     std::set<std::string> flags;
     std::vector<Quest> quests;                        // в порядке появления: так и показывает журнал

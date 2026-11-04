@@ -157,7 +157,71 @@ function npc.king()
 end
 ```
 
-Доступные функции: `say`, `ask`, `flag`, `setFlag`, `hasItem`, `giveItem`, `takeItem`, `giveGold`, `quest`, `battle`, `teleport`, `healParty`, `partyName`.
+Функции со звёздочкой ставят сцену на паузу, пока не закончатся.
+
+| Функция | Что делает |
+|---|---|
+| `say(кто, id, ...)`* | Реплики по одной странице |
+| `ask(кто, id)`* → bool | Вопрос с ответом «Да / Нет» |
+| `choose(кто, вопрос, ответ1, ответ2[, ответ3, ответ4])`* → номер | Вопрос и 2–4 ответа (id текстов), возвращает 1, 2, ... |
+| `ending(id)`* | Финал игры: слайды, титры и главное меню. Сцена после него не продолжается |
+| `flag(имя)` / `setFlag(имя[, вкл])` | Флаги сюжета (общие для отряда в коопе) |
+| `quest(id, "active" \| "done")` | Запись в журнале |
+| `hasItem(id)`, `giveItem(id[, n])`*, `takeItem(id[, n])` | Предметы |
+| `gold()`, `giveGold(n)`, `takeGold(n)` → bool | Золото; `takeGold` не списывает, если не хватает |
+| `battle({id, ...}[, фон])`* → bool | Бой без побега, `true` при победе |
+| `teleport(карта, x, y)`* | Затемнение и другая карта |
+| `here()` → строка | Имя текущей карты, как в `teleport` |
+| `wait(секунды)`* | Пауза (до 10 с) |
+| `npcWalk(житель, путь)`* | Житель идёт: `"l3 u"` — три клетки влево, одну вверх (буквы `u d l r`) |
+| `npcFace(житель, сторона)` | Повернуть жителя: `"up"`, `"down"`, `"left"`, `"right"` |
+| `sound(имя)` | Звук из `resources/Sounds` по имени файла: `"fx_heal"`, `"Confirm"` |
+| `partySize()`, `partyName(i)` | Размер отряда и имя героя (1–4) |
+| `heroClass(i)`, `heroLevel(i)`, `heroAlive(i)` | Класс (`"warrior"`, `"white_mage"`, ...), уровень, жив ли |
+| `healParty()` | Полное лечение живых героев |
+
+### Выборы и концовки
+
+Ответы в `choose` лучше сразу записывать во флаги: так выбор запоминается в сохранении и в коопе, а позже его могут учесть другие сцены и финал.
+
+```lua
+function npc.elder()
+    local r = choose("elder", "elder.q", "elder.a.help", "elder.a.refuse", "elder.a.lie")
+    if r == 1 then setFlag("helped_elder")
+    elseif r == 3 then setFlag("lied_to_elder") end
+end
+
+function event.final_gate()
+    if flag("helped_elder") and flag("spared_rival") then ending("peace")
+    elseif flag("lied_to_elder") then ending("dark")
+    else ending("lonely") end
+end
+```
+
+Концовка описывается только текстами в `text_ru.json` / `text_en.json`:
+
+```json
+"ending.peace.title": "Концовка: Мир",
+"ending.peace.1": "Первый слайд...",
+"ending.peace.2": "Второй слайд..."
+```
+
+Слайды `ending.<id>.1`, `.2`, … идут по порядку, пока не кончатся номера (не больше 20). Каждый слайд держится 6 секунд, Enter сразу листает дальше. После слайдов идут титры: название концовки, «Конец» и сколько концовок найдено из всех, у которых есть `.title`. Найденные концовки хранятся в `saves/endings.txt` и не зависят от слотов. Сама концовка игру не сохраняет: последнее сохранение остаётся сделанным до развилки, и можно вернуться и выбрать иначе. В коопе финал видит весь отряд.
+
+Житель в `npcWalk` / `npcFace` указывается по имени его сцены (свойство `script` в Tiled). Если путь загорожен, житель ждёт полторы секунды, а потом сцена идёт дальше. Новое место не сохраняется: после ухода с карты житель снова стоит там, где его поставили в Tiled. Чтобы он остался насовсем, нужен флаг и `showIf` / `hideIf`. В коопе ходьбу видит только тот игрок, у кого идёт сцена.
+
+```lua
+function npc.gate_guard()
+    if takeGold(100) then
+        say("guard", "guard.bribe")
+        npcWalk("gate_guard", "l")       -- отходит от ворот
+        npcFace("gate_guard", "right")
+        sound("Confirm")
+    else
+        say("guard", "guard.no_pass")
+    end
+end
+```
 
 ## 📝 Данные игры
 

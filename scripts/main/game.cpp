@@ -76,6 +76,7 @@ void Game::run()
     migrateOldSave();
     refreshLatestSave();
     loadSettings();
+    loadSeenEndings();
 
     while (this->isRunning)
     {
@@ -668,6 +669,48 @@ void Game::finishIntro()
     startGame();
     gameInProgress = true;                               // иначе до первого кадра на карте сохранять нельзя
     autosave();                                          // новая игра сразу в автосохранении
+}
+
+void Game::startEnding(const std::string& id, bool broadcast)
+{
+    endingId = id;
+    if (seenEndings.insert(id).second) saveSeenEndings();
+    if (broadcast) sendStoryState(2, id, 1);
+    // Финал не сохраняем: последнее сохранение остаётся до развилки, можно вернуться и выбрать иначе
+    gameInProgress = false;
+    setPreviousGameState(GameState::Map);
+    setGameState(GameState::Ending);
+    uiManager->openEnding();
+}
+
+void Game::leaveEnding()
+{
+    if (state != GameState::Ending) return;
+    if (isConnected() || isHost())
+        onConnectionLost("Ending");                          // из коопа выходим, как при возврате в меню
+    story->reset();                                          // сцена с ending() так и не закончилась: обрываем
+    refreshLatestSave();
+    uiManager->resetTitleCursor();
+    setGameState(GameState::Menu);
+}
+
+void Game::loadSeenEndings()
+{
+    seenEndings.clear();
+    std::ifstream in((saveDir / "endings.txt").string());     // по id на строку
+    for (std::string line; std::getline(in, line);)
+    {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        if (!line.empty()) seenEndings.insert(line);
+    }
+}
+
+void Game::saveSeenEndings() const
+{
+    std::error_code ec;
+    std::filesystem::create_directories(saveDir, ec);
+    std::ofstream out((saveDir / "endings.txt").string());
+    for (const auto& id : seenEndings) out << id << '\n';
 }
 
 void Game::loadSettings()
@@ -1457,6 +1500,9 @@ void Game::processPacket(const char* data)
             if (p->kind == 0) story->setFlag(p->name, p->value != 0, false);
             else if (p->kind == 1 && (p->value == 1 || p->value == 2))
                 story->setQuest(p->name, static_cast<Story::QuestState>(p->value), false);
+            else if (p->kind == 2 && state != GameState::Ending &&
+                     story->hasText(std::string("ending.") + p->name + ".title"))
+                startEnding(p->name, false);                 // концовку показал сценарий у другого игрока
             break;
         }
         case PacketType::PartyInfo:

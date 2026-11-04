@@ -4,6 +4,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <SDL_log.h>
+#include <SDL_timer.h>
 
 extern "C" {
 #include "lua.h"
@@ -13,6 +14,7 @@ extern "C" {
 
 #include "../main/game.h"
 #include "../main/lang.h"
+#include "scriptArgs.h"
 
 namespace {
     void loadTexts(const std::filesystem::path& path, std::unordered_map<std::string, std::string>& out)
@@ -53,7 +55,10 @@ void Story::load(const std::filesystem::path& dir)
         {"say", luaSay}, {"ask", luaAsk}, {"flag", luaFlag}, {"setFlag", luaSetFlag},
         {"hasItem", luaHasItem}, {"giveItem", luaGiveItem}, {"takeItem", luaTakeItem}, {"giveGold", luaGiveGold},
         {"quest", luaQuest}, {"battle", luaBattle}, {"teleport", luaTeleport}, {"healParty", luaHealParty},
-        {"partyName", luaPartyName}};
+        {"partyName", luaPartyName}, {"wait", luaWait}, {"npcWalk", luaNpcWalk}, {"npcFace", luaNpcFace},
+        {"sound", luaSound}, {"partySize", luaPartySize}, {"heroClass", luaHeroClass}, {"heroLevel", luaHeroLevel},
+        {"heroAlive", luaHeroAlive}, {"gold", luaGold}, {"takeGold", luaTakeGold}, {"here", luaHere},
+        {"choose", luaChoose}, {"ending", luaEnding}};
     for (const auto& [name, fn] : api)
     {
         lua_pushlightuserdata(L, this);
@@ -93,6 +98,16 @@ std::string Story::text(const std::string& id) const
         if (const auto it = textsRu.find(id); it != textsRu.end()) return it->second;
     if (const auto it = textsEn.find(id); it != textsEn.end()) return it->second;
     return id;
+}
+
+std::vector<std::string> Story::endings() const
+{
+    std::set<std::string> ids;                                    // концовка может быть описана только на одном языке
+    for (const auto* texts : {&textsEn, &textsRu})
+        for (const auto& [key, value] : *texts)
+            if (key.starts_with("ending.") && key.ends_with(".title") && key.size() > 13)
+                ids.insert(key.substr(7, key.size() - 13));
+    return {ids.begin(), ids.end()};
 }
 
 bool Story::has(const char* table, const std::string& name) const
@@ -152,7 +167,8 @@ void Story::update()
         case Wait::Choice:
             if (const auto answer = ui.takeChoice())
             {
-                lua_pushboolean(thread, *answer);
+                if (yesNo) lua_pushboolean(thread, *answer == 0);
+                else       lua_pushinteger(thread, *answer + 1);
                 resume(1);
             }
             break;
@@ -166,6 +182,14 @@ void Story::update()
             break;
         case Wait::Fade:
             if (!game.isFading()) resume(0);
+            break;
+        case Wait::Timer:
+            if (SDL_GetTicks64() >= waitUntil) resume(0);
+            break;
+        case Wait::Walk:
+            updateWalk();
+            break;
+        case Wait::Ending:                                        // сцена кончилась вместе с игрой: дальше не идёт
             break;
         case Wait::None:
             break;
@@ -224,6 +248,7 @@ int Story::luaAsk(lua_State* L)
     Story& s = self(L);
     const std::string speaker = luaL_checkstring(L, 1);
     s.game.getUI().showChoice(speaker.empty() ? "" : s.text("name." + speaker), s.text(luaL_checkstring(L, 2)));
+    s.yesNo = true;
     return s.pause(L, Wait::Choice);
 }
 
@@ -319,4 +344,172 @@ int Story::luaPartyName(lua_State* L)
     const lua_Integer i = luaL_optinteger(L, 1, 1);
     lua_pushstring(L, i >= 1 && i <= static_cast<lua_Integer>(heroes.size()) ? heroes[i - 1].getName().c_str() : "");
     return 1;
+}
+
+// ─────────────────────────────────────────
+// Постановка сцен и вопросы об отряде
+// ─────────────────────────────────────────
+
+NotGamePerson* Story::npcHere(const std::string& script) const
+{
+    for (const auto& n : game.npcsHere())
+        if (n->getScript() == script && game.npcVisible(*n)) return n.get();
+    return nullptr;
+}
+
+// wait(0.5) — пауза в секундах: между репликами, шагами, звуками
+int Story::luaWait(lua_State* L)
+{
+    Story& s = self(L);
+    const double seconds = std::clamp(luaL_checknumber(L, 1), 0.0, 10.0);
+    s.waitUntil = SDL_GetTicks64() + static_cast<uint64_t>(seconds * 1000.0);
+    return s.pause(L, Wait::Timer);
+}
+
+// npcWalk("elf_guard", "l3 u") — житель (по имени сцены из Tiled) идёт по клеткам; сцена ждёт, пока дойдёт.
+// Место не сохраняется: после ухода с карты житель снова стоит, где его поставили в Tiled
+int Story::luaNpcWalk(lua_State* L)
+{
+    Story& s = self(L);
+    const std::string who = luaL_checkstring(L, 1);
+    const auto path = parseWalkPath(luaL_checkstring(L, 2));
+    if (!path) return luaL_error(L, "npcWalk: bad path '%s' (use u d l r and step counts, like \"l3 u\")",
+                                 lua_tostring(L, 2));
+    if (!s.npcHere(who)) return luaL_error(L, "npcWalk: no '%s' on this map", who.c_str());
+    s.walker = who;
+    s.walkPath = *path;
+    s.walkStep = 0;
+    s.walkBlockedSince = 0;
+    return s.pause(L, Wait::Walk);
+}
+
+void Story::updateWalk()
+{
+    NotGamePerson* n = npcHere(walker);
+    if (!n) { resume(0); return; }                                // карта сменилась или житель исчез по флагу
+    if (n->isStepping()) return;
+    if (walkStep >= walkPath.size()) { resume(0); return; }
+
+    const Direction dir = walkPath[walkStep];
+    const Point to = stepTo(n->getCell(), dir);
+    if (game.getMap().isWalkable(to.x, to.y) && game.npcCellFree(to))
+    {
+        n->walk(to);
+        ++walkStep;
+        walkBlockedSince = 0;
+        return;
+    }
+    n->turn(dir);                                                 // стоит и смотрит туда, куда не может пройти
+    const uint64_t now = SDL_GetTicks64();
+    if (walkBlockedSince == 0) walkBlockedSince = now;
+    else if (now - walkBlockedSince > 1500)
+    {
+        SDL_Log("Story: npcWalk '%s' blocked at (%d, %d)", walker.c_str(), to.x, to.y);
+        resume(0);
+    }
+}
+
+// npcFace("elf_guard", "down")
+int Story::luaNpcFace(lua_State* L)
+{
+    Story& s = self(L);
+    const auto dir = parseDirection(luaL_checkstring(L, 2));
+    if (!dir) return luaL_error(L, "npcFace: bad direction '%s'", lua_tostring(L, 2));
+    if (NotGamePerson* n = s.npcHere(luaL_checkstring(L, 1))) n->turn(*dir);
+    return 0;
+}
+
+// sound("fx_heal") — звук из resources/Sounds по имени файла без расширения
+int Story::luaSound(lua_State* L)
+{
+    UIManager::uiSound(luaL_checkstring(L, 1));
+    return 0;
+}
+
+int Story::luaPartySize(lua_State* L)
+{
+    lua_pushinteger(L, static_cast<lua_Integer>(self(L).game.getLocalPlayer().getHeroes().size()));
+    return 1;
+}
+
+namespace {
+    // Герой i (1-4) для heroClass / heroLevel / heroAlive; нет такого — nullptr
+    const Hero* heroArg(const Game& game, lua_State* L)
+    {
+        const auto& heroes = game.getLocalPlayer().getHeroes();
+        const lua_Integer i = luaL_checkinteger(L, 1);
+        return i >= 1 && i <= static_cast<lua_Integer>(heroes.size()) ? &heroes[i - 1] : nullptr;
+    }
+}
+
+// heroClass(1) -> "warrior" | "thief" | "monk" | "red_mage" | "white_mage" | "black_mage"
+int Story::luaHeroClass(lua_State* L)
+{
+    const Hero* h = heroArg(self(L).game, L);
+    lua_pushstring(L, h ? classScriptName(h->getClass()) : "");
+    return 1;
+}
+
+int Story::luaHeroLevel(lua_State* L)
+{
+    const Hero* h = heroArg(self(L).game, L);
+    lua_pushinteger(L, h ? h->getLevel() : 0);
+    return 1;
+}
+
+int Story::luaHeroAlive(lua_State* L)
+{
+    const Hero* h = heroArg(self(L).game, L);
+    lua_pushboolean(L, h && h->getIsAlive());
+    return 1;
+}
+
+int Story::luaGold(lua_State* L)
+{
+    lua_pushinteger(L, self(L).game.getLocalPlayer().getPlayerGold());
+    return 1;
+}
+
+// takeGold(500) -> true и списывает; не хватает — false, золото не трогает
+int Story::luaTakeGold(lua_State* L)
+{
+    Player& p = self(L).game.localPlayer();
+    const lua_Integer cost = std::max<lua_Integer>(0, luaL_checkinteger(L, 1));
+    const bool enough = p.getPlayerGold() >= cost;
+    if (enough) p.setPlayerGold(p.getPlayerGold() - static_cast<uint32_t>(cost));
+    lua_pushboolean(L, enough);
+    return 1;
+}
+
+// here() -> имя текущей карты, как в teleport: "elfheim", "marsh_cave_b1"
+int Story::luaHere(lua_State* L)
+{
+    lua_pushstring(L, self(L).game.getMap().name.c_str());
+    return 1;
+}
+
+// choose("elder", "elder.q", "elder.a.help", "elder.a.refuse") -> 1, 2, ... : вопрос и 2-4 ответа (id текстов)
+int Story::luaChoose(lua_State* L)
+{
+    Story& s = self(L);
+    const std::string speaker = luaL_checkstring(L, 1);
+    const std::string question = luaL_checkstring(L, 2);
+    const int answers = lua_gettop(L) - 2;
+    if (answers < 2 || answers > 4) return luaL_error(L, "choose: needs 2 to 4 answers, got %d", answers);
+    std::vector<std::string> options;
+    for (int i = 3; i <= lua_gettop(L); ++i) options.push_back(s.text(luaL_checkstring(L, i)));
+    s.game.getUI().showChoice(speaker.empty() ? "" : s.text("name." + speaker), s.text(question), std::move(options));
+    s.yesNo = false;
+    return s.pause(L, Wait::Choice);
+}
+
+// ending("peace") — финал: слайды ending.peace.1, .2, ..., титры и главное меню. Сцена дальше не идёт
+int Story::luaEnding(lua_State* L)
+{
+    Story& s = self(L);
+    const std::string id = luaL_checkstring(L, 1);
+    if (!s.hasText("ending." + id + ".title"))
+        return luaL_error(L, "ending: no text 'ending.%s.title'", id.c_str());
+    s.game.startEnding(id);
+    return s.pause(L, Wait::Ending);
 }

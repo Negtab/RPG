@@ -128,15 +128,21 @@ void UIManager::showDialog(const std::string& speaker, const std::vector<std::st
     talkStart = SDL_GetTicks();
 }
 
-void UIManager::showChoice(const std::string& speaker, const std::string& question)
+void UIManager::showChoice(const std::string& speaker, const std::string& question, std::vector<std::string> options)
 {
     showDialog(speaker, {question});
     talkChoice = true;
+    choiceOptions = options.empty() ? std::vector<std::string>{tr("Yes"), tr("No")} : std::move(options);
+    choiceW = 150;
+    TTF_Font* font = ResourceManager::getFont(kUiFont);
+    for (const auto& o : choiceOptions)                           // длинный ответ расширяет окошко влево
+        choiceW = std::max(choiceW, ResourceManager::measureText(o, font).w + 44);
+    choiceW = std::min(choiceW, kTalkBox.w - 60);
     choiceSel = 0;
     choiceResult.reset();
 }
 
-std::optional<bool> UIManager::takeChoice()
+std::optional<int> UIManager::takeChoice()
 {
     const auto r = choiceResult;
     choiceResult.reset();
@@ -145,7 +151,9 @@ std::optional<bool> UIManager::takeChoice()
 
 SDL_Rect UIManager::choiceRect(int row) const
 {
-    return {kTalkBox.x + kTalkBox.w - 180, kTalkBox.y - 96 + 12 + row * 38, 150, 36};
+    // Окошко ответов стоит на окне разговора у правого края и растёт вверх с каждым ответом
+    const int top = kTalkBox.y - 96 - (static_cast<int>(choiceOptions.size()) - 2) * 38;
+    return {kTalkBox.x + kTalkBox.w - 30 - choiceW, top + 12 + row * 38, choiceW, 36};
 }
 
 void UIManager::handleDialogEvent(const SDL_Event& e)
@@ -154,16 +162,18 @@ void UIManager::handleDialogEvent(const SDL_Event& e)
                        : static_cast<size_t>(SDL_GetTicks() - talkStart) * kTalkCharsPerSec / 1000;
     const bool typed = shown >= utf8::length(talkPages[talkPage]);
     const bool asking = talkChoice && typed && talkPage + 1 == static_cast<int>(talkPages.size());
-    if (asking)                                                   // вопрос допечатан: «Да / Нет»
+    if (asking)                                                   // вопрос допечатан: выбор ответа
     {
-        if (keyIs(e, {SDL_SCANCODE_UP, SDL_SCANCODE_W, SDL_SCANCODE_DOWN, SDL_SCANCODE_S,
-                      SDL_SCANCODE_LEFT, SDL_SCANCODE_A, SDL_SCANCODE_RIGHT, SDL_SCANCODE_D}))
-            choiceSel = 1 - choiceSel;
+        const int n = static_cast<int>(choiceOptions.size());
+        if (keyIs(e, {SDL_SCANCODE_UP, SDL_SCANCODE_W, SDL_SCANCODE_LEFT, SDL_SCANCODE_A}))
+            choiceSel = (choiceSel + n - 1) % n;
+        else if (keyIs(e, {SDL_SCANCODE_DOWN, SDL_SCANCODE_S, SDL_SCANCODE_RIGHT, SDL_SCANCODE_D}))
+            choiceSel = (choiceSel + 1) % n;
         int pick = confirmKey(e) ? choiceSel : -1;
         if (isMouse(e))
         {
             const SDL_Point m = mousePos(e);
-            for (int r = 0; r < 2; ++r)
+            for (int r = 0; r < n; ++r)
             {
                 const SDL_Rect rr = choiceRect(r);
                 if (!SDL_PointInRect(&m, &rr)) continue;
@@ -173,7 +183,7 @@ void UIManager::handleDialogEvent(const SDL_Event& e)
         }
         if (pick < 0) return;
         uiSound("Confirm");
-        choiceResult = pick == 0;
+        choiceResult = pick;
         talkChoice = false;
         talkPages.clear();
         return;
@@ -217,16 +227,18 @@ void UIManager::drawDialog()
         y += kTalkLineH;
     }
 
-    // Вопрос допечатан: окошко «Да / Нет» над окном разговора
+    // Вопрос допечатан: окошко ответов над окном разговора
     if (talkChoice && visible.size() == page.size() && talkPage + 1 == static_cast<int>(talkPages.size()))
     {
+        const int n = static_cast<int>(choiceOptions.size());
         visualizer.drawNinePatch(getWindowSkin(visualizer.getRenderer()),
-                                 {choiceRect(0).x - 12, choiceRect(0).y - 12, 174, 100}, kWindowSkinSlice, 1);
+                                 {choiceRect(0).x - 12, choiceRect(0).y - 12, choiceW + 24, n * 38 + 24},
+                                 kWindowSkinSlice, 1);
         const int blink = static_cast<int>((SDL_GetTicks() / 220) % 2) * 2;
-        for (int r = 0; r < 2; ++r)
+        for (int r = 0; r < n; ++r)
         {
             const SDL_Rect rr = choiceRect(r);
-            drawText(tr(r == 0 ? "Yes" : "No"), rr.x + 22, rr.y + 4, r == choiceSel ? kHot : kText);
+            drawText(choiceOptions[r], rr.x + 22, rr.y + 4, r == choiceSel ? kHot : kText);
             if (r == choiceSel) drawPointer(rr.x + 14 - blink, rr.y + rr.h / 2, 2);
         }
         return;

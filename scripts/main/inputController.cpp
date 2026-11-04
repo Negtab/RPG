@@ -27,6 +27,7 @@ void InputController::chooseInput(SDL_Event event, Game& game, Battle& battle, P
         case GameState::Shop:       uiManager.handleShopEvent(event); break;
         case GameState::GameOver:   uiManager.handleGameOverEvent(event); break;
         case GameState::Intro:      uiManager.handleIntroEvent(event); break;
+        case GameState::Ending:     uiManager.handleEndingEvent(event); break;
         default: ;
     }
     uiManager.playMenuFeedback(event, before);

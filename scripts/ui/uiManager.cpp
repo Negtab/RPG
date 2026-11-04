@@ -760,6 +760,8 @@ void UIManager::drawScene(const std::string &sceneId)
         drawGameOver();
     if (sceneId == "Intro")
         drawIntro();
+    if (sceneId == "Ending")
+        drawEnding();
     if (sceneId == "Battle")
         drawBattleOverlay();                          // поверх окон: стрелки и числа урона
     if (sceneId == "Battle" && bestiaryOpen)
@@ -2035,8 +2037,6 @@ void UIManager::styleEdit(const std::string& id, const std::string& sceneId,
 
 void UIManager::handleCreateEvent(const SDL_Event& e)
 {
-    if (e.type != SDL_KEYDOWN) return;
-    const SDL_Scancode k = e.key.keysym.scancode;
     if (e.type == SDL_MOUSEBUTTONDOWN)                         // щелчок по полю имени переносит туда и курсор
     {
         for (int i = 0; i < 4; ++i)
@@ -2045,6 +2045,8 @@ void UIManager::handleCreateEvent(const SDL_Event& e)
                 createCursor = kCreateName + i;
         return;
     }
+    if (e.type != SDL_KEYDOWN) return;
+    const SDL_Scancode k = e.key.keysym.scancode;
     const bool up    = k == SDL_SCANCODE_W || k == SDL_SCANCODE_UP;
     const bool down  = k == SDL_SCANCODE_S || k == SDL_SCANCODE_DOWN;
     const bool left  = k == SDL_SCANCODE_A || k == SDL_SCANCODE_LEFT;
@@ -2089,14 +2091,14 @@ void UIManager::drawCreateCursor()
         drawPointer(r.x - 8, r.y + r.h / 2, PIXEL_SCALE);
         return;
     }
-    const SDL_Rect r = getRect("Slot" + std::to_string(createCursor + 1), "CreatePlayer");
-    drawPointer(r.x + 28, r.y + 28, PIXEL_SCALE);
     if (createCursor >= kCreateName)
     {
         const SDL_Rect r = getRect("Name" + std::to_string(createCursor - kCreateName + 1), "CreatePlayer");
         drawPointer(r.x - 4, r.y + r.h / 2, PIXEL_SCALE);
         return;
     }
+    const SDL_Rect r = getRect("Slot" + std::to_string(createCursor + 1), "CreatePlayer");
+    drawPointer(r.x + 28, r.y + 28, PIXEL_SCALE);
 }
 
 void UIManager::focusNameField(int slot)
@@ -2134,6 +2136,8 @@ void UIManager::initialize()
     addScene(gameStateString.at(GameState::GameOver));
     findScene("Intro")->musicPlayer.music["IntroTheme"] = ResourceManager::getMusic("MenuTheme");
     findScene("GameOver")->musicPlayer.music["GameOverTheme"] = nullptr;   // тишина
+    addScene(gameStateString.at(GameState::Ending));    // слайды и титры рисует drawEnding()
+    findScene("Ending")->musicPlayer.music["EndingTheme"] = ResourceManager::getMusic("MenuTheme");
 
     initMapScene();
     initMenuScene();
@@ -4039,4 +4043,78 @@ void UIManager::drawIntro()
         y += 36;
     }
     drawOutlinedText(tr("Enter - skip"), screen.w - 110, screen.h - 40, {150, 150, 170, 255}, 255);
+}
+
+// ─────────────────────────────────────────
+// Концовка: слайды ending.<id>.N, потом титры
+// ─────────────────────────────────────────
+
+namespace {
+constexpr Uint32 kEndingSlideMs = 6000;                       // финал читают дольше заставки
+constexpr Uint32 kEndingFadeMs = 900;
+constexpr Uint32 kEndingCardInputDelay = 1500;                // Enter, листавший слайды, не должен сразу закрыть титры
+}
+
+void UIManager::openEnding()
+{
+    const Story& story = game.getStory();
+    const std::string prefix = "ending." + game.getEnding() + ".";
+    endingSlides = 0;
+    while (endingSlides < 20 && story.hasText(prefix + std::to_string(endingSlides + 1))) ++endingSlides;
+    endingSlide = 0;
+    endingSlideStart = SDL_GetTicks();
+}
+
+void UIManager::handleEndingEvent(const SDL_Event& e)
+{
+    if (!confirmKey(e) && !backKey(e) && !leftClick(e)) return;
+    if (endingSlide < endingSlides)                           // следующий слайд сразу, без ожидания
+    {
+        ++endingSlide;
+        endingSlideStart = SDL_GetTicks();
+    }
+    else if (SDL_GetTicks() - endingSlideStart >= kEndingCardInputDelay)
+        game.leaveEnding();
+}
+
+void UIManager::drawEnding()
+{
+    visualizer.fillRect(screen, {0, 0, 0, 255});
+    const Story& story = game.getStory();
+    const std::string prefix = "ending." + game.getEnding() + ".";
+    Uint32 age = SDL_GetTicks() - endingSlideStart;
+    if (endingSlide < endingSlides && age >= kEndingSlideMs)  // слайд дожил: следующий
+    {
+        ++endingSlide;
+        endingSlideStart = SDL_GetTicks();
+        age = 0;
+    }
+
+    if (endingSlide < endingSlides)
+    {
+        const Uint32 a = age < kEndingFadeMs ? age * 255 / kEndingFadeMs
+                       : age > kEndingSlideMs - kEndingFadeMs ? (kEndingSlideMs - age) * 255 / kEndingFadeMs : 255;
+        const auto rows = wrapText(story.text(prefix + std::to_string(endingSlide + 1)), screen.w - 160);
+        int y = screen.h / 2 - static_cast<int>(rows.size()) * 18;
+        for (const auto& r : rows)
+        {
+            drawOutlinedText(r, screen.w / 2, y, {230, 230, 240, 255}, static_cast<Uint8>(a));
+            y += 36;
+        }
+        drawOutlinedText(tr("Press Enter"), screen.w - 110, screen.h - 40, {150, 150, 170, 255}, 255);
+        return;
+    }
+
+    // Титры: название концовки, «Конец» и сколько концовок найдено за все прохождения
+    const Uint8 alpha = static_cast<Uint8>(std::min<Uint32>(255, age * 255 / 1000));
+    drawOutlinedText(story.text(prefix + "title"), screen.w / 2, screen.h / 2 - 80, {235, 200, 110, 255}, alpha);
+    drawOutlinedText(tr("The End"), screen.w / 2, screen.h / 2 - 20, {230, 230, 240, 255}, alpha);
+    const auto all = story.endings();
+    const auto found = std::count_if(all.begin(), all.end(), [&](const std::string& id) {
+        return game.getSeenEndings().contains(id);
+    });
+    drawOutlinedText(trf("Endings found: {0} of {1}", {std::to_string(found), std::to_string(all.size())}),
+                     screen.w / 2, screen.h / 2 + 40, {170, 170, 190, 255}, alpha);
+    if (age >= kEndingCardInputDelay)
+        drawOutlinedText(tr("Press Enter"), screen.w / 2, screen.h / 2 + 110, {220, 220, 230, 255}, 255);
 }

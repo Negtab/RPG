@@ -24,6 +24,11 @@ public:
     [[nodiscard]] Direction getFacing() const noexcept { return facing; }
     void setFacing(Direction d) noexcept { if (d != Direction::Idle) facing = d; }
     [[nodiscard]] const std::vector<std::string>& getLines() const noexcept { return lines; }
+    [[nodiscard]] const std::string& getScript() const noexcept { return script; }
+
+    // Сцена ведёт жителя (npcWalk, npcFace): новое место и взгляд — его дом, пока игрок не ушёл с карты
+    void walk(Point to);
+    void turn(Direction d) noexcept { if (d != Direction::Idle) facing = homeFacing = d; }
 
     // Горожанин уступает дорогу: шагает в сторону, а через несколько секунд возвращается той же дорогой
     void setYields(bool on) noexcept { yieldsWay = on; }
@@ -36,7 +41,7 @@ public:
     void stepBack();
     void updateStep(float dt) noexcept { stepLeft = stepLeft > dt ? stepLeft - dt : 0.f; }
     [[nodiscard]] float addAwayTime(float dt) noexcept { return awayTime += dt; }
-    void goHome();                                    // без анимации: игрок ушёл с карты
+    void goHome();                                    // без анимации: игрок ушёл с карты — на место из Tiled
     [[nodiscard]] float visualX() const noexcept;     // дробная клетка для рисования
     [[nodiscard]] float visualY() const noexcept;
 
@@ -58,6 +63,8 @@ private:
     bool yieldsWay = false;
     std::vector<Point> trail;                         // откуда пришёл: от дома до текущей клетки
     Direction homeFacing;
+    Point spawnCell;                                  // как поставили в Tiled: сюда возвращает goHome
+    Direction spawnFacing;
     Point stepFrom{};
     float stepLeft = 0.f;
     float awayTime = 0.f;

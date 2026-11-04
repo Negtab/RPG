@@ -4,7 +4,7 @@
 
 NotGamePerson::NotGamePerson(std::string name, std::string sprite, Point cell, Direction facing, std::vector<std::string> lines)
     : name(std::move(name)), sprite(std::move(sprite)), cell(cell), facing(facing), lines(std::move(lines)),
-      homeFacing(facing), stepFrom(cell) {}
+      homeFacing(facing), spawnCell(cell), spawnFacing(facing), stepFrom(cell) {}
 
 namespace {
     constexpr float kStepSeconds = 0.25f;
@@ -26,6 +26,13 @@ void NotGamePerson::stepAside(Point to)
     moveTo(to);
 }
 
+void NotGamePerson::walk(Point to)
+{
+    trail.clear();                                    // не возвращается туда, откуда уступал дорогу
+    moveTo(to);
+    homeFacing = facing;
+}
+
 void NotGamePerson::stepBack()
 {
     moveTo(trail.back());
@@ -35,11 +42,10 @@ void NotGamePerson::stepBack()
 
 void NotGamePerson::goHome()
 {
-    if (!trail.empty()) cell = trail.front();
+    cell = stepFrom = spawnCell;                      // и после уступленной дороги, и после npcWalk
     trail.clear();
-    stepFrom = cell;
     stepLeft = awayTime = 0.f;
-    facing = homeFacing;
+    facing = homeFacing = spawnFacing;
 }
 
 float NotGamePerson::visualX() const noexcept

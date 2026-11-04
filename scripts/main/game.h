@@ -68,6 +68,11 @@ class Game {
         void gameOver();                              // отряд пал: экран Game Over
         void leaveGameOver();                         // с экрана Game Over — к выбору сохранения (или в меню)
         void finishIntro();                           // заставка новой игры кончилась или пропущена
+        // Концовка из сценария (ending): слайды и титры, потом главное меню. В коопе — у всего отряда
+        void startEnding(const std::string& id, bool broadcast = true);
+        void leaveEnding();
+        [[nodiscard]] const std::string& getEnding() const noexcept { return endingId; }
+        [[nodiscard]] const std::set<std::string>& getSeenEndings() const noexcept { return seenEndings; }
         void autosave();                              // слот 0: при смене карты и в начале новой игры
         bool castFieldSpell(FieldSpell spell);        // Выход и Телепорт; false — здесь не работает
         [[nodiscard]] std::string currentLocation() const;          // английское название — ключ перевода
@@ -197,6 +202,10 @@ class Game {
         bool gameInProgress = false;                  // отряд на карте: можно сохраняться, «Continue» возвращает в игру
         float playSeconds = 0.0f;                     // время игры текущего прохождения
         int latestSaveSlot = -1;                      // самый свежий слот для «Continue», -1 — сохранений нет
+        std::string endingId;                         // какую концовку показываем
+        std::set<std::string> seenEndings;            // найденные за все прохождения: saves/endings.txt
+        void loadSeenEndings();
+        void saveSeenEndings() const;
         bool applyMapChange(int mapId, int x, int y);
         void followPortal(const Portal& portal, Point from);
         void exitBack();                              // шаг за край карты с exit = "back"

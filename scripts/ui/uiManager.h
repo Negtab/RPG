@@ -157,6 +157,8 @@ public:
     void handleGameOverEvent(const SDL_Event& event);
     void openIntro();
     void handleIntroEvent(const SDL_Event& event);
+    void openEnding();
+    void handleEndingEvent(const SDL_Event& event);
     void handleSavesEvent(const SDL_Event& event);
 
     // ── Игровое меню и настройки ───────────────────────
@@ -178,8 +180,9 @@ public:
     void showDialog(const std::string& speaker, const std::vector<std::string>& pages);
     [[nodiscard]] bool isDialogOpen() const { return !talkPages.empty(); }
     void handleDialogEvent(const SDL_Event& event);
-    void showChoice(const std::string& speaker, const std::string& question);   // вопрос и «Да / Нет»
-    [[nodiscard]] std::optional<bool> takeChoice();          // ответ, когда игрок выбрал (один раз)
+    // Вопрос и 2-4 ответа над окном разговора; без ответов — «Да / Нет»
+    void showChoice(const std::string& speaker, const std::string& question, std::vector<std::string> options = {});
+    [[nodiscard]] std::optional<int> takeChoice();           // номер ответа с 0, когда игрок выбрал (один раз)
     void openShop(const ShopDef& shop);
     void handleShopEvent(const SDL_Event& event);
 
@@ -284,6 +287,10 @@ private:
     void drawIntro();
     Uint32 gameOverStart = 0;                                  // когда показали Game Over
     Uint32 introStart = 0;                                     // когда началась заставка
+    void drawEnding();
+    int endingSlides = 0;                                      // ending.<id>.1 .. N; после них — титры
+    int endingSlide = 0;
+    Uint32 endingSlideStart = 0;                               // когда проявился текущий слайд или титры
     int  drawText(const std::string& text, int x, int y, SDL_Color color) const;    // возвращает ширину
     [[nodiscard]] SDL_Rect slotCardRect(int row) const;
     [[nodiscard]] SDL_Rect dialogOptionRect(bool yes) const;
@@ -377,9 +384,11 @@ private:
     [[nodiscard]] std::vector<std::string> wrapText(const std::string& text, int width) const;
     std::string talkSpeaker;
     std::vector<std::string> talkPages;                        // пусто — окна нет
-    bool talkChoice = false;                                   // последняя страница — вопрос «Да / Нет»
-    int choiceSel = 0;                                         // 0 — «Да»
-    std::optional<bool> choiceResult;
+    bool talkChoice = false;                                   // последняя страница — вопрос с ответами
+    std::vector<std::string> choiceOptions;                    // «Да / Нет» или ответы из choose()
+    int choiceW = 150;                                         // ширина строки ответа: по самому длинному
+    int choiceSel = 0;                                         // 0 — первый ответ
+    std::optional<int> choiceResult;
     [[nodiscard]] SDL_Rect choiceRect(int row) const;
     int talkPage = 0;
     Uint32 talkStart = 0;                                      // когда страница начала печататься

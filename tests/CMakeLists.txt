@@ -3,6 +3,7 @@ add_executable(rpg_tests
         gamePerson_test.cpp
         hero_test.cpp
         npcYield_test.cpp
+        storyArgs_test.cpp
 )
 
 target_link_libraries(rpg_tests PRIVATE rpg_core GTest::gtest_main)
