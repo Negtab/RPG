@@ -1,6 +1,7 @@
 #ifndef PROJECT_NAME_QUEST_H
 #define PROJECT_NAME_QUEST_H
 
+#include <cstdint>
 #include <map>
 
 #include "../main/types.h"

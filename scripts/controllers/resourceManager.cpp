@@ -1,8 +1,11 @@
+#include <array>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <SDL_image.h>
 
 #include "resourceManager.h"
+#include "../gameLogic/gameData.h"
 
 #include <algorithm>
 
@@ -24,12 +27,12 @@ TTF_Font *ResourceManager::getFont(const std::string &name) { return fonts[name]
 std::vector<SDL_Texture*>& ResourceManager::getAnimation(const std::string& name) {return animations.at(name);}
 
 
-bool ResourceManager::addFont(const std::string &path)
+bool ResourceManager::addFont(const std::string &path, int size)
 {
     if (fonts.contains(getName(path)))
         return false;
 
-    TTF_Font* font = TTF_OpenFont(path.c_str(), 24);
+    TTF_Font* font = TTF_OpenFont(path.c_str(), size);
     if (!font)
     {
         SDL_Log("Ошибка загрузки шрифта: %s", TTF_GetError());
@@ -56,7 +59,7 @@ bool ResourceManager::addTextTexture(const std::string& name, const std::string&
 {
     if (textures.contains(name))
         return false;
-    SDL_Surface* textSurface = TTF_RenderText_Solid( font, text.c_str(), color );
+    SDL_Surface* textSurface = TTF_RenderUTF8_Solid( font, text.c_str(), color );
     if (!textSurface)
         SDL_Log("Failed to render text: ", TTF_GetError());
     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(this->renderer, textSurface);
@@ -67,12 +70,15 @@ bool ResourceManager::addTextTexture(const std::string& name, const std::string&
 
 SDL_Texture* ResourceManager::getTextTexture(const std::string& text, TTF_Font* font, SDL_Color color, uint32_t wrapWidth)
 {
-    if (textCache.contains(text))
-        return textCache[text];
+    // Один и тот же текст бывает разного цвета (например, серое недоступное умение), поэтому цвет входит в ключ
+    const std::string key = text + '\x1f' + std::to_string(color.r) + ',' + std::to_string(color.g) + ','
+                            + std::to_string(color.b) + ',' + std::to_string(color.a) + ',' + std::to_string(wrapWidth);
+    if (auto it = textCache.find(key); it != textCache.end())
+        return it->second;
 
     SDL_Surface* textSurface;
     if (wrapWidth <= 0)
-        textSurface = TTF_RenderText_Solid( font, text.c_str(), color);
+        textSurface = TTF_RenderUTF8_Solid( font, text.c_str(), color);
     else
         textSurface = TTF_RenderUTF8_Blended_Wrapped( font, text.c_str(), color, wrapWidth);
     if (!textSurface)
@@ -80,8 +86,7 @@ SDL_Texture* ResourceManager::getTextTexture(const std::string& text, TTF_Font* 
     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
     SDL_FreeSurface(textSurface);
 
-    if (!textCache.contains(text))
-        textCache[text] = textTexture;
+    textCache[key] = textTexture;
 
     return textTexture;
 }
@@ -150,6 +155,13 @@ bool ResourceManager::addAnimation(const std::string& path)
     return true;
 }
 
+void ResourceManager::addTexturesFromDirectory(const std::string& dir)
+{
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(dir, ec))
+        if (entry.is_regular_file() && isFilePNG(entry.path().string()))
+            addTexture(entry.path().string());          // имя в таблице = имя файла без расширения
+}
 
 bool ResourceManager::isFileTTF(const std::string &path)
 {
@@ -215,6 +227,14 @@ TextBlock ResourceManager::renderMultiline(SDL_Renderer* renderer, const std::st
     return block;
 }
 
+void ResourceManager::releaseImage(const std::string& name)
+{
+    auto it = images.find(name);
+    if (it == images.end()) return;
+    SDL_FreeSurface(it->second);
+    images.erase(it);
+}
+
 void ResourceManager::initialize()
 {
     std::filesystem::path mainPath {std::filesystem::current_path().remove_filename()};
@@ -231,38 +251,34 @@ void ResourceManager::initialize()
     std::filesystem::path pathToEnvironment {mainPath.string() + R"(\resources\Images\Environment\)"};
     std::filesystem::path pathToAnimations {mainPath.string() + R"(\resources\Animations\)"};
 
-    addFont((mainPath / "resources" / "Fonts" / "RetroByte.ttf").string());
+    addFont((mainPath / "resources" / "Fonts" / (std::string(kUiFont) + ".ttf")).string(), kUiFontSize);
     addMusic(pathToMusic.string() + "MenuTheme.mp3");
     addMusic(pathToMusic.string() + "MapTheme.mp3");
     addMusic(pathToMusic.string() + "BattleTheme.mp3");
     addMusic(pathToMusic.string() + "OptionsTheme.mp3");
     addMusic(pathToMusic.string() + "OnlineTheme.mp3");
-    addSound(pathToSounds.string() + "Menu\\ButtonHover.wav");
+    for (const char* name : {"Cursor", "Type", "Confirm", "Cancel", "Buzzer", "Page"})   // звуки интерфейса
+        addSound(pathToSounds.string() + "Menu\\" + name + ".wav");
+    for (const char* name : {"swing1", "swing2", "swing3", "miss", "hit", "slash", "blunt", "claw", "fire", "thunder",
+                             "ice", "heal", "mana", "buff", "debuff", "poison"})     // fx_<эффект из effects.json>
+        addSound(pathToSounds.string() + "Battle\\fx_" + name + ".wav");
 
     addTexture(pathToCharacters.string() + "MovingCharacter.png");
-    addTexture(pathToCharacters.string() + "Image1.png");
-    addTexture(pathToCharacters.string() + "Image2.png");
-    addTexture(pathToCharacters.string() + "Image3.png");
-    addTexture(pathToCharacters.string() + "Image4.png");
-    addTexture(pathToCharacters.string() + "Image1Dead.png");
-    addTexture(pathToCharacters.string() + "Image2Dead.png");
-    addTexture(pathToCharacters.string() + "Image3Dead.png");
-    addTexture(pathToCharacters.string() + "Image4Dead.png");
+    for (int look = 1; look <= kClassCount; ++look)             // Image<N>, Image<N>Dead: N — heroLook() класса
+    {
+        addTexture(pathToCharacters.string() + "Image" + std::to_string(look) + ".png");
+        addTexture(pathToCharacters.string() + "Image" + std::to_string(look) + "Dead.png");
+    }
 
-    addTexture(pathToEnemies.string() + "EvilMagician.png");
-    addTexture(pathToEnemies.string() + "EvilWarrior.png");
-    addTexture(pathToEnemies.string() + "Gargoyle.png");
-    addTexture(pathToEnemies.string() + "Gargoyle(Strong).png");
-    addTexture(pathToEnemies.string() + "Ghost.png");
-    addTexture(pathToEnemies.string() + "Ghost(Strong).png");
-    addTexture(pathToEnemies.string() + "Golem.png");
-    addTexture(pathToEnemies.string() + "Knight.png");
-    addTexture(pathToEnemies.string() + "Knight(Royle).png");
-    addTexture(pathToEnemies.string() + "Ogr.png");
-    addTexture(pathToEnemies.string() + "Lich.png");
+    addTexturesFromDirectory(pathToEnemies.string());
+    addTexturesFromDirectory((mainPath / "resources" / "Images" / "Vehicles").string());   // Ship, Canoe, Airship
+    addTexturesFromDirectory((mainPath / "resources" / "Images" / "Props").string());      // замки, башни, мосты
+    addTexturesFromDirectory((mainPath / "resources" / "Images" / "Overworld").string());  // Walk<набор>: герой на карте
+    addTexturesFromDirectory((mainPath / "resources" / "Images" / "Npcs").string());       // Npc<Имя>: жители городов
+    addTexturesFromDirectory((mainPath / "resources" / "Images" / "Effects").string());    // боевые эффекты и замахи
+    addTexturesFromDirectory((mainPath / "resources" / "Images" / "BattleBackgrounds").string());   // задники боя BB<имя>
 
     addTexture(pathToBackgrounds.string() + "WhiteBox.jpg");
-    addTexture(pathToBackgrounds.string() + "MapBackground.png");
     addTexture(pathToBackgrounds.string() + "MenuBackground.png");
     addTexture(pathToBackgrounds.string() + "OptionsBackground.png");
     addTexture(pathToBackgrounds.string() + "BattleImage0.png");
@@ -274,10 +290,8 @@ void ResourceManager::initialize()
     addTexture(pathToEnvironment.string() + "TargetSelector.png");
     addImage(pathToEnvironment.string() + "Sword.png");
 
-    addAnimation(pathToAnimations.string() + "Hero1Animation");
-    addAnimation(pathToAnimations.string() + "Hero2Animation");
-    addAnimation(pathToAnimations.string() + "Hero3Animation");
-    addAnimation(pathToAnimations.string() + "Hero4Animation");
+    for (int look = 1; look <= kClassCount; ++look)
+        addAnimation(pathToAnimations.string() + "Hero" + std::to_string(look) + "Animation");
 
     addAnimation(pathToAnimations.string() + "MoveDownAnimation");
     addAnimation(pathToAnimations.string() + "MoveUpAnimation");
@@ -285,121 +299,394 @@ void ResourceManager::initialize()
     addAnimation(pathToAnimations.string() + "MoveRightAnimation");
 }
 
-static void writeString(std::ofstream& out, const std::string& str)
+constexpr uint32_t kSaveMagic   = 0x504C5952;   // 'PLYR'
+constexpr uint32_t kSaveVersion = 10;            // 2: координаты в клетках + mapId; 3: герои; 4: локация, время игры, дата; 5: экипировка; 6: транспорт; 7: посещённые места; 8: выученные заклинания; 9: сюжет; 10: статусы героев
+constexpr uint64_t kMaxString   = 1024;
+constexpr uint64_t kMaxCount    = 100000;
+
+template <class T>
+void writePod(std::ostream& out, const T& v) { out.write(reinterpret_cast<const char*>(&v), sizeof(T)); }
+
+template <class T>
+void readPod(std::istream& in, T& v)
 {
-    uint64_t size = str.size();
-    out.write(reinterpret_cast<const char*>(&size), sizeof(size));
-    out.write(str.data(), size);
+    in.read(reinterpret_cast<char*>(&v), sizeof(T));
+    if (!in) throw std::runtime_error("save file is truncated");
 }
 
-static std::string readString(std::ifstream& in)
+void writeString(std::ostream& out, const std::string& s)
 {
-    uint64_t size;
-    in.read(reinterpret_cast<char*>(&size), sizeof(size));
-
-    std::string str(size, '\0');
-    in.read(str.data(), size);
-    return str;
+    writePod<uint64_t>(out, s.size());
+    out.write(s.data(), static_cast<std::streamsize>(s.size()));
 }
 
-bool ResourceManager::isPlayerNew(const std::string& path) const {
-    std::ifstream in(path);
-    if (!in || !in.is_open())
-        return true;
-    return false;
+std::string readString(std::istream& in)
+{
+    uint64_t size = 0;
+    readPod(in, size);
+    if (size > kMaxString) throw std::runtime_error("save file is corrupted (string size)");
+
+    std::string s(static_cast<size_t>(size), '\0');
+    in.read(s.data(), static_cast<std::streamsize>(size));
+    if (!in) throw std::runtime_error("save file is truncated");
+    return s;
 }
 
-
-void ResourceManager::savePlayer(const std::string& path, const Player& player)
+namespace {
+// Содержимое файла целиком. Сначала читаем всё сюда, применяем только если ошибок не было
+struct SaveData
 {
-    std::ofstream out(path, std::ios::binary);
-    if (!out)
-        throw std::runtime_error("Cannot open file for saving player: " + path);
-
-    // --- Header ---
-    uint32_t magic = 0x504C5952; // 'PLYR'
-    uint32_t version = 1;
-    out.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
-    out.write(reinterpret_cast<const char*>(&version), sizeof(version));
-
-    // --- Base data ---
-    writeString(out, player.getPlayerName());
-
-    uint32_t gold = player.getPlayerGold();
-    out.write(reinterpret_cast<const char*>(&gold), sizeof(gold));
-
-    int32_t speed = player.getPlayerSpeed();
-    out.write(reinterpret_cast<const char*>(&speed), sizeof(speed));
-
-    Point coords = player.getPlayerCoords();
-    out.write(reinterpret_cast<const char*>(&coords), sizeof(coords));
-
-    // --- Enemies ---
-    const auto enemies = player.getDiscoveredEnemies();
-    uint64_t enemyCount = enemies.size();
-    out.write(reinterpret_cast<const char*>(&enemyCount), sizeof(enemyCount));
-    for (const auto& e : enemies)
-        writeString(out, e);
-
-    // --- Items ---
-    const auto items = player.getAvailableItems(); // vector<int>
-    uint64_t itemCount = items.size();
-    out.write(reinterpret_cast<const char*>(&itemCount), sizeof(itemCount));
-    for (int id : items)
+    struct Hero
     {
-        uint8_t count = 1; // если нет доступа к map — минимум
-        out.write(reinterpret_cast<const char*>(&id), sizeof(id));
-        out.write(reinterpret_cast<const char*>(&count), sizeof(count));
-    }
-}
+        uint16_t statuses = 0;
+        uint8_t cls = 0, level = 1; uint32_t exp = 0, hp = 0, mp = 0; std::string name;
+        std::array<int32_t, kEquipSlots> equipment{};
+        bool hasEquipment = false;                       // до версии 5 экипировки не было: выдадим стартовую
+        std::vector<int32_t> spells;                     // 8: заклинания из лавок магии
+    };
 
+    std::string name;
+    uint32_t gold = 0;
+    int32_t cx = 0, cy = 0;
+    uint16_t mapId = 0;
+    bool hasPosition = false;
+    std::vector<std::string> enemies;
+    std::vector<std::pair<int, uint8_t>> items;
+    std::vector<Hero> heroes;
+    std::vector<std::string> storyFlags;
+    std::vector<std::pair<std::string, uint8_t>> quests;
+    std::string location;
+    uint32_t playSeconds = 0;
+    int64_t savedAt = 0;
+    uint8_t riding = 0;
+    std::array<VehicleState, kVehicleKinds> vehicles{};
+    bool hasVehicles = false;
+    std::vector<std::string> visited;                    // 7: где отряд побывал                            // до версии 6 транспорта не было: Game расставит его сам
+};
 
-void ResourceManager::loadPlayer(const std::string& path, Player& player)
+// Бросает std::runtime_error, если файл не открыть или он испорчен
+SaveData readSaveFile(const std::string& path)
 {
     std::ifstream in(path, std::ios::binary);
     if (!in)
-        throw std::runtime_error("Cannot open file for loading player: " + path);
+        throw std::runtime_error("cannot open save file: " + path);
 
-    uint32_t magic, version;
-    in.read(reinterpret_cast<char*>(&magic), sizeof(magic));
-    in.read(reinterpret_cast<char*>(&version), sizeof(version));
+    uint32_t magic = 0, version = 0;
+    readPod(in, magic);
+    readPod(in, version);
+    if (magic != kSaveMagic)
+        throw std::runtime_error("not a save file");
+    if (version < 1 || version > kSaveVersion)
+        throw std::runtime_error("unsupported save version " + std::to_string(version));
 
-    if (magic != 0x504C5952)
-        throw std::runtime_error("Invalid save file");
+    SaveData d;
+    d.name = readString(in);
+    readPod(in, d.gold);
 
-    if (version != 1)
-        throw std::runtime_error("Unsupported save version");
+    readPod(in, d.cx);
+    readPod(in, d.cy);
+    if (version >= 2)
+        readPod(in, d.mapId);
+    d.hasPosition = version >= 2;
 
-    // --- Base data ---
-    player.setPlayerName(readString(in));
-
-    uint32_t gold;
-    in.read(reinterpret_cast<char*>(&gold), sizeof(gold));
-    player.setPlayerGold(gold);
-
-    int32_t speed;
-    in.read(reinterpret_cast<char*>(&speed), sizeof(speed));
-    player.setPlayerSpeed(speed);
-
-    Point coords;
-    in.read(reinterpret_cast<char*>(&coords), sizeof(coords));
-    player.setPlayerCoords(coords);
-
-    // --- Enemies ---
-    uint64_t enemyCount;
-    in.read(reinterpret_cast<char*>(&enemyCount), sizeof(enemyCount));
+    uint64_t enemyCount = 0;
+    readPod(in, enemyCount);
+    if (enemyCount > kMaxCount)
+        throw std::runtime_error("save file is corrupted (enemy count)");
     for (uint64_t i = 0; i < enemyCount; ++i)
-        player.addDiscoveredEnemy(readString(in));
+        d.enemies.push_back(readString(in));
 
-    // --- Items ---
-    uint64_t itemCount;
-    in.read(reinterpret_cast<char*>(&itemCount), sizeof(itemCount));
+    uint64_t itemCount = 0;
+    readPod(in, itemCount);
+    if (itemCount > kMaxCount)
+        throw std::runtime_error("save file is corrupted (item count)");
     for (uint64_t i = 0; i < itemCount; ++i)
     {
-        int id;
-        uint8_t count;
-        in.read(reinterpret_cast<char*>(&id), sizeof(id));
-        in.read(reinterpret_cast<char*>(&count), sizeof(count));
-        player.addItem(id, count);
+        int32_t id = 0;
+        uint8_t count = 0;
+        readPod(in, id);
+        readPod(in, count);
+        d.items.emplace_back(id, count);
     }
+
+    if (version >= 3)
+    {
+        uint8_t count = 0;
+        readPod(in, count);
+        if (count > 4) throw std::runtime_error("save file is corrupted (hero count)");
+        for (int i = 0; i < count; ++i)
+        {
+            SaveData::Hero s;
+            readPod(in, s.cls); readPod(in, s.level); readPod(in, s.exp);
+            readPod(in, s.hp);  readPod(in, s.mp);
+            s.name = sanitizeHeroName(readString(in));
+            if (version >= 5)
+            {
+                for (auto& id : s.equipment) readPod(in, id);
+                s.hasEquipment = true;
+            }
+            if (version >= 10) readPod(in, s.statuses);
+            if (s.cls >= kClassCount || s.level < 1 || s.level > 99)
+                throw std::runtime_error("save file is corrupted (hero data)");
+            d.heroes.push_back(std::move(s));
+        }
+    }
+
+    if (version >= 4)
+    {
+        d.location = readString(in);
+        readPod(in, d.playSeconds);
+        readPod(in, d.savedAt);
+    }
+
+    if (version >= 6)
+    {
+        readPod(in, d.riding);
+        if (d.riding > static_cast<uint8_t>(Vehicle::Airship)) throw std::runtime_error("save file is corrupted (vehicle)");
+        for (auto& v : d.vehicles)
+        {
+            uint8_t available = 0, dir = 0;
+            int32_t x = 0, y = 0;
+            readPod(in, available); readPod(in, v.mapId); readPod(in, x); readPod(in, y); readPod(in, dir);
+            if (dir > static_cast<uint8_t>(Direction::Right)) throw std::runtime_error("save file is corrupted (vehicle)");
+            v.available = available != 0;
+            v.cell = {x, y};
+            v.dir = static_cast<Direction>(dir);
+        }
+        d.hasVehicles = true;
+    }
+
+    if (version >= 7)
+    {
+        uint16_t count = 0;
+        readPod(in, count);
+        for (int i = 0; i < count; ++i) d.visited.push_back(readString(in));
+    }
+
+    if (version >= 8)
+        for (auto& h : d.heroes)
+        {
+            uint8_t count = 0;
+            readPod(in, count);
+            h.spells.resize(count);
+            for (auto& id : h.spells) readPod(in, id);
+        }
+
+    if (version >= 9)
+    {
+        uint16_t count = 0;
+        readPod(in, count);
+        for (int i = 0; i < count; ++i) d.storyFlags.push_back(readString(in));
+        readPod(in, count);
+        for (int i = 0; i < count; ++i)
+        {
+            std::string id = readString(in);
+            uint8_t state = 0;
+            readPod(in, state);
+            d.quests.emplace_back(std::move(id), state);
+        }
+    }
+    return d;
+}
+}
+
+
+bool ResourceManager::isPlayerNew(const std::string& path) const
+{
+    std::error_code ec;
+    return !std::filesystem::is_regular_file(path, ec) || std::filesystem::file_size(path, ec) == 0;
+}
+
+bool ResourceManager::savePlayer(const std::string& path, const Player& player, const SaveMeta& meta)
+{
+    std::error_code ec;
+    std::filesystem::create_directories(std::filesystem::path(path).parent_path(), ec);   // папка saves/ при первом сохранении
+
+    const std::string tmpPath = path + ".tmp";   // пишем во временный файл: сбой посреди записи не убьёт старое сохранение
+    {
+        std::ofstream out(tmpPath, std::ios::binary | std::ios::trunc);
+        if (!out)
+        {
+            SDL_Log("Cannot open %s for saving", tmpPath.c_str());
+            return false;
+        }
+
+        writePod(out, kSaveMagic);
+        writePod(out, kSaveVersion);
+
+        writeString(out, player.getPlayerName());
+        writePod<uint32_t>(out, player.getPlayerGold());
+
+        const MoveState& m = player.getMove();
+        writePod<int32_t>(out, m.cell.x);
+        writePod<int32_t>(out, m.cell.y);
+        writePod<uint16_t>(out, m.mapId);
+
+        const auto enemies = player.getDiscoveredEnemies();
+        writePod<uint64_t>(out, enemies.size());
+        for (const auto& e : enemies)
+            writeString(out, e);
+
+        const auto& items = player.getItemCounts();   // реальные количества, а не «1 на всё»
+        writePod<uint64_t>(out, items.size());
+        for (const auto& [id, count] : items)
+        {
+            writePod<int32_t>(out, id);
+            writePod<uint8_t>(out, count);
+        }
+
+        const auto& heroes = player.getHeroes();
+        writePod<uint8_t>(out, static_cast<uint8_t>(std::min<size_t>(heroes.size(), 4)));
+        for (size_t i = 0; i < heroes.size() && i < 4; ++i)
+        {
+            const Hero& h = heroes[i];
+            writePod<uint8_t>(out, static_cast<uint8_t>(h.getClass()));
+            writePod<uint8_t>(out, h.getLevel());
+            writePod<uint32_t>(out, h.getExperience());
+            writePod<uint32_t>(out, h.getCurrentHp());
+            writePod<uint32_t>(out, h.getCurrentMp());
+            writeString(out, h.getName());
+            for (int id : h.getEquipment())
+                writePod<int32_t>(out, id);
+            writePod<uint16_t>(out, h.getStatuses());
+        }
+
+        writeString(out, meta.location.substr(0, kMaxString));
+        writePod<uint32_t>(out, meta.playSeconds);
+        writePod<int64_t>(out, static_cast<int64_t>(std::time(nullptr)));
+
+        writePod<uint8_t>(out, static_cast<uint8_t>(player.getRiding()));
+        for (const auto& v : player.getVehicles())
+        {
+            writePod<uint8_t>(out, v.available ? 1 : 0);
+            writePod<uint16_t>(out, v.mapId);
+            writePod<int32_t>(out, v.cell.x);
+            writePod<int32_t>(out, v.cell.y);
+            writePod<uint8_t>(out, static_cast<uint8_t>(v.dir));
+        }
+
+        writePod<uint16_t>(out, static_cast<uint16_t>(player.getVisited().size()));
+        for (const auto& place : player.getVisited())
+            writeString(out, place);
+
+        for (size_t i = 0; i < heroes.size() && i < 4; ++i)
+        {
+            const auto& spells = heroes[i].getLearnedSkills();
+            writePod<uint8_t>(out, static_cast<uint8_t>(std::min<size_t>(spells.size(), 255)));
+            for (size_t k = 0; k < spells.size() && k < 255; ++k)
+                writePod<int32_t>(out, spells[k]);
+        }
+
+        writePod<uint16_t>(out, static_cast<uint16_t>(meta.storyFlags.size()));
+        for (const auto& f : meta.storyFlags) writeString(out, f);
+        writePod<uint16_t>(out, static_cast<uint16_t>(meta.quests.size()));
+        for (const auto& [id, state] : meta.quests)
+        {
+            writeString(out, id);
+            writePod<uint8_t>(out, state);
+        }
+
+        out.flush();
+        if (!out)
+        {
+            SDL_Log("Failed to write save file");
+            return false;
+        }
+    }   // файл закрыт
+
+    std::filesystem::rename(tmpPath, path, ec);
+    if (ec)                                           // на некоторых тулчейнах rename не заменяет существующий файл
+    {
+        std::filesystem::remove(path, ec);
+        std::filesystem::rename(tmpPath, path, ec);
+    }
+    if (ec)
+    {
+        SDL_Log("Cannot replace save file: %s", ec.message().c_str());
+        return false;
+    }
+    return true;
+}
+
+// Заменяет прогресс игрока содержимым файла. Возвращает true, если в файле есть позиция
+// (в версии 1 она была в пикселях старого движка). При ошибке бросает std::runtime_error, игрок остаётся нетронутым
+bool ResourceManager::loadPlayer(const std::string& path, Player& player, SaveMeta* meta)
+{
+    const SaveData d = readSaveFile(path);
+
+    player.resetProgress();                           // иначе предметы и враги сложатся с текущей игрой
+    player.setPlayerName(d.name);
+    player.setPlayerGold(d.gold);
+    if (d.hasPosition)
+    {
+        player.setPlayerCoords({d.cx, d.cy});
+        player.getMove().mapId = d.mapId;
+    }
+    for (const auto& e : d.enemies)
+        player.addDiscoveredEnemy(e);
+    for (const auto& [id, count] : d.items)                  // вещи, которых больше нет в items.json (луки), пропадают
+        if (GameData::instance().items().contains(id)) player.addItem(id, count);
+
+    auto& heroes = player.getLinkTOHeroes();
+    for (const auto& s : d.heroes)
+    {
+        Hero hero{Specialization(static_cast<SpecializationNames>(s.cls))};
+        hero.setLevel(s.level);
+        hero.setExperience(s.exp);
+        hero.setCurrentHp(s.hp);
+        hero.setCurrentMp(s.mp);
+        hero.setStatuses(s.statuses & kLastingStatuses);
+        if (!s.name.empty()) hero.setName(s.name);
+        for (int id : s.spells)                              // заклинания, которых больше нет в skills.json, пропадают
+            if (const auto it = GameData::instance().skills().find(id); it != GameData::instance().skills().end())
+                hero.learnSkill(id);
+        if (s.hasEquipment)
+            for (int slot = 0; slot < kEquipSlots; ++slot)
+                hero.equip(static_cast<EquipSlot>(slot), s.equipment[slot]);   // неизвестный id equip просто не наденет
+        else
+            hero.equipStarting();
+        heroes.push_back(std::move(hero));
+    }
+
+    for (const auto& place : d.visited)
+        player.markVisited(place);
+
+    if (d.hasVehicles)
+    {
+        player.setRiding(static_cast<Vehicle>(d.riding));
+        player.getVehicles() = d.vehicles;
+    }
+
+    if (meta)
+    {
+        meta->location = d.location;
+        meta->playSeconds = d.playSeconds;
+        meta->hasVehicles = d.hasVehicles;
+        meta->storyFlags = d.storyFlags;
+        meta->quests = d.quests;
+    }
+    return d.hasPosition;
+}
+
+std::optional<SaveSummary> ResourceManager::readSaveSummary(const std::string& path) const
+{
+    if (isPlayerNew(path)) return std::nullopt;
+
+    SaveSummary s;
+    try
+    {
+        const SaveData d = readSaveFile(path);
+        s.location = d.location;
+        s.gold = d.gold;
+        s.playSeconds = d.playSeconds;
+        s.savedAt = d.savedAt;
+        for (const auto& h : d.heroes)
+            s.heroes.push_back({static_cast<SpecializationNames>(h.cls), h.level, h.name});
+    }
+    catch (const std::exception& e)
+    {
+        SDL_Log("Save '%s' is unreadable: %s", path.c_str(), e.what());
+        s.corrupted = true;
+    }
+    return s;
 }

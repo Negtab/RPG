@@ -1,6 +1,7 @@
 #ifndef PROJECT_NAME_RESOURCEMANAGER_H
 #define PROJECT_NAME_RESOURCEMANAGER_H
 
+#include <optional>
 #include <string>
 #include <SDL.h>
 #include <SDL_mixer.h>
@@ -17,6 +18,30 @@ struct TextBlock {
 struct TextSize {
     int w, h;
 };
+
+// Что игрок видит в карточке слота, без загрузки сохранения в игру
+struct SaveSummary {
+    struct HeroInfo { SpecializationNames cls; int level; std::string name; };
+    bool corrupted = false;                 // файл есть, но не читается: слот показываем, загрузить нельзя
+    std::string location;
+    uint32_t gold = 0;
+    uint32_t playSeconds = 0;
+    int64_t savedAt = 0;                    // unix-время, 0 = неизвестно (старые версии файла)
+    std::vector<HeroInfo> heroes;
+};
+
+// Сверх игрока в файле лежит то, что знает только Game
+struct SaveMeta {
+    std::string location;                   // зона или карта, где сохранились
+    uint32_t playSeconds = 0;
+    bool hasVehicles = true;                // при загрузке: false — файл старше версии 6, транспорт надо расставить
+    std::vector<std::string> storyFlags;    // 9: флаги сюжета
+    std::vector<std::pair<std::string, uint8_t>> quests;   // 9: журнал (id, Story::QuestState)
+};
+
+// Шрифт интерфейса: Pixelify Sans с кириллицей (resources/Fonts, лицензия OFL; готовит tools/patch_font.py)
+inline constexpr const char* kUiFont = "PixelifySans";
+inline constexpr int kUiFontSize = 22;                 // пиксель шрифта (~91 из 1000 единиц) — ровно 2 экранных пикселя: цифры не плывут
 
 class ResourceManager
 {
@@ -36,16 +61,20 @@ public:
     void initialize();
 
     [[nodiscard]] bool isPlayerNew(const std::string& path) const;
-    void savePlayer(const std::string &path, const Player &player);
-    void loadPlayer(const std::string &path, Player &player);
+    bool savePlayer(const std::string& path, const Player& player, const SaveMeta& meta);
+    bool loadPlayer(const std::string& path, Player& player, SaveMeta* meta = nullptr);
+    [[nodiscard]] std::optional<SaveSummary> readSaveSummary(const std::string& path) const;   // nullopt: слот пуст
 
     bool addTexture(const std::string& path);
     bool addTextTexture(const std::string& name, const std::string& text, TTF_Font* font, SDL_Color color);
     bool addImage(const std::string& path);
     bool addSound(const std::string& path);
     bool addMusic(const std::string& path);
-    bool addFont(const std::string& path);
+    bool addFont(const std::string& path, int size);
     bool addAnimation(const std::string& path);
+    void addTexturesFromDirectory(const std::string& dir);
+
+    static void releaseImage(const std::string& name);
 
     static TextSize measureText(const std::string& text, TTF_Font* font);
     static TextBlock renderMultiline(SDL_Renderer* renderer, const std::string& text, TTF_Font* font, SDL_Color color, int maxWidth = 0);

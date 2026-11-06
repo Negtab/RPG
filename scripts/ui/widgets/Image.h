@@ -68,11 +68,16 @@ private:
     mutable bool dirty = true;
 
     void rebuildTexture(Visualizer& v) {
-        if (!font || text.empty()) { dirty = false; return; }
         if (texture)
         {
             SDL_DestroyTexture(texture);
             texture = nullptr;
+        }
+        if (!font || text.empty())                       // пустой текст: старая надпись не должна остаться
+        {
+            background.rect.w = background.rect.h = 0;
+            dirty = false;
+            return;
         }
 
         auto block = ResourceManager::renderMultiline(v.getRenderer(), text, font, color);

@@ -1,6 +1,9 @@
 #ifndef PROJECT_NAME_PLAYER_H
 #define PROJECT_NAME_PLAYER_H
 
+#include <set>
+
+#include "movement.h"
 #include "types.h"
 #include "../ui/animation/animPlayer.h"
 #include "../gameLogic/hero.h"
@@ -32,14 +35,9 @@ public:
     [[nodiscard]] uint32_t getPlayerGold() const noexcept;
     void setPlayerGold(uint32_t g) noexcept;
 
-    [[nodiscard]] int32_t getPlayerSpeed() const noexcept;
-    void setPlayerSpeed(int32_t newSpeed) noexcept;
-
     [[nodiscard]] std::string getPlayerName() const noexcept;
     void setPlayerName(std::string newName) noexcept;
 
-    [[nodiscard]] Point getPlayerCoords() const noexcept;
-    void setPlayerCoords(Point newCoords) noexcept;
 
     [[nodiscard]] GameState getLastGameState() const noexcept;
     //void setLastGameState(GameState newGameState);
@@ -50,23 +48,64 @@ public:
 
     [[nodiscard]] std::vector<std::string> getDiscoveredEnemies() const;
     [[nodiscard]] std::vector<int> getAvailableItems() const;
-    [[nodiscard]] Location getPlayerLocation(const Game& game) const;
 
     void addDiscoveredEnemy(const std::string& enemy);
+    // Бестиарий: встреченные враги хранятся как id из enemies.json строкой (так они и пишутся в сохранение)
+    [[nodiscard]] bool isEnemyDiscovered(int enemyId) const;
+    void discoverEnemy(int enemyId) { addDiscoveredEnemy(std::to_string(enemyId)); }
     void addItem(int itemId, uint8_t count);
 
+    void resetProgress();
     [[nodiscard]] bool hasItem(int itemId) const;
     bool consumeItem(int itemId);
-    //void removeItem(int itemId);
+    void removeItem(int itemId, uint8_t count);          // продажа: убирает до count штук
 
-    [[nodiscard]] Direction getDirection() const;
-    void setDirection(const Direction &newDirection);
 
     [[nodiscard]] uint32_t getNetworkId() const noexcept;
     void setNetworkId(uint32_t id) noexcept;
 
     [[nodiscard]] NetworkRole getRole() const noexcept;
     void setRole(NetworkRole newRole) noexcept;
+
+    [[nodiscard]] const std::map<int, uint8_t>& getItemCounts() const noexcept { return itemIds; }
+
+    [[nodiscard]] MoveState& getMove() noexcept { return move; }
+    [[nodiscard]] const MoveState& getMove() const noexcept { return move; }
+
+    [[nodiscard]] Direction getDirection() const { return move.moving ? move.dir : Direction::Idle; }
+    void setDirection(const Direction& d) { if (d != Direction::Idle) move.dir = d; }
+    [[nodiscard]] Point getPlayerCoords() const noexcept { return move.cell; }
+    void setPlayerCoords(Point p) noexcept { move.cell = move.target = p; move.moving = false; move.progress = 0.f; }
+
+    // Города и подземелья карты мира, где отряд побывал (имена порталов): синие точки на мини-карте
+    [[nodiscard]] const std::set<std::string>& getVisited() const noexcept { return visited; }
+    void markVisited(const std::string& place) { if (!place.empty()) visited.insert(place); }
+
+    // Кого из отряда видно на карте. Павший не показывается — тогда следующий живой
+    [[nodiscard]] int getLeaderIndex() const noexcept { return leaderIndex; }
+    void setLeaderIndex(int i) noexcept { leaderIndex = i; }
+    [[nodiscard]] const Hero* displayedHero() const
+    {
+        const int n = static_cast<int>(heroes.size());
+        for (int k = 0; k < n; ++k)
+        {
+            const Hero& h = heroes[(leaderIndex + k) % n];
+            if (h.getCurrentHp() > 0) return &h;
+        }
+        return n ? &heroes.front() : nullptr;               // все пали: хоть кого-то показываем
+    }
+    void cycleLeader()                                       // V на карте: следующий живой
+    {
+        const int n = static_cast<int>(heroes.size());
+        for (int k = 1; k <= n; ++k)
+            if (heroes[(leaderIndex + k) % n].getCurrentHp() > 0) { leaderIndex = (leaderIndex + k) % n; return; }
+    }
+
+    // Транспорт: на чём едет игрок и где стоят остальные. Пока на транспорте едут, его клетка — клетка игрока
+    [[nodiscard]] Vehicle getRiding() const noexcept { return riding; }
+    void setRiding(Vehicle v) noexcept { riding = v; }
+    [[nodiscard]] std::array<VehicleState, kVehicleKinds>& getVehicles() noexcept { return vehicles; }
+    [[nodiscard]] const std::array<VehicleState, kVehicleKinds>& getVehicles() const noexcept { return vehicles; }
 
     AnimPlayer animPlayer;
 
@@ -76,8 +115,7 @@ private:
 
     std::string name;
     uint32_t gold{0};
-    Point coords{0, 0};
-    int32_t speed{1};
+    MoveState move;
 
     GameState lastState{GameState::Map};
     Direction direction {Direction::Idle};
@@ -85,6 +123,11 @@ private:
     std::vector<Hero> heroes;
     std::vector<std::string> discoveredEnemies;
     std::map<int, uint8_t> itemIds;
+
+    Vehicle riding{Vehicle::None};
+    int leaderIndex{0};
+    std::set<std::string> visited;
+    std::array<VehicleState, kVehicleKinds> vehicles{};
 };
 
 

@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -15,10 +16,17 @@
 #include "../controllers/resourceManager.h"
 #include "core/Scene.h"
 #include "animation/animPlayer.h"
+#include "../main/mapRenderer.h"
+#include "../gameLogic/gameData.h"
+
+
 
 class Game;
 class Player;
+class NotGamePerson;
 class UIObject;
+
+struct MenuListLayout { SDL_Rect area; int cols; int rows; int rowH; };   // список в две колонки с прокруткой
 
 class UIManager {
 public:
@@ -57,6 +65,8 @@ public:
                   SDL_Color color = {0,0,0,255},
                   int paddingX = 8, int paddingY = 4,
                   const std::string& panelId = "");
+    void addWindow(const std::string& id, const std::string& sceneId,
+                   const SDL_Rect& rect, const std::string& panelId = "");
 
     // ── Аудио ──────────────────────────────────────────
     void addMusic(const std::string& musicId, const std::string& sceneId);
@@ -76,7 +86,6 @@ public:
                        bool restart);
     [[nodiscard]] bool isAnimationFinished(const std::string& sceneId) const;
 
-    void updatePlayerAnimation(AnimPlayer& animPlayer, const Player& player);
     void updateRemoteAnimation(AnimPlayer& animPlayer, const Player& player);
 
     // ── Setters ────────────────────────────────────────
@@ -106,10 +115,80 @@ public:
     void moveSelectorToNext();
     void moveSelectorToPrevious();
     void moveSelector();
+    // Звуки интерфейса одни на все экраны: снимок до ввода и после него показывает, что произошло
+    struct MenuSnapshot
+    {
+        GameState state;
+        std::array<int, 11> screen;                    // страницы и окна: смена — подтверждение или отмена
+        std::array<int, 24> cursor;                    // курсоры и значения: смена — щелчок
+    };
+    [[nodiscard]] MenuSnapshot menuSnapshot() const;
+    void playMenuFeedback(const SDL_Event& e, const MenuSnapshot& before);
+    static void uiSound(const std::string& id);        // Cursor, Type, Confirm, Cancel, Buzzer, Page
+    void handleTitleEvent(const SDL_Event& e);        // стартовое меню с клавиатуры и геймпада
+    void resetTitleCursor() { titleTouched = false; }
+    void handleCreateEvent(const SDL_Event& e);       // выбор отряда с клавиатуры и геймпада
+    void handleBattleMenuEvent(const SDL_Event& e);   // команды и списки: клавиши и курсор под мышью
+    void handleTargetHover(const SDL_Event& event);   // курсор на цель под мышью; Esc и клавиши работают как раньше
     void confirmTarget();
+    void cancelChoice();                       // Esc: шаг назад (цель -> список -> команды)
 
     void setState(const UIChooseState& state);
     [[nodiscard]] UIChooseState getState() const;
+
+    void showBattleResults(const BattleReport& r);
+    void setBattleBackground(const std::string& name);         // BB<name>.png; нет такого — прежний
+    void enemyLunge(int index);                                // враг шагает к героям
+    void showActionName(const std::string& text);
+
+    // ── Боевые эффекты (effects.json) ───────────────────
+    void playEffect(const std::string& id, SDL_Point center, float delay = 0.0f, const std::string& sound = "");
+    void playEffectOn(const std::string& id, bool onHero, uint32_t owner, int index, float delay = 0.0f, const std::string& sound = "");
+    void playSwing(int swing, const std::string& heroImageId, float delay = 0.0f);   // замах SwingNN у руки героя
+    [[nodiscard]] static std::string effectForSkill(const Skill& skill);
+    [[nodiscard]] static std::string effectForItem(const Item& item);
+    void hideBattleResults();
+
+    void resetPartyCreation();
+
+    // ── Экран сохранений ───────────────────────────────
+    void openSaveScreen(bool saving);
+    void openGameOver();
+    void handleGameOverEvent(const SDL_Event& event);
+    void openIntro();
+    void handleIntroEvent(const SDL_Event& event);
+    void openEnding();
+    void handleEndingEvent(const SDL_Event& event);
+    void handleSavesEvent(const SDL_Event& event);
+
+    // ── Игровое меню и настройки ───────────────────────
+    void openGameMenu();
+    void showMapNotice(const std::string& text);
+    void handleGameMenuEvent(const SDL_Event& event);
+    void handleConfigEvent(const SDL_Event& event);
+
+    // ── Бестиарий: из игрового меню и из боя ────────────
+    void openBestiary();
+    void openBestiaryFromBattle();                             // только пока выбираем команду (кнопка Book или B)
+    void closeBestiary();
+    [[nodiscard]] bool isBestiaryOpen() const { return bestiaryOpen; }
+    void handleBestiaryEvent(const SDL_Event& event);
+
+    void applyLanguage();                                   // язык сменили: пересоздать надписи-картинки
+
+    // ── Разговор с NPC и магазин (shopScreen.cpp) ──
+    void showDialog(const std::string& speaker, const std::vector<std::string>& pages);
+    [[nodiscard]] bool isDialogOpen() const { return !talkPages.empty(); }
+    void handleDialogEvent(const SDL_Event& event);
+    // Вопрос и 2-4 ответа над окном разговора; без ответов — «Да / Нет»
+    void showChoice(const std::string& speaker, const std::string& question, std::vector<std::string> options = {});
+    [[nodiscard]] std::optional<int> takeChoice();           // номер ответа с 0, когда игрок выбрал (один раз)
+    void openShop(const ShopDef& shop);
+    void handleShopEvent(const SDL_Event& event);
+
+    bool handleTextEvent(const SDL_Event& event, const std::string& sceneId);   // true: событие поглотило поле ввода
+    void styleEdit(const std::string& id, const std::string& sceneId,
+                   SDL_Color background, SDL_Color border, int maxLength = 32);
 
 private:
     // ── Поиск ─────────────────────────────────────────
@@ -117,12 +196,15 @@ private:
     UIObject*  findUIObject (const std::string& id, const std::string& sceneId);
 
     // ── Отрисовка ──────────────────────────────────────
-    void drawRemotePlayers(Scene& scene);
+    void drawMapWorld();
+    void drawActor(const Player& p, int cellScreenX, int cellScreenY);
+    bool drawVehicle(Vehicle v, Direction dir, int cellScreenX, int cellScreenY, bool flying, bool moving);   // false: нет спрайта
+    MapRenderer* rendererFor(const MapData& map, bool roomView = false);   // roomView — вид изнутри комнат
+    std::unordered_map<int, std::unique_ptr<MapRenderer>> mapRenderers;
 
     // ── Обновление данных ──────────────────────────────
-    void updateSceneData (const std::string& sceneId, Scene& scene);
-    void updateMapData   (Scene& scene);
     void updateBattleData(Scene& scene);
+    void updateSceneData(const std::string &sceneId, Scene &scene);
 
     // ── Инициализация сцен ─────────────────────────────
     void initMapScene    ();
@@ -133,16 +215,230 @@ private:
 
     // ── Battle logic ───────────────────────────────────
     void onActionButton    (ActionType type);
+    void toggleAutoBattle  ();                          // кнопка Auto: повторять прошлый выбор каждого героя
     void onEnvironmentCLick(int id, bool isMagic);
 
     void initMagic();
     void initItems();
+    void closeList();
+    void setListEntry(int i, const std::string& name, const std::string& info,
+                      bool usable, std::function<void()> onClick);
+    [[nodiscard]] bool hasUsableSkill() const;
+    [[nodiscard]] bool hasItems() const;
 
     void snapSelectorToTarget();
+    [[nodiscard]] bool heroTargetable(int i) const;          // живой, а для Жизни — павший
+    bool targetFallen = false;
     [[nodiscard]] int getTargetCount(TargetType type) const;
+    [[nodiscard]] SDL_Rect selectedTargetRect() const;
+    [[nodiscard]] int targetAt(SDL_Point m) const;           // живая цель под точкой или -1
 
-    // ── Состояние ──────────────────────────────────────
-    std::string   currentPlayerAnim;
+    // ── Поверх сцены боя: указатели, имя цели, всплывающие числа ──
+    struct Popup { int x, y; std::string text; SDL_Color color; Uint32 start; };   // start может быть в будущем
+    struct FxInstance { EffectLayer layer; SDL_Texture* tex; SDL_Point at; Uint32 start; };
+    std::vector<FxInstance> fx;
+    void drawEffects();
+    struct TimedSound { std::string id; Uint32 at; };
+    std::vector<TimedSound> timedSounds;                       // звук эффекта ждёт его появления на экране
+    [[nodiscard]] SDL_Rect battlerRect(bool onHero, uint32_t owner, int index) const;
+    [[nodiscard]] const FxInstance* recentEffectAt(SDL_Point p) const;   // эффект, только что запущенный здесь
+    void drawBattleOverlay();
+    void drawPointer(int x, int y, int scale) const;          // белая стрелка вправо, (x, y) — её острие
+    void drawOutlinedText(const std::string& text, int x, int y, SDL_Color color, Uint8 alpha) const;
+    Uint32 trackHp(int& last, int hp, const SDL_Rect& slot);   // момент попадания, если HP упало; иначе 0
+    void resetHpTracking();
+    std::vector<Popup> popups;
+    std::array<int, MAX_ENEMY_COUNT> lastEnemyHp{};
+    std::array<int, 4> lastHeroHp{}, lastRemoteHp{};
+    std::string actionBanner;                                  // «Warrior - Attack» сверху во время хода
+    Uint32 actionBannerAt = 0;
+    std::array<SDL_Rect, 8> listRect{};                        // строки списка: для стрелки под мышью
+    std::array<std::function<void()>, 8> listActions;          // что делает строка; пусто — выбрать нельзя
+    int listCursor = 0;
+    int commandCursor = 0;                                     // строка меню команд
+    int commandHero = -1;                                      // чей выбор сейчас показан в меню
+    std::array<int, 4> lastCommand{};                          // прошлая команда каждого героя в этом бою
+    [[nodiscard]] bool commandEnabled(int i) const;
+    void runCommand(int i);
+    void rememberCommand(int i);
+    void resetListCursor();
+
+    void initCreateScene();
+    void refreshPartySlot(int slot);
+    void cycleClass(int slot, int dir);
+    void focusNameField(int slot);
+    void drawCreateCursor();
+    void drawTitleCursor();
+    int titleCursor = 0;                                       // строка стартового меню
+    bool titleTouched = false;                                 // игрок сам двигал курсор: не возвращаем на «Continue»
+    int createCursor = 0;                                      // 0..3 — класс героя, 4..7 — его имя, 8 «Назад», 9 «Начать»
+    static constexpr int kCreateName = 4, kCreateBack = 8, kCreateStart = 9;
+    void confirmParty();
+
+    void layoutBattle();
+
+    // ── Экран сохранений ───────────────────────────────
+    void initSavesScene();
+    void initGameMenuScene();
+    void updateMenuButtons();
+    void drawSavesScreen();
+    [[nodiscard]] static std::string statusTags(const GamePerson& p);   // «Яд, Сон» для экранов
+    void drawGameOver();
+    void drawIntro();
+    Uint32 gameOverStart = 0;                                  // когда показали Game Over
+    Uint32 introStart = 0;                                     // когда началась заставка
+    void drawEnding();
+    int endingSlides = 0;                                      // ending.<id>.1 .. N; после них — титры
+    int endingSlide = 0;
+    Uint32 endingSlideStart = 0;                               // когда проявился текущий слайд или титры
+    int  drawText(const std::string& text, int x, int y, SDL_Color color) const;    // возвращает ширину
+    [[nodiscard]] SDL_Rect slotCardRect(int row) const;
+    [[nodiscard]] SDL_Rect dialogOptionRect(bool yes) const;
+    [[nodiscard]] static std::string slotName(int slot);
+    void activateSlot(int slot);
+    void askDeleteSlot(int slot);                              // Del: спросить и стереть сохранение
+    void answerDialog(bool yes);
+    void showSavesNotice(const std::string& text);
+    bool uiDenied = false;                                     // действие отклонено: после ввода прозвучит отказ
+    void denyNotice(const std::string& text);                  // сообщение в меню об отказе
+
+    bool savesSaving = false;
+    std::vector<int> savesRows;                                // какие слоты на экране, сверху вниз
+    int savesSelected = 0;                                     // строка в savesRows
+    std::array<std::optional<SaveSummary>, 5> slotCache;       // читаем файлы при открытии экрана, а не каждый кадр
+    int  dialogSlot = -1;                                      // >= 0: открыт вопрос «точно?» про этот слот
+    bool dialogYes = false;
+    bool dialogDelete = false;                                 // вопрос про удаление, а не про запись или загрузку
+    std::string dialogLine1, dialogLine2;
+    std::string savesNotice;
+    Uint32 savesNoticeTicks = 0;
+
+    // ── Игровое меню и настройки ───────────────────────
+    struct MenuCommand { std::string text; bool enabled; std::function<void()> action; };
+    [[nodiscard]] std::vector<MenuCommand> gameMenuCommands();
+    [[nodiscard]] SDL_Rect gameMenuRowRect(int row) const;
+    void drawGameMenu();
+
+    // Страницы игрового меню. *Target — выбор героя, на которого применить предмет или заклинание
+    enum class MenuPage { Main, PickHero, Items, ItemTarget, Magic, MagicTarget, Equip, EquipPick, Status, Journal };
+    void drawJournalPage();
+    using ListLayout = MenuListLayout;
+
+    void openMenuPage(MenuPage page);
+    void showMenuNotice(const std::string& text);
+    [[nodiscard]] SDL_Rect partyRowRect(int i) const;
+    [[nodiscard]] SDL_Rect targetRowRect(int i) const;
+    [[nodiscard]] static SDL_Rect listCellRect(const ListLayout& l, int scroll, int index);
+    static void listNavigate(const ListLayout& l, int& sel, int& scroll, int count, SDL_Scancode k);
+    [[nodiscard]] static int listHit(const ListLayout& l, int scroll, int count, SDL_Point p);
+    [[nodiscard]] std::vector<std::pair<int, int>> inventoryList() const;   // (id, количество) для Items
+    [[nodiscard]] std::vector<int> equipCandidates() const;                // для слота equipSlotSel; 0 — «снять»
+    [[nodiscard]] std::string itemDescription(const Item& item) const;
+    [[nodiscard]] std::string skillDescription(const Skill& skill) const;
+    [[nodiscard]] bool skillUsableInField(const Hero& caster, const Skill& skill) const;
+    bool applyFieldEffect(Hero& target, bool restoresMp, int power, bool revive = false);   // false: эффекта нет
+    void useItemOn(int heroIndex);
+    void castOn(int heroIndex);
+    void cycleMenuHero(int dir);
+
+    void handleMenuMain(const SDL_Event& e);
+    void handleMenuList(const SDL_Event& e);                                // Items и Magic
+    void handleMenuTarget(const SDL_Event& e);
+    void handleMenuEquip(const SDL_Event& e);
+    void drawMenuHeader(const std::string& title, const std::string& right);
+    void drawPartyPanel(const SDL_Rect& win, int pointerRow, bool compact);
+    void drawItemsPage();
+    void drawMagicPage();
+    void drawEquipPage();
+    void drawStatusPage();
+    void drawTargetOverlay();
+
+    MenuPage menuPage = MenuPage::Main;
+    MenuPage pickFor  = MenuPage::Status;                       // куда ведёт выбор героя на главной странице
+    int menuHero = 0;                                           // чей экран Magic, Equipment, Status
+    int partySel = 0;                                           // строка отряда при выборе героя или цели
+    int listSel = 0, listScroll = 0;
+    int equipSlotSel = 0;
+    std::string menuNotice;
+    Uint32 menuNoticeTicks = 0;
+    // ── Бестиарий (bestiary.cpp) ────────────────────────
+    void drawBestiary();
+    void drawBestiaryLeft(int index, const SDL_Rect& page);    // номер, имя, спрайт или силуэт
+    void drawBestiaryRight(int index, const SDL_Rect& page);   // слабости, сильные стороны, места, умения
+    void drawBestiaryCorner(const SDL_Rect& r, bool right, bool enabled);
+    int  drawWrapped(const std::string& text, int x, int y, int width, int maxLines, SDL_Color color) const;   // y под текстом
+    void turnBestiaryPage(int index);
+    void runBestiarySearch(bool next);                         // next: к следующему совпадению после текущей страницы
+    void setBestiarySearch(bool on);
+    bool bestiaryOpen = false;
+    int  bestiaryIndex = 0;                                    // страница, на которой остановились (не сбрасывается)
+    int  bestiaryTurnFrom = 0;
+    Uint32 bestiaryTurnAt = 0;                                 // 0 — страница не листается
+    bool bestiarySearching = false;
+    std::string bestiaryQuery;
+    int  bestiaryMatches = 0, bestiaryMatchPos = 0;           // для подписи «2/5»
+
+    // ── Жители на карте, окно разговора, магазин (shopScreen.cpp) ──
+    void drawNpc(const NotGamePerson& npc, int cellScreenX, int cellScreenY);
+    void drawDialog();
+    [[nodiscard]] std::vector<std::string> wrapText(const std::string& text, int width) const;
+    std::string talkSpeaker;
+    std::vector<std::string> talkPages;                        // пусто — окна нет
+    bool talkChoice = false;                                   // последняя страница — вопрос с ответами
+    std::vector<std::string> choiceOptions;                    // «Да / Нет» или ответы из choose()
+    int choiceW = 150;                                         // ширина строки ответа: по самому длинному
+    int choiceSel = 0;                                         // 0 — первый ответ
+    std::optional<int> choiceResult;
+    [[nodiscard]] SDL_Rect choiceRect(int row) const;
+    int talkPage = 0;
+    Uint32 talkStart = 0;                                      // когда страница начала печататься
+
+    enum class ShopPhase { Command, Buy, Sell, Quantity, LearnWho, InnSave };
+    void drawShop();
+    void drawShopInfo(const Item& item);
+    [[nodiscard]] std::vector<std::pair<int, int>> shopList() const;   // (id, цена): товары или что можно продать
+    [[nodiscard]] int shopPrice(const Item& item, bool selling) const;
+    [[nodiscard]] int shopMaxCount() const;                    // сколько можно купить или продать выбранного
+    [[nodiscard]] SDL_Rect shopCommandRect(int row) const;
+    [[nodiscard]] SDL_Rect shopRowRect(int row) const;
+    void shopPick(int index);                                  // выбран товар: к выбору количества
+    void shopDeal();                                           // количество подтверждено: купить или продать
+    void shopSay(const std::string& line) { shopLine = line; }
+    [[nodiscard]] std::vector<const char*> shopCommands() const;  // «Купить / Продать / Выйти» или услуги
+    void shopRunCommand(int index);                              // выбрана команда
+    [[nodiscard]] std::string learnBlock(const Hero& hero, const Skill& spell) const;   // "" — может выучить
+    void drawSpellInfo(const Skill& spell);
+    void learnSpell(int heroIndex);
+    void restAtInn();
+    const ShopDef* shop = nullptr;
+    ShopPhase shopPhase = ShopPhase::Command;
+    bool shopSelling = false;                                  // в Quantity: продаём, а не покупаем
+    int shopCommand = 0, shopSel = 0, shopScroll = 0, shopCount = 1;
+    std::string shopLine;                                      // что сейчас говорит продавец
+
+    void drawConfig();
+    [[nodiscard]] SDL_Rect configRowRect(int row) const;
+    [[nodiscard]] SDL_Rect volumeBarRect(int row) const;
+    void changeVolume(int row, int level);
+    [[nodiscard]] std::vector<std::string> optionLabels(int row) const;   // варианты строки Encounters/Minimap
+    [[nodiscard]] int optionValue(int row) const;
+    void setOption(int row, int index);
+    [[nodiscard]] SDL_Rect optionRect(int row, int index) const;
+    void drawMinimap();
+    void drawProp(const Prop& p, int camX, int camY);
+    int lastCamX = 0, lastCamY = 0;
+    std::string mapNotice;                                     // короткая надпись над картой (H: бои вкл/выкл)
+    Uint32 mapNoticeTicks = 0;                             // камера последнего кадра карты: рамка на мини-карте
+    int gameMenuSelected = 0;
+    int configSelected = 0;                                    // 0 музыка, 1 звуки, 2 «Back»
+    bool draggingVolume = false;
+
+    std::array<int, 4> pickedClass{0, 1, 4, 5};
+    std::array<SDL_Rect, 4> heroSlotRect{}, remoteSlotRect{};
+    std::array<SDL_Rect, MAX_ENEMY_COUNT> enemySlotRect{};
+    std::array<Uint32, MAX_ENEMY_COUNT> enemyHitAt{}, enemyDeathAt{}, enemyLungeAt{};   // 0 — не было
+    std::array<std::string, 4> autoName;
+
     Action        pendingAction;
     UIChooseState uiState    { UIChooseState::ChooseAction };
     UIChooseState prevUIState{ UIChooseState::ChooseAction };

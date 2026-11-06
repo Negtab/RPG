@@ -5,7 +5,7 @@
 #ifndef PROJECT_NAME_NETWORKPACKETS_H
 #define PROJECT_NAME_NETWORKPACKETS_H
 
-#include "../main/types.h"
+#include <cstdint>
 
 enum class PacketType : uint8_t
 {
@@ -16,7 +16,10 @@ enum class PacketType : uint8_t
     BattleStart  = 4,  // кто-то начал бой — рассылаем врагов
     BattleAction = 5,  // игрок отправил действие
     BattleSnapshot = 6, // сервер рассылает состояние боя
-    BattleEnd = 7
+    BattleEnd = 7,
+    MapChange = 8,
+    PartyInfo = 9,
+    Story = 10         // флаг сюжета или запись журнала: кто изменил, тот и рассылает
 };
 
 #pragma pack(push, 1)
@@ -45,21 +48,20 @@ struct DisconnectPacket
     uint32_t playerId;
 };
 
-struct PlayerMovePacket
-{
+struct PlayerMovePacket {
     PacketHeader header;
-
     uint32_t playerId;
-
-    int32_t x;
-    int32_t y;
-
-    Direction direction;
+    uint16_t mapId;
+    int16_t  cellX, cellY, targetX, targetY;
+    uint8_t  direction;
+    uint8_t  moving;
+    uint8_t  vehicle;     // Vehicle: на чём едет игрок, чтобы напарник рисовал корабль, а не героя
+    uint8_t  leader;      // кого из отряда видно на карте (клавиша V)
 };
 
 struct EnemyData
 {
-    uint8_t  enemyName;   // EnemyName as uint8
+    uint8_t  enemyId;
     int32_t  currentHp;
     int32_t  maxHp;
 };
@@ -68,7 +70,7 @@ struct BattleStartPacket
 {
     PacketHeader header;
     uint8_t  enemyCount;
-    EnemyData enemies[4]; // максимум 4 врага
+    EnemyData enemies[9]; // MAX_ENEMY_COUNT: до 9 врагов, как в FF1
 };
 
 struct BattleActionPacket
@@ -87,6 +89,14 @@ struct CharacterState
 {
     int32_t currentHp;
     int32_t currentMana;
+    uint16_t statuses;      // маска Status
+};
+
+struct MapChangePacket
+{
+    PacketHeader header;
+    uint16_t mapId;
+    int16_t  cellX, cellY;
 };
 
 struct BattleSnapshotPacket
@@ -96,7 +106,7 @@ struct BattleSnapshotPacket
     uint8_t  enemyCount;
     CharacterState heroes[8];
     uint32_t heroOwner[8];  // ✅ ID владельца каждого героя
-    CharacterState enemies[4];
+    CharacterState enemies[9];   // MAX_ENEMY_COUNT
     uint8_t  battleState;
     uint8_t  currentHeroIndex;
     uint8_t currentTurn;
@@ -109,6 +119,66 @@ struct BattleEndPacket
     uint8_t isWin; // 1 = победа, 0 = побег/поражение
 };
 
+struct HeroInfo
+{
+    uint8_t classId;      // SpecializationNames как uint8
+    uint8_t level;
+    int32_t currentHp;
+    int32_t currentMp;
+    char    name[25];     // до 12 букв в UTF-8 (русская — два байта) и нуль
+    int32_t equipment[5];   // id предметов по слотам EquipSlot, 0 — пусто: хост считает урон напарника с ними
+    uint8_t spellCount;
+    int16_t spells[32];     // заклинания из лавок магии: хост колдует ими за напарника
+    uint16_t statuses;      // маска Status
+};
+
+struct PartyInfoPacket
+{
+    PacketHeader header;
+    uint32_t playerId;
+    uint8_t  heroCount;   // максимум 4
+    HeroInfo heroes[4];
+};
+
 #pragma pack(pop)
+
+
+struct StoryPacket
+{
+    PacketHeader header;
+    uint8_t kind;           // 0 — флаг (value 1 — поднят, 0 — снят), 1 — задание журнала (value — Story::QuestState)
+    uint8_t value;
+    char    name[48];
+};
+
+constexpr uint32_t kMaxPacket = 512;
+
+inline uint32_t expectedSize(PacketType t) {
+    switch (t) {
+    case PacketType::Connect:        return sizeof(ConnectPacket);
+    case PacketType::PlayerMove:     return sizeof(PlayerMovePacket);
+    case PacketType::PlayerJoined:   return sizeof(PlayerJoinedPacket);
+    case PacketType::Disconnect:     return sizeof(DisconnectPacket);
+    case PacketType::BattleStart:    return sizeof(BattleStartPacket);
+    case PacketType::BattleAction:   return sizeof(BattleActionPacket);
+    case PacketType::BattleSnapshot: return sizeof(BattleSnapshotPacket);
+    case PacketType::BattleEnd:      return sizeof(BattleEndPacket);
+    case PacketType::MapChange:      return sizeof(MapChangePacket);
+    case PacketType::PartyInfo:      return sizeof(PartyInfoPacket);
+    case PacketType::Story:          return sizeof(StoryPacket);
+    }
+    return 0;   // неизвестный тип
+}
+static_assert(sizeof(PacketHeader) == 5, "pack(1) сломан");
+static_assert(sizeof(ConnectPacket)        <= kMaxPacket);
+static_assert(sizeof(PlayerMovePacket)     <= kMaxPacket);
+static_assert(sizeof(PlayerJoinedPacket)   <= kMaxPacket);
+static_assert(sizeof(DisconnectPacket)     <= kMaxPacket);
+static_assert(sizeof(BattleStartPacket)    <= kMaxPacket);
+static_assert(sizeof(BattleActionPacket)   <= kMaxPacket);
+static_assert(sizeof(BattleSnapshotPacket) <= kMaxPacket);
+static_assert(sizeof(BattleEndPacket)      <= kMaxPacket);
+static_assert(sizeof(MapChangePacket)      <= kMaxPacket);
+static_assert(sizeof(PartyInfoPacket) <= kMaxPacket);
 
 #endif //PROJECT_NAME_NETWORKPACKETS_H

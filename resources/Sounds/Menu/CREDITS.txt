@@ -1,0 +1,2 @@
+Cursor, Confirm, Cancel, Buzzer: synthesized for this game (additive piano model).
+Page, Type: RPG Sound Pack by artisticdude (opengameart.org/content/rpg-sound-pack), CC0.

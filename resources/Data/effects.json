@@ -1,0 +1,31 @@
+[
+  // Боевые эффекты. Слой — картинка из resources/Images/Effects:
+  //   sheet            имя PNG без расширения
+  //   cols, rows       сетка кадров в листе; frames — сколько кадров проигрывать (по строкам слева направо)
+  //   fps              скорость; для одного кадра вместо неё duration (секунды)
+  //   scale, scaleEnd  размер кадра на экране относительно картинки; scaleEnd — к концу слоя (рост или сжатие)
+  //   fade             гаснуть к концу; add — сложение цветов (по умолчанию да, для текстур на чёрном фоне)
+  //   color            [r, g, b] — окраска; dx, dy — сдвиг от центра цели в пикселях экрана; delay — задержка, с
+  //   angle            поворот в градусах
+  // Умение и предмет выбирают эффект полем "effect", оружие — "hitEffect" (попадание) и "swing" (замах).
+
+  { "id": "hit",    "layers": [ { "sheet": "EF_Hit01_SA", "cols": 2, "rows": 2, "frames": 4, "fps": 16, "scale": 0.6 } ] },
+  { "id": "slash",  "layers": [ { "sheet": "EF_Light00_SA", "cols": 2, "rows": 2, "frames": 4, "fps": 18, "scale": 0.9 },
+                                { "sheet": "EF_Hit01_SA", "cols": 2, "rows": 2, "frames": 4, "fps": 16, "scale": 0.45, "delay": 0.1 } ] },
+  { "id": "blunt",  "layers": [ { "sheet": "EF_Hit03_SA", "cols": 3, "rows": 3, "frames": 9, "fps": 26, "scale": 0.7 } ] },
+  { "id": "claw",   "layers": [ { "sheet": "EF_Hit06_SA", "cols": 2, "rows": 2, "frames": 4, "fps": 14, "scale": 0.6 } ] },
+
+  { "id": "fire",   "layers": [ { "sheet": "EF_Explosion00_SA", "cols": 3, "rows": 3, "frames": 9, "fps": 16, "scale": 0.7 } ] },
+  { "id": "thunder","layers": [ { "sheet": "EF_Thunder01_SA", "cols": 4, "rows": 1, "frames": 4, "fps": 14, "scale": 0.8, "dy": -50 },
+                                { "sheet": "EF_Hit08_SA", "duration": 0.3, "scale": 0.4, "scaleEnd": 1.0, "fade": true, "delay": 0.15 } ] },
+  { "id": "ice",    "layers": [ { "sheet": "EF_Ice07_MS", "duration": 0.5, "scale": 0.2, "scaleEnd": 0.5, "fade": true, "add": false },
+                                { "sheet": "EF_Star01_ST", "cols": 2, "rows": 2, "frames": 4, "fps": 12, "scale": 0.7, "delay": 0.15 } ] },
+
+  { "id": "heal",   "layers": [ { "sheet": "EF_Sphere01_SA", "duration": 0.6, "scale": 0.4, "scaleEnd": 1.0, "fade": true, "color": [120, 255, 140] },
+                                { "sheet": "EF_Star01_ST", "cols": 2, "rows": 2, "frames": 4, "fps": 10, "scale": 0.7, "delay": 0.1 } ] },
+  { "id": "mana",   "layers": [ { "sheet": "EF_Sphere01_SA", "duration": 0.6, "scale": 0.4, "scaleEnd": 1.0, "fade": true, "color": [110, 160, 255] },
+                                { "sheet": "EF_Star01_ST", "cols": 2, "rows": 2, "frames": 4, "fps": 10, "scale": 0.7, "delay": 0.1 } ] },
+  { "id": "buff",   "layers": [ { "sheet": "EF_Ring01_SA", "duration": 0.5, "scale": 0.3, "scaleEnd": 1.0, "fade": true, "color": [255, 220, 120] } ] },
+  { "id": "debuff", "layers": [ { "sheet": "EF_Ring00_SA", "duration": 0.5, "scale": 1.0, "scaleEnd": 0.3, "fade": true, "color": [200, 120, 255] } ] },
+  { "id": "poison", "layers": [ { "sheet": "EF_Bubble00_SA", "cols": 2, "rows": 2, "frames": 4, "fps": 8, "scale": 0.8, "color": [150, 255, 120] } ] }
+]

@@ -1,6 +1,8 @@
 #ifndef PROJECT_NAME_BATTLE_H
 #define PROJECT_NAME_BATTLE_H
 
+#include <array>
+#include <optional>
 #include <unordered_set>
 #include <vector>
 
@@ -12,6 +14,8 @@
 
 class Game;
 class UIManager;
+
+struct HeroRef { uint32_t owner; int index; };
 
 struct BattleTarget
 {
@@ -25,7 +29,8 @@ public:
     Battle(Player* player, UIManager* ui, Game* game) : player(player), ui(ui), game(game) {};
     ~Battle() = default;
 
-    void run();
+    void run(const std::vector<int>& formation = {}, const std::vector<int>& pool = {},
+             const std::vector<int>& roster = {});
     void update();
 
     [[nodiscard]] BattleState getState() const;
@@ -35,11 +40,22 @@ public:
     [[nodiscard]] int  getCurrentHeroIndex() const;
     [[nodiscard]] bool isPlayerChoosing() const;
 
+    // Автобой: каждый герой повторяет то, что игрок выбрал ему в прошлый раз.
+    // Доступен после первого хода игрока в этом бою
+    [[nodiscard]] bool canUseAuto() const { return autoUnlocked; }
+    [[nodiscard]] bool isAuto() const { return autoMode; }
+    void setAuto(bool on);
+
     void startPlayerChoose();
+    void skipDeadHeroes();                             // к следующему живому герою; если таких нет, выбор окончен
     void confirmAction(const Action& action);
 
     void tryEscape();
     [[nodiscard]] bool canEscape() const;
+    [[nodiscard]] bool wasWon() const noexcept { return isWin; }
+    void setEscapable(bool on) noexcept { escapable = on; }   // бой с боссом: «Бежать» не сработает
+    void setFixedFormation(bool on) noexcept { fixedFormation = on; }   // до run(): враги ровно как переданы
+    [[nodiscard]] bool isEscapable() const noexcept { return escapable; }
 
     void startExecuteActions();
     void updateExecuteActions();
@@ -58,7 +74,11 @@ public:
     TurnOwner getCurrentTurn() const;
     int getCurrentActionIndex() const;
 
+    void onPlayerLeft(uint32_t playerId);
+    [[nodiscard]] bool isParticipant(uint32_t id) const { return participants.contains(id); }
 
+    void closeResults();                               // игрок подтвердил окно
+    [[nodiscard]] const BattleReport& getReport() const { return report; }
 
 private:
     void prepairUI();
@@ -72,14 +92,19 @@ private:
     void executeItem(Hero& user, const std::vector<int>& targets, int itemId);
 
     void tryCounterAttack(Hero& attacker, Enemy& target);
+    void tryAffect(Enemy& target, const Skill& skill);   // статус или мгновенная смерть: шанс, предел HP, боссы
 
-    [[nodiscard]] int selectHeroTarget() const;
     std::vector<int> resolveTargets(const Action& action);
 
     void checkBattleResult();
     void finishBattle(const bool &isWin);
 
+    int averageLevel() const;
+
     Hero* resolveActor(const Action& action);
+
+    void leaveBattle();
+    BattleReport report;
 
     Player *player;
     UIManager *ui;
@@ -88,14 +113,23 @@ private:
     BattleState state = BattleState::Start;
     TurnOwner currentTurn;
 
+
     bool firstTurnIsPlayer = false;
     bool isWin = false;
+    bool escapable = true;
+    bool fixedFormation = false;
     bool isAnimationsStarted = false;
+    uint32_t animStartTicks = 0;                       // когда начался показ действия: у врагов анимации нет, держим паузу
 
     bool escapeUsed = false;
     int escapeChance = 40;
 
     std::vector<Action> plannedActions;
+    std::array<std::optional<Action>, 4> lastActions;  // последний выбор каждого своего героя
+    bool autoMode = false;
+    bool autoUnlocked = false;                         // игрок уже сходил в этом бою сам
+    [[nodiscard]] Action autoActionFor(int heroIndex) const;
+    void chooseAutomatically();
     int currentHeroIndex = 0;
     int currentEnemyIndex = 0;
     int currentActionIndex = 0;
@@ -107,6 +141,22 @@ private:
     std::vector<Item> rewards;
 
     std::unordered_set<uint32_t> readyPlayers;
+
+    std::vector<int> enemyFormation, enemyPool, enemyRoster;                  // enemyPool уже был
+    std::vector<HeroRef> aliveHeroes() const;
+    bool performEnemyAction(int enemyIndex);                     // false: целей нет, все герои мертвы
+    bool enemyBasicAttack(Enemy& enemy, int hits);
+    bool enemyUseSkill(int enemyIndex, int skillId);
+
+    std::optional<HeroRef> selectHeroTarget() const;    // было: int selectHeroTarget() const
+    std::vector<Hero>* partyOf(uint32_t owner);
+    Hero* heroByRef(const HeroRef& ref);
+    void beginParticipants();
+    void executeSkill(GamePerson& caster, int skillId, const std::vector<int>& targets,
+                      bool casterIsHero, uint32_t owner);
+    void executeItem(Hero& user, const std::vector<int>& targets, int itemId, uint32_t owner);
+
+    std::unordered_set<uint32_t> participants;          // кто был в бою на момент старта
 };
 
 #endif // PROJECT_NAME_BATTLE_H

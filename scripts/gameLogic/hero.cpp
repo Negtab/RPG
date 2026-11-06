@@ -1,164 +1,157 @@
 #include "hero.h"
 
+#include <stdexcept>
+#include <algorithm>
+#include "gameData.h"
+
 Hero::Hero(Specialization spec) : spec(spec)
 {
+    const HeroClassDef* def = GameData::instance().heroClass(spec.name);
+    if (!def)
+        throw std::runtime_error("No hero class data for specialization " + std::to_string(static_cast<int>(spec.name)));
+
+    name = def->name;
     level = 1;
     experience = 0;
-    xpToNextLevel = 100;
+    xpToNextLevel = def->xpToFirstLevel;
 
-    switch (spec.name)
-    {
-        case SpecializationNames::Warrior:  makeBasicKnight();   break;
-        case SpecializationNames::Magician: makeBasicMagician(); break;
-        case SpecializationNames::Archer:   makeBasicArcher();   break;
-        case SpecializationNames::Thief:    makeBasicThief();    break;
-        default: break;
-    }
+    attack  = static_cast<uint32_t>(def->attack);
+    defence = static_cast<uint32_t>(def->defence);
+    agility = static_cast<uint32_t>(def->agility);
+    maxHp   = static_cast<uint32_t>(def->hp);
+    maxMp   = static_cast<uint32_t>(def->mp);
 
-    name = specializationNamesString.at(spec.name);
+    vulnerability = def->vulnerabilities;
+    refreshResists();
+    skills.clear();
+    for (int id : def->skills)
+        skills.push_back(SkillInstance{id, 0});
 
     currentHp = maxHp;
     currentMp = maxMp;
     isAlive = true;
 }
 
-void Hero::makeBasicKnight()
-{
-    spec.name   = SpecializationNames::Warrior;
-    spec.buffHp = 30;
-    spec.buffMp = 0;
-
-    attack   = 12;
-    defence  = 18;
-    agility  = 6;
-
-    maxHp = 150 + spec.buffHp;
-    maxMp = 30  + spec.buffMp;
-
-    resists = { Elemental::Physical };
-    vulnerability.clear();
-    skills = {{1,0}, {5, 0}};
-}
-
-
-void Hero::makeBasicMagician()
-{
-    spec.name   = SpecializationNames::Magician;
-    spec.buffHp = 0;
-    spec.buffMp = 40;
-
-    attack   = 22;
-    defence  = 6;
-    agility  = 8;
-
-    maxHp = 85  + spec.buffHp;
-    maxMp = 140 + spec.buffMp;
-
-    resists = { Elemental::Fire };
-    vulnerability = { Elemental::Physical };
-    skills = {{2,0}, {4,0}};
-}
-
-void Hero::makeBasicArcher()
-{
-    spec.name   = SpecializationNames::Archer;
-    spec.buffHp = 10;
-    spec.buffMp = 10;
-
-    attack   = 16;
-    defence  = 9;
-    agility  = 16;
-
-    maxHp = 110 + spec.buffHp;
-    maxMp = 60  + spec.buffMp;
-
-    resists = { Elemental::Air };
-    vulnerability.clear();
-    skills = {{3,0}};
-}
-
-void Hero::makeBasicThief()
-{
-    spec.name   = SpecializationNames::Thief;
-    spec.buffHp = 5;
-    spec.buffMp = 5;
-
-    attack   = 15;
-    defence  = 7;
-    agility  = 20;
-
-    maxHp = 95 + spec.buffHp;
-    maxMp = 50 + spec.buffMp;
-
-    resists = { Elemental::Poison };
-    vulnerability = { Elemental::Fire };
-    skills = {{6,0}};
-}
-
 void Hero::levelUp()
 {
+    const HeroClassDef* def = GameData::instance().heroClass(spec.name);
+    if (!def) return;
+
     ++level;
-
-    switch (spec.name)
-    {
-        case SpecializationNames::Warrior:
-            attack  += 2;
-            defence += 3;
-            agility += 1;
-
-            maxHp += 15 + spec.buffHp;
-            maxMp += 2  + spec.buffMp;
-            break;
-
-        case SpecializationNames::Magician:
-            attack  += 4;
-            defence += 1;
-            agility += 1;
-
-            maxHp += 6  + spec.buffHp;
-            maxMp += 15 + spec.buffMp;
-            break;
-
-        case SpecializationNames::Archer:
-            attack  += 3;
-            defence += 2;
-            agility += 3;
-
-            maxHp += 10 + spec.buffHp;
-            maxMp += 6  + spec.buffMp;
-            break;
-
-        case SpecializationNames::Thief:
-            attack  += 3;
-            defence += 1;
-            agility += 4;
-
-            maxHp += 8  + spec.buffHp;
-            maxMp += 4  + spec.buffMp;
-            break;
-
-        default:
-            break;
-    }
+    attack  += static_cast<uint32_t>(def->attackPerLevel);
+    defence += static_cast<uint32_t>(def->defencePerLevel);
+    agility += static_cast<uint32_t>(def->agilityPerLevel);
+    maxHp   += static_cast<uint32_t>(def->hpPerLevel);
+    maxMp   += static_cast<uint32_t>(def->mpPerLevel);
 
     currentHp = maxHp;
     currentMp = maxMp;
 
-    xpToNextLevel = static_cast<uint32_t>(xpToNextLevel * 1.3f);
+    xpToNextLevel = static_cast<uint32_t>(xpToNextLevel * def->xpGrowth);
 }
 
+void Hero::setLevel(int target)
+{
+    target = std::clamp(target, 1, 99);
+    while (level < target)
+        levelUp();                           // levelUp сам добавляет статы класса и восстанавливает HP/MP
+}
+
+int32_t Hero::equipBonus(int32_t Item::*stat) const
+{
+    int32_t sum = 0;
+    const auto& items = GameData::instance().items();
+    for (int id : equipment)
+        if (const auto it = items.find(id); id != 0 && it != items.end())
+            sum += it->second.*stat;
+    return sum;
+}
+
+namespace {
+    uint32_t withBonus(uint32_t base, int32_t bonus)       // бонус бывает отрицательным (тяжёлая броня)
+    {
+        return static_cast<uint32_t>(std::max<int64_t>(0, static_cast<int64_t>(base) + bonus));
+    }
+}
 
 uint32_t Hero::getAttackPower(const Skill* skill) const
 {
+    const uint32_t total = withBattleBonus(withBonus(attack, equipBonus(&Item::attack)), battleAttack);
     if (skill && skill->isDamaging)
-        return attack + skill->power;
-    return attack;
+        return total + skill->power;
+    return total;
+}
+
+uint32_t Hero::getDefense() const { return withBattleBonus(withBonus(defence, equipBonus(&Item::defence)), battleDefence); }
+uint32_t Hero::getSpeed() const   { return std::max<uint32_t>(1, withBonus(agility, equipBonus(&Item::agility))); }
+
+int Hero::getEquipped(EquipSlot slot) const
+{
+    const int i = static_cast<int>(slot);
+    return i >= 0 && i < kEquipSlots ? equipment[i] : 0;
+}
+
+int Hero::equip(EquipSlot slot, int itemId)
+{
+    const int i = static_cast<int>(slot);
+    if (i < 0 || i >= kEquipSlots) return 0;
+    if (itemId != 0)                                       // чужой слот или класс: не надеваем
+    {
+        const auto& items = GameData::instance().items();
+        const auto it = items.find(itemId);
+        if (it == items.end() || it->second.slot != slot || !it->second.canEquip(spec.name)) return 0;
+    }
+    const int old = equipment[i];
+    equipment[i] = itemId;
+    refreshResists();
+    return old;
+}
+
+void Hero::refreshResists()
+{
+    const HeroClassDef* def = GameData::instance().heroClass(spec.name);
+    resists = def ? def->resists : std::vector<Elemental>{};
+    const auto& items = GameData::instance().items();
+    for (int id : equipment)
+        if (const auto it = items.find(id); id != 0 && it != items.end())
+            for (Elemental e : it->second.resists)
+                if (std::find(resists.begin(), resists.end(), e) == resists.end()) resists.push_back(e);
+}
+
+bool Hero::knowsSkill(int skillId) const
+{
+    return std::any_of(skills.begin(), skills.end(), [&](const SkillInstance& s) { return s.skillId == skillId; });
+}
+
+void Hero::learnSkill(int skillId)
+{
+    if (knowsSkill(skillId)) return;
+    skills.push_back(SkillInstance{skillId, 0});
+    learned.push_back(skillId);
+}
+
+int Hero::spellsKnown(int spellLevel, bool white) const
+{
+    int n = 0;
+    const auto& all = GameData::instance().skills();
+    for (const auto& s : skills)
+        if (const auto it = all.find(s.skillId); it != all.end() && it->second.spellLevel == spellLevel &&
+                                                 it->second.white == white)
+            ++n;
+    return n;
+}
+
+void Hero::equipStarting()
+{
+    if (const HeroClassDef* def = GameData::instance().heroClass(spec.name))
+        for (int id : def->startEquipment)
+            if (const auto it = GameData::instance().items().find(id); it != GameData::instance().items().end())
+                equip(it->second.slot, id);
 }
 
 void Hero::addXP(const uint32_t& xp)
 {
     experience += xp;
-
     while (experience >= xpToNextLevel)
     {
         experience -= xpToNextLevel;

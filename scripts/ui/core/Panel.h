@@ -45,6 +45,8 @@ public:
                   const std::string& text, TTF_Font* font,
                   SDL_Color color = {0,0,0,255},
                   int paddingX = 8, int paddingY = 4);
+    void addWindow(const std::string& id, const SDL_Rect& rect);
+    Edit* focusedEdit();
 
     // Поиск любого виджета по id рекурсивно
     UIObject* find(const std::string& id);

@@ -2,11 +2,19 @@
 #include "game.h"
 
 
-Player::Player(std::string name) : name(std::move(name)) {
-    heroes.emplace_back(Specialization(SpecializationNames::Archer));
-    heroes.emplace_back(Specialization(SpecializationNames::Magician));
-    heroes.emplace_back(Specialization(SpecializationNames::Thief));
-    heroes.emplace_back(Specialization(SpecializationNames::Warrior));
+Player::Player(std::string name) : name(std::move(name)) {}
+
+void Player::resetProgress()
+{
+    heroes.clear();
+    gold = 0;
+    itemIds.clear();
+    discoveredEnemies.clear();
+    move = MoveState{};
+    riding = Vehicle::None;
+    vehicles = {};
+    leaderIndex = 0;
+    visited.clear();
 }
 
 uint32_t Player::getNetworkId() const noexcept
@@ -56,14 +64,8 @@ std::vector<Hero> Player::getCopyOfHeroes() const noexcept { return heroes; }
 uint32_t Player::getPlayerGold() const noexcept { return gold; }
 void Player::setPlayerGold(uint32_t g) noexcept { gold = g; }
 
-int32_t Player::getPlayerSpeed() const noexcept { return speed; }
-void Player::setPlayerSpeed(int32_t newSpeed) noexcept { speed = newSpeed; }
-
 std::string Player::getPlayerName() const noexcept { return name; }
 void Player::setPlayerName(std::string newName) noexcept { name = std::move(newName); }
-
-Point Player::getPlayerCoords() const noexcept { return coords; }
-void Player::setPlayerCoords(Point newCoords) noexcept { coords = newCoords; }
 
 GameState Player::getLastGameState() const noexcept { return lastState; }
 
@@ -79,18 +81,32 @@ std::vector<int> Player::getAvailableItems() const
     return available;
 }
 
-Location Player::getPlayerLocation(const Game& game) const
+
+void Player::addDiscoveredEnemy(const std::string& enemy)
 {
-    Point playerCoords = getPlayerCoords();
-   for (const auto& loc : game.getLocations())
-        if (playerCoords.x > loc.coord.x && playerCoords.x < loc.coord.x + loc.w &&
-            playerCoords.y > loc.coord.y && playerCoords.y < loc.coord.y + loc.h)
-            return loc;
-    return {};
+    if (std::find(discoveredEnemies.begin(), discoveredEnemies.end(), enemy) == discoveredEnemies.end())
+        discoveredEnemies.push_back(enemy);
 }
 
-void Player::addDiscoveredEnemy(const std::string& enemy) { discoveredEnemies.push_back(enemy); }
-void Player::addItem(int itemId, uint8_t count) { itemIds[itemId] += count; }
+bool Player::isEnemyDiscovered(int enemyId) const
+{
+    const std::string key = std::to_string(enemyId);
+    return std::find(discoveredEnemies.begin(), discoveredEnemies.end(), key) != discoveredEnemies.end();
+}
+void Player::addItem(int itemId, uint8_t count)
+{
+    if (itemId == 0 || count == 0) return;
+    auto& n = itemIds[itemId];
+    n = static_cast<uint8_t>(std::min(99, n + count));      // как в FF: не больше 99 штук, и uint8_t не переполнится
+}
+void Player::removeItem(int itemId, uint8_t count)
+{
+    auto it = itemIds.find(itemId);
+    if (it == itemIds.end()) return;
+    if (it->second <= count) itemIds.erase(it);
+    else it->second = static_cast<uint8_t>(it->second - count);
+}
+
 bool Player::hasItem(int itemId) const
 {
     auto it = itemIds.find(itemId);
@@ -110,6 +126,3 @@ bool Player::consumeItem(int itemId)
 
     return true;
 }
-
-Direction Player::getDirection() const { return this->direction; }
-void Player::setDirection(const Direction &newDirection) { this->direction = newDirection; }

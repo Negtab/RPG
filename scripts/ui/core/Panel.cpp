@@ -1,5 +1,5 @@
 #include "Panel.h"
-#include "../../controllers/visualizer.h"
+#include "../widgets/Window.h"
 
 void Panel::draw(Visualizer& v) const {
     if (!isVisible) return;
@@ -20,30 +20,33 @@ void Panel::draw(Visualizer& v) const {
 
 void Panel::handleClick(int x, int y) {
     if (!isEnabled || !isVisible) return;
-    for (auto& [id, btn] : buttons) {
-        if (btn->isEnabled && btn->containsPoint(x, y)) {
-            btn->handleClick(x, y);
-            return;
-        }
-    }
-    for (auto& [id, edt] : edits) {
-        if (edt->isEnabled && edt->containsPoint(x, y)) {
-            edt->handleClick(x, y);
-            return;
-        }
-    }
+
+    Edit* hitEdit = nullptr;
+    for (auto& [id, edt] : edits)
+        if (edt->isEnabled && edt->isVisible && edt->containsPoint(x, y)) hitEdit = edt.get();
+    for (auto& [id, edt] : edits)
+        if (edt.get() != hitEdit) edt->setFocus(false);              // клик мимо поля снимает фокус
+
+    for (auto& [id, btn] : buttons)
+        if (btn->isEnabled && btn->containsPoint(x, y)) { btn->handleClick(x, y); return; }
+
+    if (hitEdit) { hitEdit->handleClick(x, y); return; }
     for (auto& [id, panel] : panels)
         panel->handleClick(x, y);
 }
 
+Edit* Panel::focusedEdit() {
+    for (auto& [id, edt] : edits)
+        if (edt->isFocused && edt->isVisible && edt->isEnabled) return edt.get();
+    for (auto& [id, panel] : panels)
+        if (Edit* e = panel->focusedEdit()) return e;
+    return nullptr;
+}
+
 void Panel::handleHover(int x, int y) {
     if (!isEnabled || !isVisible) return;
-    for (auto& [id, btn] : buttons) {
-        if (btn->containsPoint(x, y)) {
-            btn->handleHover(x, y);
-            return;
-        }
-    }
+    for (auto& [id, btn] : buttons)               // все кнопки: те, с которых мышь ушла, должны об этом узнать
+        btn->handleHover(x, y);
     for (auto& [id, panel] : panels)
         panel->handleHover(x, y);
 }
@@ -123,6 +126,14 @@ void Panel::addImage(const std::string& id, const SDL_Rect& rect,
     img->srect    = srect;
     order.push_back(id);
     images[id]    = std::move(img);
+}
+
+void Panel::addWindow(const std::string& id, const SDL_Rect& rect)
+{
+    auto win  = std::make_unique<Window>();
+    win->rect = rect;
+    order.push_back(id);
+    images[id] = std::move(win);          // Window хранится как Image: draw() виртуальный
 }
 
 void Panel::addLabel(const std::string& id, const SDL_Rect& backgroundRect,

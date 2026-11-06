@@ -1,9 +1,8 @@
-//
-// Created by User on 14.12.2025.
-//
 
 #ifndef PROJECT_NAME_ACTION_H
 #define PROJECT_NAME_ACTION_H
+
+#include <cstdint>
 
 enum class ActionType
 {
