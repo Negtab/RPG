@@ -218,10 +218,11 @@
          "name":"npcs",
          "objects":[
                 {
-                 "gid":137,
+                 "gid":46,
                  "height":16,
                  "id":20,
                  "name":"Bikke",
+                 "opacity":1,
                  "properties":[
                         {
                          "name":"facing",
@@ -241,10 +242,11 @@
                  "y":272
                 }, 
                 {
-                 "gid":123,
+                 "gid":32,
                  "height":16,
                  "id":21,
                  "name":"Pirate",
+                 "opacity":1,
                  "properties":[
                         {
                          "name":"facing",
@@ -252,14 +254,14 @@
                          "value":"left"
                         }, 
                         {
-                         "name":"script",
-                         "type":"string",
-                         "value":"pravoka_pirate"
-                        }, 
-                        {
                          "name":"hideIf",
                          "type":"string",
                          "value":"bikke_defeated"
+                        }, 
+                        {
+                         "name":"script",
+                         "type":"string",
+                         "value":"pravoka_pirate"
                         }],
                  "rotation":0,
                  "type":"",
@@ -269,10 +271,11 @@
                  "y":240
                 }, 
                 {
-                 "gid":121,
+                 "gid":30,
                  "height":16,
                  "id":22,
                  "name":"Pirate",
+                 "opacity":1,
                  "properties":[
                         {
                          "name":"facing",
@@ -280,14 +283,14 @@
                          "value":"left"
                         }, 
                         {
-                         "name":"script",
-                         "type":"string",
-                         "value":"pravoka_pirate"
-                        }, 
-                        {
                          "name":"hideIf",
                          "type":"string",
                          "value":"bikke_defeated"
+                        }, 
+                        {
+                         "name":"script",
+                         "type":"string",
+                         "value":"pravoka_pirate"
                         }],
                  "rotation":0,
                  "type":"",
@@ -297,10 +300,11 @@
                  "y":304
                 }, 
                 {
-                 "gid":107,
+                 "gid":16,
                  "height":16,
                  "id":23,
                  "name":"Woman",
+                 "opacity":1,
                  "properties":[
                         {
                          "name":"facing",
@@ -311,7 +315,12 @@
                          "name":"script",
                          "type":"string",
                          "value":"pravoka_woman"
-                        }, {"name":"yields", "type":"bool", "value":true}],
+                        }, 
+                        {
+                         "name":"yields",
+                         "type":"bool",
+                         "value":true
+                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -320,10 +329,11 @@
                  "y":192
                 }, 
                 {
-                 "gid":103,
+                 "gid":12,
                  "height":16,
                  "id":24,
                  "name":"Old Man",
+                 "opacity":1,
                  "properties":[
                         {
                          "name":"facing",
@@ -334,7 +344,12 @@
                          "name":"script",
                          "type":"string",
                          "value":"pravoka_oldman"
-                        }, {"name":"yields", "type":"bool", "value":true}],
+                        }, 
+                        {
+                         "name":"yields",
+                         "type":"bool",
+                         "value":true
+                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -343,10 +358,11 @@
                  "y":496
                 }, 
                 {
-                 "gid":102,
+                 "gid":11,
                  "height":16,
                  "id":25,
                  "name":"Merchant",
+                 "opacity":1,
                  "properties":[
                         {
                          "name":"facing",
@@ -366,10 +382,11 @@
                  "y":368
                 }, 
                 {
-                 "gid":104,
+                 "gid":13,
                  "height":16,
                  "id":26,
                  "name":"Dancer",
+                 "opacity":1,
                  "properties":[
                         {
                          "name":"facing",
@@ -380,7 +397,12 @@
                          "name":"script",
                          "type":"string",
                          "value":"pravoka_dancer"
-                        }, {"name":"yields", "type":"bool", "value":true}],
+                        }, 
+                        {
+                         "name":"yields",
+                         "type":"bool",
+                         "value":true
+                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -426,7 +448,7 @@
          "source":"..\/props.tsx"
         }, 
         {
-         "firstgid":100,
+         "firstgid":9,
          "source":"..\/npcs.tsx"
         }],
  "tilewidth":16,
